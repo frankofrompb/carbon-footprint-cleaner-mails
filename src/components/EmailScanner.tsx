@@ -19,6 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import CarbonFootprintVisual from "./CarbonFootprintVisual";
+import Dashboard from "./Dashboard";
 
 interface EmailScannerProps {
   scanState: ScanState;
@@ -30,10 +31,15 @@ interface EmailScannerProps {
 
 const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: EmailScannerProps) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(true);
 
   const handleDelete = () => {
     setShowConfirmation(false);
     onDelete();
+  };
+
+  const toggleView = () => {
+    setShowDashboard(!showDashboard);
   };
 
   return (
@@ -82,43 +88,57 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                 </div>
               </div>
 
-              <CarbonFootprintVisual carbonGrams={scanState.results.carbonFootprint} />
+              {showDashboard ? (
+                <>
+                  <Button variant="outline" onClick={toggleView} className="w-full">
+                    Voir les emails trouvés
+                  </Button>
+                  <Dashboard scanResults={scanState.results} />
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={toggleView} className="w-full">
+                    Voir le tableau de bord
+                  </Button>
+                  <CarbonFootprintVisual carbonGrams={scanState.results.carbonFootprint} />
 
-              <Separator />
+                  <Separator />
 
-              {scanState.results.emails.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-medium">Échantillon des emails trouvés :</h3>
-                  <div className="max-h-60 overflow-y-auto border rounded-md">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-muted">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Sujet</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expéditeur</th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {scanState.results.emails.slice(0, 5).map((email) => (
-                          <tr key={email.id}>
-                            <td className="px-4 py-2 text-sm">{email.subject}</td>
-                            <td className="px-4 py-2 text-sm">{email.from}</td>
-                            <td className="px-4 py-2 text-sm">
-                              {new Date(email.date).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                        {scanState.results.emails.length > 5 && (
-                          <tr>
-                            <td colSpan={3} className="px-4 py-2 text-center text-sm text-muted-foreground">
-                              Et {scanState.results.emails.length - 5} autres emails...
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                  {scanState.results.emails.length > 0 && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Échantillon des emails trouvés :</h3>
+                      <div className="max-h-60 overflow-y-auto border rounded-md">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Sujet</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expéditeur</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {scanState.results.emails.slice(0, 5).map((email) => (
+                              <tr key={email.id}>
+                                <td className="px-4 py-2 text-sm">{email.subject}</td>
+                                <td className="px-4 py-2 text-sm">{email.from}</td>
+                                <td className="px-4 py-2 text-sm">
+                                  {new Date(email.date).toLocaleDateString()}
+                                </td>
+                              </tr>
+                            ))}
+                            {scanState.results.emails.length > 5 && (
+                              <tr>
+                                <td colSpan={3} className="px-4 py-2 text-center text-sm text-muted-foreground">
+                                  Et {scanState.results.emails.length - 5} autres emails...
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : (
