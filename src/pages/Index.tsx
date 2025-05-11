@@ -1,12 +1,54 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useAuth } from "@/hooks/useAuth";
+import { useScanEmails } from "@/hooks/useScanEmails";
+import LoginForm from "@/components/LoginForm";
+import EmailScanner from "@/components/EmailScanner";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const Index = () => {
+  const { authState, loginWithGmail, logout } = useAuth();
+  const { scanState, scanEmails, deleteEmails, exportToCsv } = useScanEmails();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <Header 
+        isAuthenticated={authState.isAuthenticated} 
+        userEmail={authState.userEmail} 
+        onLogout={logout}
+      />
+      
+      <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
+        <div className="w-full max-w-5xl mx-auto py-8">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-eco-blue to-eco-green bg-clip-text text-transparent">
+              Nettoyez votre boîte mail, sauvez la planète
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              Identifiez et supprimez les emails non lus de plus d'un an pour réduire votre empreinte carbone
+            </p>
+          </div>
+
+          <div className="flex justify-center">
+            {!authState.isAuthenticated ? (
+              <LoginForm 
+                onLoginWithGmail={loginWithGmail} 
+                isLoading={authState.loading} 
+              />
+            ) : (
+              <EmailScanner 
+                scanState={scanState}
+                onScan={scanEmails}
+                onDelete={deleteEmails}
+                onExport={exportToCsv}
+                userEmail={authState.userEmail || ""}
+              />
+            )}
+          </div>
+        </div>
+      </main>
+      
+      <Footer />
     </div>
   );
 };
