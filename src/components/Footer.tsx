@@ -7,7 +7,7 @@ const Footer = () => {
       <Separator className="mb-6" />
       <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-sm text-muted-foreground text-center md:text-left">
-          &copy; {new Date().getFullYear()} EcoMailCleaner - Réduisez votre empreinte carbone numérique
+          &copy; {new Date().getFullYear()} EcoInBox - Réduisez votre empreinte carbone numérique
         </p>
         <div className="text-xs text-muted-foreground">
           <p>Estimation : 10g de CO₂ par email non lu conservé pendant un an</p>
