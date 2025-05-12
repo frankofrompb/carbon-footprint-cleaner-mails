@@ -21,8 +21,8 @@ const Index = () => {
       <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
         <div className="w-full max-w-5xl mx-auto py-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-eco-blue to-eco-green bg-clip-text text-transparent">
-              L'intelligence qui trie vos mails, l'éthique qui les nettoie.
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              <span className="text-[#38c39d]">L'intelligence qui trie vos mails, l'éthique qui les nettoie.</span>
             </h1>
             <p className="text-lg text-muted-foreground">
               Supprimez l'inutile, classez l'essentiel et reprenez le contrôle de votre boîte mail.

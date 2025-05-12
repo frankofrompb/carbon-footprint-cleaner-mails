@@ -14,8 +14,10 @@ const Header = ({ isAuthenticated, userEmail, onLogout }: HeaderProps) => {
     <header className="w-full bg-white border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Leaf className="h-6 w-6 text-eco-green" />
-          <span className="font-bold text-lg">EcoInBox</span>
+          <Leaf className="h-6 w-6 text-[#38c39d]" />
+          <div className="flex items-center">
+            <span className="font-bold text-lg"><span className="text-[#38c39d]">Eco</span>InBox</span>
+          </div>
         </div>
         
         {isAuthenticated && (

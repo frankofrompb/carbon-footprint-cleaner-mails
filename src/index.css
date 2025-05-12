@@ -80,3 +80,12 @@
 .eco-gradient {
   @apply bg-gradient-to-br from-eco-blue to-eco-green;
 }
+
+.eco-color {
+  color: #38c39d;
+}
+
+.text-eco-brand {
+  @apply bg-gradient-to-br from-[#38c39d] to-[#38c39d] bg-clip-text text-transparent;
+}
+

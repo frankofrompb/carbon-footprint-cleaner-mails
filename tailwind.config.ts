@@ -69,7 +69,8 @@ export default {
 					'blue': '#3DA5D9',
 					'blue-dark': '#2364AA',
 					'text': '#333333',
-					'background': '#F7F9F9'
+					'background': '#F7F9F9',
+					'brand': '#38c39d'
 				}
 			},
 			borderRadius: {

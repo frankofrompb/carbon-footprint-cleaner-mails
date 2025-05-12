@@ -69,7 +69,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center">
-              <Mail className="h-4 w-4 mr-2 text-eco-blue" />
+              <Mail className="h-4 w-4 mr-2 text-[#38c39d]" />
               Emails promotionnels
             </CardTitle>
           </CardHeader>
@@ -84,7 +84,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center">
-              <Users className="h-4 w-4 mr-2 text-eco-blue" />
+              <Users className="h-4 w-4 mr-2 text-[#38c39d]" />
               Emails réseaux sociaux
             </CardTitle>
           </CardHeader>
@@ -99,7 +99,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center">
-              <Inbox className="h-4 w-4 mr-2 text-eco-blue" />
+              <Inbox className="h-4 w-4 mr-2 text-[#38c39d]" />
               Emails spam
             </CardTitle>
           </CardHeader>
@@ -122,7 +122,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
               config={{
                 emails: {
                   label: "Emails non lus",
-                  color: "#1EAEDB",
+                  color: "#38c39d",
                 },
               }}
             >
