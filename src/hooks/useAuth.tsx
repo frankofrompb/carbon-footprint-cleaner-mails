@@ -3,8 +3,8 @@ import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthState } from "@/types";
 
-// Identifiants client OAuth pour Gmail (à remplacer par vos identifiants réels)
-const GMAIL_CLIENT_ID = "VOTRE_CLIENT_ID_GMAIL";
+// Remplacer VOTRE_CLIENT_ID_GMAIL par l'ID client fourni par Google Cloud Console
+const GMAIL_CLIENT_ID = "VOTRE_CLIENT_ID_GMAIL"; // Remplacez cette valeur par votre vrai Client ID
 const GMAIL_REDIRECT_URI = window.location.origin;
 
 // Périmètre des autorisations nécessaires pour Gmail
