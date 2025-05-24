@@ -5,7 +5,7 @@ import { AuthState } from "@/types";
 
 // Remplacer VOTRE_CLIENT_ID_GMAIL par l'ID client fourni par Google Cloud Console
 const GMAIL_CLIENT_ID = "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com"; // Remplacez cette valeur par votre vrai Client ID
-const GMAIL_REDIRECT_URI = https://carbon-footprint-cleaner-mails.lovable.app/auth/callback;
+const GMAIL_REDIRECT_URI = "https://carbon-footprint-cleaner-mails.lovable.app/auth/callback";
 
 // Périmètre des autorisations nécessaires pour Gmail
 const GMAIL_SCOPES = [
