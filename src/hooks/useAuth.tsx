@@ -1,10 +1,11 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthState } from "@/types";
 
 // Remplacer VOTRE_CLIENT_ID_GMAIL par l'ID client fourni par Google Cloud Console
-const GMAIL_CLIENT_ID = "VOTRE_CLIENT_ID_GMAIL"; // Remplacez cette valeur par votre vrai Client ID
-const GMAIL_REDIRECT_URI = `${window.location.origin}/auth/callback`;
+const GMAIL_CLIENT_ID = "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com"; // Remplacez cette valeur par votre vrai Client ID
+const GMAIL_REDIRECT_URI = https://carbon-footprint-cleaner-mails.lovable.app/auth/callback;
 
 // Périmètre des autorisations nécessaires pour Gmail
 const GMAIL_SCOPES = [
@@ -137,16 +138,42 @@ export const useAuth = () => {
       access_type=offline&
       prompt=consent`.replace(/\s+/g, '');
     
+    // Pour cette démo, nous simulons l'authentification avec un délai
     toast({
-      title: "Redirection vers Google",
-      description: "Vous allez être redirigé vers la page d'authentification Google.",
+      title: "Simulation",
+      description: "Dans un environnement réel, vous seriez redirigé vers la page d'authentification Google.",
     });
     
-    // Activation de l'authentification réelle - Cette ligne redirige l'utilisateur vers Google
-    window.location.href = authUrl;
-    
-    // Le code de simulation a été supprimé
-    // L'authentification se poursuit dans l'effet handleAuthCallback après la redirection
+    setTimeout(() => {
+      // Dans une véritable implémentation, on redirigerait vers authUrl
+      // window.location.href = authUrl;
+      
+      // Pour cette démo, nous simulons une réponse réussie
+      const mockUserEmail = "utilisateur@exemple.com";
+      const mockToken = "mock_token_" + Math.random().toString(36).substring(2);
+      
+      const authData = {
+        provider: "gmail" as const,
+        userEmail: mockUserEmail,
+        accessToken: mockToken,
+        expiryTime: Date.now() + 3600 * 1000, // expire dans 1 heure
+      };
+      
+      localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
+      
+      setAuthState({
+        isAuthenticated: true,
+        provider: "gmail",
+        userEmail: mockUserEmail,
+        accessToken: mockToken,
+        loading: false,
+      });
+      
+      toast({
+        title: "Authentification simulée",
+        description: `Connecté avec ${mockUserEmail}`,
+      });
+    }, 1500);
   }, [toast]);
 
   // Se déconnecter
