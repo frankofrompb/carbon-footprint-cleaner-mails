@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthState } from "@/types";
@@ -138,46 +137,16 @@ export const useAuth = () => {
       access_type=offline&
       prompt=consent`.replace(/\s+/g, '');
     
-    // Pour cette démo, nous simulons l'authentification avec un délai
     toast({
-      title: "Simulation",
-      description: "Dans un environnement réel, vous seriez redirigé vers la page d'authentification Google.",
+      title: "Redirection vers Google",
+      description: "Vous allez être redirigé vers la page d'authentification Google.",
     });
     
-    // Décommentez cette ligne pour une vraie redirection vers Google
-    // window.location.href = authUrl;
+    // Activation de l'authentification réelle - Cette ligne redirige l'utilisateur vers Google
+    window.location.href = authUrl;
     
-    // Commentez ou supprimez ce bloc pour une véritable implémentation
-    setTimeout(() => {
-      // Dans une véritable implémentation, on redirigerait vers authUrl
-      // window.location.href = authUrl;
-      
-      // Pour cette démo, nous simulons une réponse réussie
-      const mockUserEmail = "utilisateur@exemple.com";
-      const mockToken = "mock_token_" + Math.random().toString(36).substring(2);
-      
-      const authData = {
-        provider: "gmail" as const,
-        userEmail: mockUserEmail,
-        accessToken: mockToken,
-        expiryTime: Date.now() + 3600 * 1000, // expire dans 1 heure
-      };
-      
-      localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
-      
-      setAuthState({
-        isAuthenticated: true,
-        provider: "gmail",
-        userEmail: mockUserEmail,
-        accessToken: mockToken,
-        loading: false,
-      });
-      
-      toast({
-        title: "Authentification simulée",
-        description: `Connecté avec ${mockUserEmail}`,
-      });
-    }, 1500);
+    // Le code de simulation a été supprimé
+    // L'authentification se poursuit dans l'effet handleAuthCallback après la redirection
   }, [toast]);
 
   // Se déconnecter
