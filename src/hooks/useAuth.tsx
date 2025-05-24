@@ -5,7 +5,7 @@ import { AuthState } from "@/types";
 
 // Remplacer VOTRE_CLIENT_ID_GMAIL par l'ID client fourni par Google Cloud Console
 const GMAIL_CLIENT_ID = "VOTRE_CLIENT_ID_GMAIL"; // Remplacez cette valeur par votre vrai Client ID
-const GMAIL_REDIRECT_URI = window.location.origin;
+const GMAIL_REDIRECT_URI = `${window.location.origin}/auth/callback`;
 
 // Périmètre des autorisations nécessaires pour Gmail
 const GMAIL_SCOPES = [
@@ -144,6 +144,10 @@ export const useAuth = () => {
       description: "Dans un environnement réel, vous seriez redirigé vers la page d'authentification Google.",
     });
     
+    // Décommentez cette ligne pour une vraie redirection vers Google
+    // window.location.href = authUrl;
+    
+    // Commentez ou supprimez ce bloc pour une véritable implémentation
     setTimeout(() => {
       // Dans une véritable implémentation, on redirigerait vers authUrl
       // window.location.href = authUrl;
