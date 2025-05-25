@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthState } from "@/types";
@@ -129,51 +128,15 @@ export const useAuth = () => {
   const loginWithGmail = useCallback(() => {
     setAuthState((prev) => ({ ...prev, loading: true }));
     
-    // Pour une vraie implémentation, utilisez la bibliothèque auth2 de Google
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?
-      client_id=${GMAIL_CLIENT_ID}&
-      redirect_uri=${encodeURIComponent(GMAIL_REDIRECT_URI)}&
-      response_type=code&
-      scope=${encodeURIComponent(GMAIL_SCOPES)}&
-      access_type=offline&
-      prompt=consent`.replace(/\s+/g, '');
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GMAIL_CLIENT_ID}&redirect_uri=${encodeURIComponent(GMAIL_REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(GMAIL_SCOPES)}&access_type=offline&prompt=consent`;
     
-    // Pour cette démo, nous simulons l'authentification avec un délai
     toast({
-      title: "Simulation",
-      description: "Dans un environnement réel, vous seriez redirigé vers la page d'authentification Google.",
+      title: "Redirection vers Google",
+      description: "Vous allez être redirigé vers la page d'authentification Google...",
     });
     
-    setTimeout(() => {
-      // Dans une véritable implémentation, on redirigerait vers authUrl
-      // window.location.href = authUrl;
-      
-      // Pour cette démo, nous simulons une réponse réussie
-      const mockUserEmail = "utilisateur@exemple.com";
-      const mockToken = "mock_token_" + Math.random().toString(36).substring(2);
-      
-      const authData = {
-        provider: "gmail" as const,
-        userEmail: mockUserEmail,
-        accessToken: mockToken,
-        expiryTime: Date.now() + 3600 * 1000, // expire dans 1 heure
-      };
-      
-      localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
-      
-      setAuthState({
-        isAuthenticated: true,
-        provider: "gmail",
-        userEmail: mockUserEmail,
-        accessToken: mockToken,
-        loading: false,
-      });
-      
-      toast({
-        title: "Authentification simulée",
-        description: `Connecté avec ${mockUserEmail}`,
-      });
-    }, 1500);
+    // Redirection vers Google OAuth
+    window.location.href = authUrl;
   }, [toast]);
 
   // Se déconnecter
