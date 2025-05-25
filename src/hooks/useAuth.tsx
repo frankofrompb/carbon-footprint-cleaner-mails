@@ -5,7 +5,6 @@ import { AuthState } from "@/types";
 
 // Client ID Gmail pour l'accès à l'API
 const GMAIL_CLIENT_ID = "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com";
-const GMAIL_REDIRECT_URI = "https://carbon-footprint-cleaner-mails.lovable.app/auth/callback";
 
 // Périmètres étendus pour Gmail
 const GMAIL_SCOPES = [
@@ -14,6 +13,14 @@ const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile"
 ].join(" ");
+
+// Déclaration globale pour Google API
+declare global {
+  interface Window {
+    google: any;
+    gapi: any;
+  }
+}
 
 export const useAuth = () => {
   const { toast } = useToast();
@@ -59,140 +66,156 @@ export const useAuth = () => {
     }
   }, []);
 
-  // Gérer la redirection après l'authentification
+  // Charger l'API Google
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const loadGoogleAPI = () => {
+      console.log("📦 Chargement de l'API Google...");
       
-      // Vérifier les paramètres dans l'URL et le hash (flux implicite)
-      const code = urlParams.get("code");
-      const accessToken = hashParams.get("access_token") || urlParams.get("access_token");
-      const expiresIn = hashParams.get("expires_in") || urlParams.get("expires_in");
-      const error = urlParams.get("error") || hashParams.get("error");
-      
-      console.log("🔗 Paramètres URL:", { 
-        code: code ? "présent" : "absent", 
-        accessToken: accessToken ? "présent" : "absent",
-        expiresIn,
-        error 
-      });
-      
-      if (error) {
-        console.error("❌ Erreur OAuth reçue:", error);
-        setAuthState((prev) => ({ ...prev, error, loading: false }));
-        toast({
-          title: "Échec de l'authentification",
-          description: `Erreur: ${error}`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Si on a un access token directement (flux implicite)
-      if (accessToken) {
-        console.log("🔑 Access token reçu directement (flux implicite)");
-        // Nettoyer l'URL
-        window.history.replaceState({}, document.title, window.location.pathname);
+      // Charger le script Google API
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = () => {
+        console.log("✅ API Google chargée");
         
-        setAuthState((prev) => ({ ...prev, loading: true }));
-        
-        try {
-          // Récupérer les informations utilisateur
-          console.log("👤 Récupération des informations utilisateur...");
-          const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          });
-
-          if (!userResponse.ok) {
-            const errorData = await userResponse.text();
-            console.error('❌ Erreur récupération utilisateur:', errorData);
-            throw new Error(`Échec de la récupération des données utilisateur: ${userResponse.status}`);
-          }
-
-          const userData = await userResponse.json();
-          console.log('✅ Données utilisateur récupérées:', { email: userData.email, name: userData.name });
-
-          const authData = {
-            provider: "gmail" as const,
-            userEmail: userData.email,
-            accessToken: accessToken,
-            expiryTime: Date.now() + (parseInt(expiresIn || "3600") * 1000),
-          };
+        window.gapi.load('auth2', () => {
+          console.log("🔐 Module auth2 chargé");
           
-          localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
-          
-          setAuthState({
-            isAuthenticated: true,
-            provider: "gmail",
-            userEmail: userData.email,
-            accessToken: accessToken,
-            loading: false,
-            error: null,
+          window.gapi.auth2.init({
+            client_id: GMAIL_CLIENT_ID,
+            scope: GMAIL_SCOPES
+          }).then(() => {
+            console.log("✅ Google Auth2 initialisé");
+          }).catch((error: any) => {
+            console.error("❌ Erreur d'initialisation Google Auth2:", error);
           });
-          
-          toast({
-            title: "Authentification réussie",
-            description: `Connecté avec ${userData.email}`,
-          });
-          
-        } catch (error) {
-          console.error("❌ Erreur lors du traitement du token", error);
-          setAuthState((prev) => ({
-            ...prev,
-            loading: false,
-            error: error instanceof Error ? error.message : "Échec de l'authentification. Veuillez réessayer.",
-          }));
-          toast({
-            title: "Échec de l'authentification",
-            description: error instanceof Error ? error.message : "Une erreur est survenue lors de la connexion",
-            variant: "destructive",
-          });
-        }
-      }
-      // Si on a un code (flux d'autorisation), ne plus l'utiliser car il nécessite client_secret
-      else if (code) {
-        console.log("⚠️ Code d'autorisation reçu mais flux non supporté sans client_secret");
-        setAuthState((prev) => ({
-          ...prev,
-          loading: false,
-          error: "Configuration OAuth incorrecte. Veuillez utiliser le flux implicite.",
-        }));
-        toast({
-          title: "Échec de l'authentification",
-          description: "Configuration OAuth incorrecte. Contactez l'administrateur.",
-          variant: "destructive",
         });
-      }
+      };
+      script.onerror = () => {
+        console.error("❌ Erreur de chargement de l'API Google");
+      };
+      document.head.appendChild(script);
     };
-    
-    handleAuthCallback();
-  }, [toast]);
+
+    if (!window.gapi) {
+      loadGoogleAPI();
+    }
+  }, []);
 
   // Se connecter avec Gmail
   const loginWithGmail = useCallback(() => {
     console.log("🚀 Démarrage de la connexion Gmail...");
     setAuthState((prev) => ({ ...prev, loading: true, error: null }));
     
-    // Utiliser le flux implicite (response_type=token) au lieu du flux d'autorisation
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GMAIL_CLIENT_ID}&redirect_uri=${encodeURIComponent(GMAIL_REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(GMAIL_SCOPES)}&include_granted_scopes=true&state=state_parameter_passthrough_value`;
+    if (!window.gapi || !window.gapi.auth2) {
+      console.error("❌ API Google non chargée");
+      setAuthState((prev) => ({
+        ...prev,
+        loading: false,
+        error: "API Google non disponible. Veuillez rafraîchir la page."
+      }));
+      toast({
+        title: "Erreur de connexion",
+        description: "API Google non disponible. Veuillez rafraîchir la page.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const authInstance = window.gapi.auth2.getAuthInstance();
     
-    console.log("🔗 URL d'authentification (flux implicite):", authUrl);
+    if (!authInstance) {
+      console.error("❌ Instance d'authentification non disponible");
+      setAuthState((prev) => ({
+        ...prev,
+        loading: false,
+        error: "Service d'authentification non disponible."
+      }));
+      toast({
+        title: "Erreur de connexion",
+        description: "Service d'authentification non disponible.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("🔐 Demande de connexion à Google...");
     
-    toast({
-      title: "Redirection vers Google",
-      description: "Vous allez être redirigé vers la page d'authentification Google...",
+    authInstance.signIn({
+      scope: GMAIL_SCOPES
+    }).then((googleUser: any) => {
+      console.log("✅ Connexion Google réussie");
+      
+      const authResponse = googleUser.getAuthResponse();
+      const profile = googleUser.getBasicProfile();
+      
+      console.log("📋 Données utilisateur reçues:", {
+        email: profile.getEmail(),
+        name: profile.getName()
+      });
+      
+      const authData = {
+        provider: "gmail" as const,
+        userEmail: profile.getEmail(),
+        accessToken: authResponse.access_token,
+        expiryTime: Date.now() + (authResponse.expires_in * 1000),
+      };
+      
+      localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
+      
+      setAuthState({
+        isAuthenticated: true,
+        provider: "gmail",
+        userEmail: profile.getEmail(),
+        accessToken: authResponse.access_token,
+        loading: false,
+        error: null,
+      });
+      
+      toast({
+        title: "Authentification réussie",
+        description: `Connecté avec ${profile.getEmail()}`,
+      });
+      
+    }).catch((error: any) => {
+      console.error("❌ Erreur de connexion Google:", error);
+      
+      let errorMessage = "Échec de l'authentification. Veuillez réessayer.";
+      if (error.error === 'popup_closed_by_user') {
+        errorMessage = "Connexion annulée par l'utilisateur.";
+      } else if (error.error === 'access_denied') {
+        errorMessage = "Accès refusé. Veuillez autoriser l'application.";
+      }
+      
+      setAuthState((prev) => ({
+        ...prev,
+        loading: false,
+        error: errorMessage,
+      }));
+      
+      toast({
+        title: "Échec de l'authentification",
+        description: errorMessage,
+        variant: "destructive",
+      });
     });
-    
-    // Redirection vers Google OAuth
-    window.location.href = authUrl;
   }, [toast]);
 
   // Se déconnecter
   const logout = useCallback(() => {
     console.log("🚪 Déconnexion...");
+    
+    // Déconnexion de Google si disponible
+    if (window.gapi && window.gapi.auth2) {
+      const authInstance = window.gapi.auth2.getAuthInstance();
+      if (authInstance) {
+        authInstance.signOut().then(() => {
+          console.log("✅ Déconnexion Google réussie");
+        }).catch((error: any) => {
+          console.warn("⚠️ Erreur lors de la déconnexion Google:", error);
+        });
+      }
+    }
+    
     localStorage.removeItem("emailCleanerAuth");
     setAuthState({
       isAuthenticated: false,
