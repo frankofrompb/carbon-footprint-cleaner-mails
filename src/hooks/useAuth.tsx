@@ -63,11 +63,20 @@ export const useAuth = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get("code");
-      const error = urlParams.get("error");
-      const state = urlParams.get("state");
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
       
-      console.log("🔗 Paramètres URL:", { code: code ? "présent" : "absent", error, state });
+      // Vérifier les paramètres dans l'URL et le hash (flux implicite)
+      const code = urlParams.get("code");
+      const accessToken = hashParams.get("access_token") || urlParams.get("access_token");
+      const expiresIn = hashParams.get("expires_in") || urlParams.get("expires_in");
+      const error = urlParams.get("error") || hashParams.get("error");
+      
+      console.log("🔗 Paramètres URL:", { 
+        code: code ? "présent" : "absent", 
+        accessToken: accessToken ? "présent" : "absent",
+        expiresIn,
+        error 
+      });
       
       if (error) {
         console.error("❌ Erreur OAuth reçue:", error);
@@ -80,46 +89,20 @@ export const useAuth = () => {
         return;
       }
 
-      if (code) {
-        console.log("🔑 Code d'autorisation reçu, démarrage de l'échange...");
+      // Si on a un access token directement (flux implicite)
+      if (accessToken) {
+        console.log("🔑 Access token reçu directement (flux implicite)");
         // Nettoyer l'URL
         window.history.replaceState({}, document.title, window.location.pathname);
         
         setAuthState((prev) => ({ ...prev, loading: true }));
         
         try {
-          console.log("🔄 Échange du code d'autorisation pour un token...");
-          
-          // Échanger le code contre un access token
-          const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-              client_id: GMAIL_CLIENT_ID,
-              code: code,
-              grant_type: 'authorization_code',
-              redirect_uri: GMAIL_REDIRECT_URI,
-            }),
-          });
-
-          console.log("📊 Réponse token status:", tokenResponse.status);
-
-          if (!tokenResponse.ok) {
-            const errorData = await tokenResponse.text();
-            console.error('❌ Erreur échange token:', errorData);
-            throw new Error(`Échec de l'échange du code d'autorisation: ${tokenResponse.status}`);
-          }
-
-          const tokenData = await tokenResponse.json();
-          console.log("✅ Token reçu avec succès, expires_in:", tokenData.expires_in);
-
           // Récupérer les informations utilisateur
           console.log("👤 Récupération des informations utilisateur...");
           const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
             headers: {
-              'Authorization': `Bearer ${tokenData.access_token}`,
+              'Authorization': `Bearer ${accessToken}`,
             },
           });
 
@@ -135,8 +118,8 @@ export const useAuth = () => {
           const authData = {
             provider: "gmail" as const,
             userEmail: userData.email,
-            accessToken: tokenData.access_token,
-            expiryTime: Date.now() + (tokenData.expires_in * 1000),
+            accessToken: accessToken,
+            expiryTime: Date.now() + (parseInt(expiresIn || "3600") * 1000),
           };
           
           localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
@@ -145,7 +128,7 @@ export const useAuth = () => {
             isAuthenticated: true,
             provider: "gmail",
             userEmail: userData.email,
-            accessToken: tokenData.access_token,
+            accessToken: accessToken,
             loading: false,
             error: null,
           });
@@ -156,7 +139,7 @@ export const useAuth = () => {
           });
           
         } catch (error) {
-          console.error("❌ Erreur lors de l'échange du code d'autorisation", error);
+          console.error("❌ Erreur lors du traitement du token", error);
           setAuthState((prev) => ({
             ...prev,
             loading: false,
@@ -169,6 +152,20 @@ export const useAuth = () => {
           });
         }
       }
+      // Si on a un code (flux d'autorisation), ne plus l'utiliser car il nécessite client_secret
+      else if (code) {
+        console.log("⚠️ Code d'autorisation reçu mais flux non supporté sans client_secret");
+        setAuthState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "Configuration OAuth incorrecte. Veuillez utiliser le flux implicite.",
+        }));
+        toast({
+          title: "Échec de l'authentification",
+          description: "Configuration OAuth incorrecte. Contactez l'administrateur.",
+          variant: "destructive",
+        });
+      }
     };
     
     handleAuthCallback();
@@ -179,9 +176,10 @@ export const useAuth = () => {
     console.log("🚀 Démarrage de la connexion Gmail...");
     setAuthState((prev) => ({ ...prev, loading: true, error: null }));
     
-    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GMAIL_CLIENT_ID}&redirect_uri=${encodeURIComponent(GMAIL_REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(GMAIL_SCOPES)}&access_type=offline&prompt=consent`;
+    // Utiliser le flux implicite (response_type=token) au lieu du flux d'autorisation
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GMAIL_CLIENT_ID}&redirect_uri=${encodeURIComponent(GMAIL_REDIRECT_URI)}&response_type=token&scope=${encodeURIComponent(GMAIL_SCOPES)}&include_granted_scopes=true&state=state_parameter_passthrough_value`;
     
-    console.log("🔗 URL d'authentification:", authUrl);
+    console.log("🔗 URL d'authentification (flux implicite):", authUrl);
     
     toast({
       title: "Redirection vers Google",
