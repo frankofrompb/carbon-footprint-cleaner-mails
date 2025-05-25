@@ -57,8 +57,7 @@ const VirtuousCircle = () => {
       <div className="text-center mt-12 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl border border-green-200">
         <h4 className="text-xl font-semibold text-[#38c39d] mb-2">Impact Environnemental</h4>
         <p className="text-muted-foreground">
-          Chaque email supprimé réduit votre empreinte carbone de 4g de CO₂. 
-          Ensemble, créons un internet plus vert !
+          Ils prennent de la place et polluent en silence. 4g à l’envoi, 10g chaque année. Faites le ménage!
         </p>
       </div>
     </div>
