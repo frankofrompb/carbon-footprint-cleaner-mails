@@ -22,7 +22,7 @@ const Header = ({ isAuthenticated, userEmail, onLogout }: HeaderProps) => {
         <div className="flex items-center gap-3">
           <LogoWithBubbles />
           <div className="flex items-center">
-            <span className="font-bold text-lg flex items-center translate-y-0.5"><span className="text-[#38c39d]">Eco</span>InBox</span>
+            <span className="font-bold text-lg flex items-center translate-y-1"><span className="text-[#38c39d]">Eco</span>InBox</span>
           </div>
         </div>
         
