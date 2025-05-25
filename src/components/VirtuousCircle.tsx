@@ -20,7 +20,7 @@ const VirtuousCircle = () => {
               </div>
               <h3 className="font-bold text-lg mb-2 text-red-700">Suppression Intelligente</h3>
               <p className="text-sm text-red-600">
-                Suppression automatique des emails non lus depuis plus d'un an
+                Détection automatique des emails non lus depuis plus d'un an
               </p>
             </div>
           </div>
