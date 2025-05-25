@@ -16,7 +16,7 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
       
       {/* Carte de connexion */}
       <div className="flex justify-center">
-        <Card className="w-full max-w-md shadow-lg">
+        <Card className="w-full max-w-md shadow-lg" style={{backgroundColor: '#c2edfc'}}>
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Commencez votre nettoyage</CardTitle>
             <CardDescription>
