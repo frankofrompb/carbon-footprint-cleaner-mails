@@ -2,14 +2,16 @@ import { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthState } from "@/types";
 
-// Remplacer VOTRE_CLIENT_ID_GMAIL par l'ID client fourni par Google Cloud Console
-const GMAIL_CLIENT_ID = "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com"; // Remplacez cette valeur par votre vrai Client ID
+// Client ID Gmail pour l'accès à l'API
+const GMAIL_CLIENT_ID = "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com";
 const GMAIL_REDIRECT_URI = "https://carbon-footprint-cleaner-mails.lovable.app/auth/callback";
 
-// Périmètre des autorisations nécessaires pour Gmail
+// Périmètres étendus pour Gmail
 const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.modify",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile"
 ].join(" ");
 
 export const useAuth = () => {
@@ -74,36 +76,63 @@ export const useAuth = () => {
         setAuthState((prev) => ({ ...prev, loading: true }));
         
         try {
-          // Dans un cas réel, on échangerait ce code contre un access token via une API backend
-          // Pour cette démo, nous simulons une réponse réussie
+          console.log("Échange du code d'autorisation pour un token...");
           
-          // Simulation d'obtention d'un token et des infos utilisateur
-          setTimeout(() => {
-            const mockUserEmail = "utilisateur@exemple.com";
-            const mockToken = "mock_token_" + Math.random().toString(36).substring(2);
-            
-            const authData = {
-              provider: "gmail" as const,
-              userEmail: mockUserEmail,
-              accessToken: mockToken,
-              expiryTime: Date.now() + 3600 * 1000, // expire dans 1 heure
-            };
-            
-            localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
-            
-            setAuthState({
-              isAuthenticated: true,
-              provider: "gmail",
-              userEmail: mockUserEmail,
-              accessToken: mockToken,
-              loading: false,
-            });
-            
-            toast({
-              title: "Authentification réussie",
-              description: `Connecté avec ${mockUserEmail}`,
-            });
-          }, 1500);
+          // Échanger le code contre un access token
+          const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              client_id: GMAIL_CLIENT_ID,
+              client_secret: '', // Pour les apps publiques, pas de secret
+              code: code,
+              grant_type: 'authorization_code',
+              redirect_uri: GMAIL_REDIRECT_URI,
+            }),
+          });
+
+          if (!tokenResponse.ok) {
+            const errorData = await tokenResponse.text();
+            console.error('Token exchange error:', errorData);
+            throw new Error('Échec de l\'échange du code d\'autorisation');
+          }
+
+          const tokenData = await tokenResponse.json();
+          console.log('Token reçu avec succès');
+
+          // Récupérer les informations utilisateur
+          const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: {
+              'Authorization': `Bearer ${tokenData.access_token}`,
+            },
+          });
+
+          const userData = await userResponse.json();
+          console.log('Données utilisateur récupérées:', userData);
+
+          const authData = {
+            provider: "gmail" as const,
+            userEmail: userData.email,
+            accessToken: tokenData.access_token,
+            expiryTime: Date.now() + (tokenData.expires_in * 1000),
+          };
+          
+          localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
+          
+          setAuthState({
+            isAuthenticated: true,
+            provider: "gmail",
+            userEmail: userData.email,
+            accessToken: tokenData.access_token,
+            loading: false,
+          });
+          
+          toast({
+            title: "Authentification réussie",
+            description: `Connecté avec ${userData.email}`,
+          });
           
         } catch (error) {
           console.error("Erreur lors de l'échange du code d'autorisation", error);

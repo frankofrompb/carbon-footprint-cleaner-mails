@@ -2,48 +2,7 @@
 import { useState, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ScanResults, ScanState, EmailData } from "@/types";
-
-// Pour cette démo, nous simulons un délai de traitement et des données aléatoires
-const simulateEmailScan = (): Promise<ScanResults> => {
-  return new Promise((resolve) => {
-    // Simuler un délai de traitement
-    setTimeout(() => {
-      // Générer un nombre aléatoire d'emails entre 50 et 200
-      const emailCount = Math.floor(Math.random() * 151) + 50;
-      
-      // Générer des données d'emails simulées
-      const emails: EmailData[] = Array.from({ length: emailCount }, (_, i) => {
-        // Date d'il y a plus d'un an
-        const date = new Date();
-        date.setFullYear(date.getFullYear() - 1);
-        date.setDate(date.getDate() - Math.floor(Math.random() * 365));
-        
-        const randomSize = Math.floor(Math.random() * 1000) + 10; // Taille en Ko
-        
-        return {
-          id: `email_${i}_${Date.now()}`,
-          subject: `Email non lu #${i + 1}`,
-          from: `expediteur${i + 1}@exemple.com`,
-          date: date.toISOString(),
-          size: randomSize
-        };
-      });
-      
-      // Calculer la taille totale en Mo
-      const totalSizeMB = emails.reduce((acc, email) => acc + (email.size || 0), 0) / 1024;
-      
-      // Calculer l'empreinte carbone (10g par email)
-      const carbonFootprint = emailCount * 10;
-      
-      resolve({
-        totalEmails: emailCount,
-        totalSizeMB,
-        carbonFootprint,
-        emails
-      });
-    }, 2000);
-  });
-};
+import { supabase } from "@/integrations/supabase/client";
 
 export const useScanEmails = () => {
   const { toast } = useToast();
@@ -61,23 +20,52 @@ export const useScanEmails = () => {
     });
 
     try {
+      // Récupérer le token d'accès depuis le localStorage
+      const storedAuth = localStorage.getItem("emailCleanerAuth");
+      if (!storedAuth) {
+        throw new Error("Aucun token d'accès trouvé. Veuillez vous reconnecter.");
+      }
+
+      const parsedAuth = JSON.parse(storedAuth);
+      if (!parsedAuth.accessToken) {
+        throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
+      }
+
       toast({
         title: "Scan démarré",
-        description: "Recherche des emails non lus de plus d'un an...",
+        description: "Analyse de votre vraie boîte Gmail en cours...",
       });
 
-      // Dans une vraie implémentation, nous ferions un appel à l'API Gmail ici
-      const results = await simulateEmailScan();
+      console.log("Calling Gmail scan function...");
+
+      // Appeler la fonction Edge pour scanner Gmail
+      const { data, error } = await supabase.functions.invoke('scan-gmail', {
+        body: {
+          accessToken: parsedAuth.accessToken
+        }
+      });
+
+      if (error) {
+        console.error("Function error:", error);
+        throw new Error(`Erreur lors du scan: ${error.message}`);
+      }
+
+      if (data.error) {
+        console.error("Gmail API error:", data.error);
+        throw new Error(`Erreur Gmail: ${data.error}`);
+      }
+
+      console.log("Scan results:", data);
 
       setScanState({
         isScanning: false,
-        results,
+        results: data,
         error: null,
       });
 
       toast({
         title: "Scan terminé",
-        description: `${results.totalEmails} emails non lus trouvés, ${results.carbonFootprint}g de CO₂`,
+        description: `${data.totalEmails} emails non lus trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
       });
     } catch (error) {
       console.error("Erreur lors du scan des emails", error);
@@ -89,7 +77,7 @@ export const useScanEmails = () => {
 
       toast({
         title: "Échec du scan",
-        description: "Une erreur est survenue lors de la recherche des emails",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la recherche des emails",
         variant: "destructive",
       });
     }
@@ -99,17 +87,50 @@ export const useScanEmails = () => {
     if (!scanState.results) return;
 
     try {
+      // Récupérer le token d'accès
+      const storedAuth = localStorage.getItem("emailCleanerAuth");
+      if (!storedAuth) {
+        throw new Error("Aucun token d'accès trouvé. Veuillez vous reconnecter.");
+      }
+
+      const parsedAuth = JSON.parse(storedAuth);
+      if (!parsedAuth.accessToken) {
+        throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
+      }
+
       toast({
         title: "Suppression en cours",
-        description: `Suppression de ${scanState.results.totalEmails} emails...`,
+        description: `Suppression de ${scanState.results.totalEmails} emails de votre boîte Gmail...`,
       });
 
-      // Simuler un délai de traitement
-      await new Promise(resolve => setTimeout(resolve, 2500));
+      console.log("Calling Gmail delete function...");
+
+      // Récupérer tous les IDs des emails (pas seulement ceux affichés)
+      const allEmailIds = scanState.results.emails.map(email => email.id);
+
+      // Appeler la fonction Edge pour supprimer les emails
+      const { data, error } = await supabase.functions.invoke('delete-gmail-emails', {
+        body: {
+          accessToken: parsedAuth.accessToken,
+          emailIds: allEmailIds
+        }
+      });
+
+      if (error) {
+        console.error("Delete function error:", error);
+        throw new Error(`Erreur lors de la suppression: ${error.message}`);
+      }
+
+      if (data.error) {
+        console.error("Gmail delete error:", data.error);
+        throw new Error(`Erreur Gmail: ${data.error}`);
+      }
+
+      console.log("Delete results:", data);
 
       toast({
         title: "Suppression terminée",
-        description: `${scanState.results.totalEmails} emails supprimés avec succès, vous avez économisé ${scanState.results.carbonFootprint}g de CO₂!`,
+        description: `${data.deletedCount || scanState.results.totalEmails} emails supprimés avec succès de votre boîte Gmail ! Vous avez économisé ${scanState.results.carbonFootprint}g de CO₂!`,
       });
 
       // Réinitialiser les résultats
@@ -122,7 +143,7 @@ export const useScanEmails = () => {
       console.error("Erreur lors de la suppression des emails", error);
       toast({
         title: "Échec de la suppression",
-        description: "Une erreur est survenue lors de la suppression des emails",
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la suppression des emails",
         variant: "destructive",
       });
     }
@@ -151,14 +172,14 @@ export const useScanEmails = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `emails_non_lus_${new Date().toISOString().split("T")[0]}.csv`);
+      link.setAttribute("download", `emails_non_lus_gmail_${new Date().toISOString().split("T")[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
         title: "Export réussi",
-        description: "Le fichier CSV a été téléchargé avec succès",
+        description: "Le fichier CSV de vos emails Gmail a été téléchargé avec succès",
       });
     } catch (error) {
       console.error("Erreur lors de l'export des emails", error);
