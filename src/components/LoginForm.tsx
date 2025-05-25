@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail } from "lucide-react";
+import VirtuousCircle from "./VirtuousCircle";
 
 interface LoginFormProps {
   onLoginWithGmail: () => void;
@@ -10,35 +10,41 @@ interface LoginFormProps {
 
 const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
   return (
-    <Card className="w-full max-w-md shadow-lg">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Nettoyage Écologique d'Emails</CardTitle>
-        <CardDescription>
-          Connectez-vous avec votre compte email pour commencer à réduire votre empreinte carbone
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="p-6 rounded-full bg-muted">
-            <Mail className="h-12 w-12 text-eco-green" />
-          </div>
-          <p className="text-center text-muted-foreground">
-            Cette application analysera vos emails non lus de plus d'un an 
-            et vous proposera de les supprimer pour réduire votre empreinte carbone
-          </p>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          onClick={onLoginWithGmail} 
-          disabled={isLoading} 
-          className="w-full py-6 text-lg"
-          variant="outline"
-        >
-          {isLoading ? "Connexion en cours..." : "Se connecter avec Gmail"}
-        </Button>
-      </CardFooter>
-    </Card>
+    <div className="w-full space-y-8">
+      {/* Cercle vertueux */}
+      <VirtuousCircle />
+      
+      {/* Carte de connexion */}
+      <div className="flex justify-center">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Commencez votre nettoyage</CardTitle>
+            <CardDescription>
+              Connectez-vous avec votre compte Gmail pour analyser et nettoyer vos emails
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center text-muted-foreground">
+              <p className="mb-4">
+                🔒 Vos données restent privées et sécurisées
+              </p>
+              <p className="text-sm">
+                Nous analysons uniquement les métadonnées de vos emails pour vous proposer un nettoyage intelligent
+              </p>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              onClick={onLoginWithGmail} 
+              disabled={isLoading} 
+              className="w-full py-6 text-lg bg-[#38c39d] hover:bg-[#2d8b61]"
+            >
+              {isLoading ? "Connexion en cours..." : "Se connecter avec Gmail"}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
   );
 };
 
