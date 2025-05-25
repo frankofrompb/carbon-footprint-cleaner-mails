@@ -4,16 +4,6 @@ import { Trash2, UserCheck, Brain } from "lucide-react";
 const VirtuousCircle = () => {
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Titre principal */}
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">
-          <span className="text-[#38c39d]">Le Cercle Vertueux du Nettoyage Email</span>
-        </h2>
-        <p className="text-lg text-muted-foreground">
-          Une approche intelligente pour réduire votre empreinte carbone numérique
-        </p>
-      </div>
-
       {/* Les trois blocs en ligne avec ligne de connexion */}
       <div className="relative">
         {/* Ligne verte de connexion en arrière-plan */}
