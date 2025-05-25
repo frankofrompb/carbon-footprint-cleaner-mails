@@ -14,23 +14,16 @@ const VirtuousCircle = () => {
         </p>
       </div>
 
-      {/* Cercle vertueux avec les trois blocs */}
+      {/* Les trois blocs en ligne avec ligne de connexion */}
       <div className="relative">
-        {/* Cercle central décoratif */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-40 h-40 rounded-full border-4 border-dashed border-[#38c39d]/30 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-[#38c39d] text-sm font-semibold">Cycle</div>
-              <div className="text-[#38c39d] text-sm font-semibold">Vertueux</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Les trois blocs disposés en triangle */}
-        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 items-center min-h-[400px]">
+        {/* Ligne verte de connexion en arrière-plan */}
+        <div className="absolute top-1/2 left-0 right-0 h-1 bg-[#38c39d] transform -translate-y-1/2 z-0"></div>
+        
+        {/* Les trois blocs disposés en ligne */}
+        <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8 z-10">
           
           {/* Bloc 1: Suppression */}
-          <div className="md:col-start-2 flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center">
             <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-lg mb-4 hover:shadow-xl transition-all duration-300 border border-red-200">
               <div className="bg-red-500 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
                 <Trash2 className="h-6 w-6 text-white" />
@@ -43,7 +36,7 @@ const VirtuousCircle = () => {
           </div>
 
           {/* Bloc 2: Analyse */}
-          <div className="md:row-start-2 flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl shadow-lg mb-4 hover:shadow-xl transition-all duration-300 border border-blue-200">
               <div className="bg-blue-500 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
                 <UserCheck className="h-6 w-6 text-white" />
@@ -56,7 +49,7 @@ const VirtuousCircle = () => {
           </div>
 
           {/* Bloc 3: Tri */}
-          <div className="md:col-start-3 md:row-start-2 flex flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center">
             <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl shadow-lg mb-4 hover:shadow-xl transition-all duration-300 border border-green-200">
               <div className="bg-[#38c39d] w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
                 <Brain className="h-6 w-6 text-white" />
@@ -67,21 +60,6 @@ const VirtuousCircle = () => {
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Flèches connectant les blocs (visibles uniquement sur desktop) */}
-        <div className="hidden md:block absolute inset-0 pointer-events-none">
-          {/* Flèche 1 -> 2 */}
-          <div className="absolute top-1/3 left-1/4 w-20 h-0.5 bg-[#38c39d]/40 transform rotate-45"></div>
-          <div className="absolute top-1/3 left-1/4 w-2 h-2 bg-[#38c39d]/40 transform rotate-45 translate-x-20"></div>
-          
-          {/* Flèche 2 -> 3 */}
-          <div className="absolute bottom-1/3 right-1/4 w-20 h-0.5 bg-[#38c39d]/40 transform -rotate-45"></div>
-          <div className="absolute bottom-1/3 right-1/4 w-2 h-2 bg-[#38c39d]/40 transform -rotate-45 translate-x-20"></div>
-          
-          {/* Flèche 3 -> 1 */}
-          <div className="absolute top-1/2 left-1/2 w-16 h-0.5 bg-[#38c39d]/40 transform -rotate-90"></div>
-          <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-[#38c39d]/40 transform -rotate-90 -translate-y-16"></div>
         </div>
       </div>
 
