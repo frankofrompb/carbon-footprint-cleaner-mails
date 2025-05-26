@@ -36,14 +36,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Starting Gmail scan...');
 
-    // Date d'il y a un an
+    // Rechercher les emails non lus de plus d'un an
+    // On utilise "is:unread before:2023/1/1" pour chercher tous les emails non lus d'avant une date spécifique
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const oneYearAgoFormatted = oneYearAgo.toISOString().split('T')[0];
-
-    // Rechercher les emails non lus d'avant il y a un an ET qui sont restés non lus
-    // On utilise "older_than:1y" pour les emails de plus d'un an ET "is:unread" pour qu'ils soient non lus
-    const searchQuery = `is:unread older_than:1y`;
+    const dateString = `${oneYearAgo.getFullYear()}/${oneYearAgo.getMonth() + 1}/${oneYearAgo.getDate()}`;
+    
+    const searchQuery = `is:unread before:${dateString}`;
     
     console.log('Search query:', searchQuery);
 
