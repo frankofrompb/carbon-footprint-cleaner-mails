@@ -36,60 +36,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Starting Gmail scan for all emails from 2000 to 2024...');
 
-    // Rechercher tous les emails de 2000 à 2024 (toutes catégories)
-    // Utiliser after:2000/01/01 before:2025/01/01 pour couvrir la période
-    const searchQuery = `after:2000/01/01 before:2025/01/01`;
-    
-    console.log(`Search query for emails from 2000-2024: ${searchQuery}`);
+    // Recherche par années pour avoir une meilleure distribution
+    const years = ['2000', '2005', '2010', '2015', '2020', '2024'];
+    let allEmails: EmailData[] = [];
+    let totalEmailsFound = 0;
 
-    // Appel à l'API Gmail pour rechercher les emails
-    const searchResponse = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(searchQuery)}&maxResults=500`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    if (!searchResponse.ok) {
-      const errorData = await searchResponse.text();
-      console.error('Gmail API search error:', errorData);
-      throw new Error(`Gmail API error: ${searchResponse.status} - ${errorData}`);
-    }
-
-    const searchData = await searchResponse.json();
-    console.log('Search results summary:', {
-      resultSizeEstimate: searchData.resultSizeEstimate,
-      messagesFound: searchData.messages?.length || 0,
-      nextPageToken: searchData.nextPageToken ? 'present' : 'none'
-    });
-
-    if (!searchData.messages || searchData.messages.length === 0) {
-      console.log('No emails found from 2000-2024');
-      return new Response(JSON.stringify({
-        totalEmails: 0,
-        totalSizeMB: 0,
-        carbonFootprint: 0,
-        emails: []
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Récupérer les détails des premiers 50 emails pour l'affichage
-    const emailsToFetch = searchData.messages.slice(0, 50);
-    const emails: EmailData[] = [];
-    let totalSize = 0;
-    let validEmailsCount = 0;
-
-    console.log(`Fetching details for ${emailsToFetch.length} emails from 2000-2024...`);
-
-    for (const message of emailsToFetch) {
+    for (const year of years) {
       try {
-        const messageResponse = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+        console.log(`Searching emails for year ${year}...`);
+        
+        const searchQuery = `after:${year}/01/01 before:${year}/12/31`;
+        
+        const searchResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(searchQuery)}&maxResults=10`,
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -98,64 +57,117 @@ const handler = async (req: Request): Promise<Response> => {
           }
         );
 
-        if (messageResponse.ok) {
-          const messageData = await messageResponse.json();
-          const headers = messageData.payload?.headers || [];
-          
-          const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
-          const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
-          const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
-          
-          // Vérifier que l'email est bien dans la période 2000-2024
-          const emailDate = dateHeader ? new Date(dateHeader) : new Date();
-          const emailYear = emailDate.getFullYear();
-          
-          if (emailYear < 2000 || emailYear > 2024) {
-            console.log(`Skipping email from ${emailDate.toISOString()} (year ${emailYear}) - outside 2000-2024 range`);
-            continue;
-          }
-          
-          validEmailsCount++;
-          console.log(`Valid email found from ${emailDate.toISOString()} (year ${emailYear})`);
-          
-          // Estimer la taille en Ko (sizeEstimate est en bytes)
-          const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
-          totalSize += sizeInKb;
+        if (!searchResponse.ok) {
+          console.error(`Gmail API search error for year ${year}:`, await searchResponse.text());
+          continue;
+        }
 
-          emails.push({
-            id: message.id,
-            subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
-            from: from.includes('<') ? from.split('<')[0].trim() : from,
-            date: emailDate.toISOString(),
-            size: sizeInKb,
-          });
+        const searchData = await searchResponse.json();
+        const emailsForYear = searchData.resultSizeEstimate || 0;
+        totalEmailsFound += emailsForYear;
+        
+        console.log(`Found ${emailsForYear} emails for year ${year}`);
+
+        if (searchData.messages && searchData.messages.length > 0) {
+          // Récupérer les détails de quelques emails pour cette année
+          const emailsToFetch = searchData.messages.slice(0, 5);
+          
+          for (const message of emailsToFetch) {
+            try {
+              const messageResponse = await fetch(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+
+              if (messageResponse.ok) {
+                const messageData = await messageResponse.json();
+                const headers = messageData.payload?.headers || [];
+                
+                const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
+                const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
+                const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
+                
+                const emailDate = dateHeader ? new Date(dateHeader) : new Date();
+                const emailYear = emailDate.getFullYear();
+                
+                console.log(`Email from ${emailDate.toISOString()} (year ${emailYear})`);
+                
+                // Estimer la taille en Ko
+                const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
+
+                allEmails.push({
+                  id: message.id,
+                  subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
+                  from: from.includes('<') ? from.split('<')[0].trim() : from,
+                  date: emailDate.toISOString(),
+                  size: sizeInKb,
+                });
+              }
+            } catch (error) {
+              console.error(`Error fetching message ${message.id}:`, error);
+            }
+          }
         }
       } catch (error) {
-        console.error(`Error fetching message ${message.id}:`, error);
+        console.error(`Error searching emails for year ${year}:`, error);
       }
     }
 
-    // Utiliser le nombre total d'emails trouvés par l'API Gmail
-    const totalEmails = searchData.resultSizeEstimate || validEmailsCount;
+    // Faire une recherche globale pour avoir le nombre total exact
+    console.log('Getting total count for all years...');
+    const globalSearchQuery = `after:2000/01/01 before:2025/01/01`;
+    
+    try {
+      const globalSearchResponse = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(globalSearchQuery)}&maxResults=1`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (globalSearchResponse.ok) {
+        const globalSearchData = await globalSearchResponse.json();
+        totalEmailsFound = globalSearchData.resultSizeEstimate || totalEmailsFound;
+        console.log(`Total emails found across all years: ${totalEmailsFound}`);
+      }
+    } catch (error) {
+      console.error('Error getting global count:', error);
+    }
+
+    // Trier les emails par date (plus récents en premier)
+    allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Calculer les totaux
+    const totalSize = allEmails.reduce((sum, email) => sum + (email.size || 0), 0);
     const totalSizeMB = totalSize / 1024;
-    const carbonFootprint = totalEmails * 10; // 10g par email
+    const carbonFootprint = totalEmailsFound * 10; // 10g par email
 
     const results: ScanResults = {
-      totalEmails,
+      totalEmails: totalEmailsFound,
       totalSizeMB,
       carbonFootprint,
-      emails,
+      emails: allEmails,
     };
 
-    console.log('Email scan completed (2000-2024):', {
+    console.log('Email scan completed for 2000-2024:', {
       totalEmails: results.totalEmails,
       totalSizeMB: results.totalSizeMB,
       carbonFootprint: results.carbonFootprint,
       emailsDisplayed: results.emails.length,
-      searchPeriod: '2000-2024',
-      validEmailsFound: validEmailsCount,
-      totalEmailsFromAPI: searchData.resultSizeEstimate || searchData.messages.length,
-      includedCategories: 'all categories (inbox, promotions, social, spam, etc.)'
+      yearsCovered: years,
+      emailsPerYear: allEmails.reduce((acc, email) => {
+        const year = new Date(email.date).getFullYear();
+        acc[year] = (acc[year] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>)
     });
 
     return new Response(JSON.stringify(results), {

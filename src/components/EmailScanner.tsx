@@ -38,15 +38,17 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
   const emailsByDender = useMemo(() => {
     if (!scanState.results?.emails) return [];
 
-    const senderGroups = new Map<string, { count: number; totalSize: number; latestDate: string }>();
+    const senderGroups = new Map<string, { count: number; totalSize: number; latestDate: string; years: Set<number> }>();
 
     scanState.results.emails.forEach(email => {
       const sender = email.from;
+      const emailYear = new Date(email.date).getFullYear();
       const existing = senderGroups.get(sender);
       
       if (existing) {
         existing.count += 1;
         existing.totalSize += email.size || 0;
+        existing.years.add(emailYear);
         // Garder la date la plus récente
         if (new Date(email.date) > new Date(existing.latestDate)) {
           existing.latestDate = email.date;
@@ -55,7 +57,8 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
         senderGroups.set(sender, {
           count: 1,
           totalSize: email.size || 0,
-          latestDate: email.date
+          latestDate: email.date,
+          years: new Set([emailYear])
         });
       }
     });
@@ -66,7 +69,8 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
         sender,
         count: data.count,
         totalSize: data.totalSize,
-        latestDate: data.latestDate
+        latestDate: data.latestDate,
+        years: Array.from(data.years).sort((a, b) => b - a)
       }))
       .sort((a, b) => b.count - a.count);
   }, [scanState.results?.emails]);
@@ -127,7 +131,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
               <div className="flex items-center justify-center">
                 <Search className="h-8 w-8 text-eco-blue animate-pulse" />
               </div>
-              <p className="text-center">Recherche des emails non lus de plus d'un an...</p>
+              <p className="text-center">Recherche des emails de 2000 à 2024...</p>
               <Progress value={50} className="w-full" />
             </div>
           ) : scanState.error ? (
@@ -139,7 +143,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Emails non lus</p>
+                  <p className="text-sm text-muted-foreground">Emails trouvés (2000-2024)</p>
                   <p className="text-3xl font-bold text-eco-blue">
                     {scanState.results.totalEmails}
                   </p>
@@ -209,6 +213,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Sélection</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expéditeur</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Nb emails</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Années</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Taille (Ko)</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Dernier email</th>
                             </tr>
@@ -231,6 +236,9 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                                   {senderData.count}
                                 </td>
                                 <td className="px-4 py-2 text-sm text-center">
+                                  {senderData.years.join(', ')}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-center">
                                   {senderData.totalSize.toFixed(1)}
                                 </td>
                                 <td className="px-4 py-2 text-sm text-center">
@@ -240,7 +248,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                             ))}
                             {emailsByDender.length > 20 && (
                               <tr>
-                                <td colSpan={5} className="px-4 py-2 text-center text-sm text-muted-foreground">
+                                <td colSpan={6} className="px-4 py-2 text-center text-sm text-muted-foreground">
                                   Et {emailsByDender.length - 20} autres expéditeurs...
                                 </td>
                               </tr>
