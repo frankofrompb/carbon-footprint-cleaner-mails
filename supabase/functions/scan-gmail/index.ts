@@ -34,12 +34,12 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Access token is required');
     }
 
-    console.log('Starting Gmail scan for unread emails older than 365 days...');
+    console.log('Starting Gmail scan for unread emails older than 6 months...');
 
-    // Calculer la date d'il y a exactement 365 jours
+    // Calculer la date d'il y a exactement 6 mois (180 jours)
     const today = new Date();
     const cutoffDate = new Date(today);
-    cutoffDate.setDate(cutoffDate.getDate() - 365);
+    cutoffDate.setDate(cutoffDate.getDate() - 180);
     
     // Format YYYY/MM/DD pour la requête Gmail
     const year = cutoffDate.getFullYear();
@@ -50,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Utiliser "before:" pour la date de réception et "is:unread" pour les non lus
     const searchQuery = `is:unread before:${dateQuery}`;
     
-    console.log(`Search query for unread emails older than 365 days: ${searchQuery}`);
+    console.log(`Search query for unread emails older than 6 months: ${searchQuery}`);
     console.log(`Searching for emails received before: ${dateQuery} (${cutoffDate.toISOString()})`);
     console.log(`Today is: ${today.toISOString()}`);
 
@@ -79,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!searchData.messages || searchData.messages.length === 0) {
-      console.log('No unread emails older than 365 days found');
+      console.log('No unread emails older than 6 months found');
       return new Response(JSON.stringify({
         totalEmails: 0,
         totalSizeMB: 0,
@@ -96,7 +96,7 @@ const handler = async (req: Request): Promise<Response> => {
     let totalSize = 0;
     let validEmailsCount = 0;
 
-    console.log(`Fetching details for ${emailsToFetch.length} unread emails older than 365 days...`);
+    console.log(`Fetching details for ${emailsToFetch.length} unread emails older than 6 months...`);
 
     for (const message of emailsToFetch) {
       try {
@@ -118,12 +118,12 @@ const handler = async (req: Request): Promise<Response> => {
           const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
           const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
           
-          // Vérifier strictement que l'email est plus ancien que 365 jours
+          // Vérifier strictement que l'email est plus ancien que 6 mois (180 jours)
           const emailDate = dateHeader ? new Date(dateHeader) : new Date();
           const daysDifference = Math.floor((today.getTime() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
           
-          if (daysDifference < 365) {
-            console.log(`Skipping email from ${emailDate.toISOString()} (${daysDifference} days old) - not older than 365 days`);
+          if (daysDifference < 180) {
+            console.log(`Skipping email from ${emailDate.toISOString()} (${daysDifference} days old) - not older than 6 months`);
             continue;
           }
           
@@ -147,7 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Utiliser le nombre d'emails réellement valides (plus anciens que 365 jours)
+    // Utiliser le nombre d'emails réellement valides (plus anciens que 6 mois)
     const totalEmails = validEmailsCount;
     const totalSizeMB = totalSize / 1024;
     const carbonFootprint = totalEmails * 10; // 10g par email
