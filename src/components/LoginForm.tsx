@@ -4,76 +4,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import VirtuousCircle from "./VirtuousCircle";
-import ServiceSelector, { ServiceType } from "./ServiceSelector";
 
 interface LoginFormProps {
-  onLoginWithGmail: (serviceType: ServiceType) => void;
+  onLoginWithGmail: () => void;
   isLoading: boolean;
 }
 
 const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
   const [email, setEmail] = useState("");
-  const [selectedService, setSelectedService] = useState<ServiceType>("delete-old");
-  const [showServiceSelector, setShowServiceSelector] = useState(false);
 
   const handleStartCleaning = () => {
-    if (!email.trim()) return;
-    
     console.log("🚀 Démarrage du nettoyage pour l'email:", email);
-    setShowServiceSelector(true);
+    // Déclencher l'authentification Gmail
+    onLoginWithGmail();
   };
-
-  const handleServiceConfirm = () => {
-    console.log("📊 Service sélectionné:", selectedService);
-    // Déclencher l'authentification Gmail avec le type de service
-    onLoginWithGmail(selectedService);
-  };
-
-  const handleBackToEmail = () => {
-    setShowServiceSelector(false);
-  };
-
-  if (showServiceSelector) {
-    return (
-      <div className="w-full space-y-8">
-        <ServiceSelector 
-          selectedService={selectedService}
-          onServiceChange={setSelectedService}
-        />
-        
-        <div className="flex justify-center gap-4">
-          <Button 
-            variant="outline"
-            onClick={handleBackToEmail}
-            disabled={isLoading}
-          >
-            Retour
-          </Button>
-          <Button 
-            onClick={handleServiceConfirm}
-            disabled={isLoading}
-            className="bg-[#6366f1] hover:bg-[#5855eb] text-white"
-          >
-            {isLoading ? "Connexion..." : "Continuer avec Gmail"}
-          </Button>
-        </div>
-        
-        {/* Bloc blanc avec les informations de sécurité */}
-        <div className="flex justify-center">
-          <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
-            <div className="text-center text-muted-foreground">
-              <p className="mb-4">
-                🔒 Vos données restent privées et sécurisées
-              </p>
-              <p className="text-sm">
-                Nous analysons uniquement les métadonnées de vos emails pour vous proposer un nettoyage intelligent
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full space-y-8">
@@ -110,7 +54,7 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                     disabled={isLoading || !email.trim()}
                     className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-4 py-1 rounded-full text-sm disabled:opacity-50"
                   >
-                    Commencez le nettoyage
+                    {isLoading ? "Connexion..." : "Commencez le nettoyage"}
                   </Button>
                 </div>
               </div>

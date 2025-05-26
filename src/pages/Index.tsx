@@ -6,7 +6,6 @@ import EmailScanner from "@/components/EmailScanner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MusicPlayer from "@/components/MusicPlayer";
-import { ServiceType } from "@/components/ServiceSelector";
 
 const Index = () => {
   const { authState, loginWithGmail, logout } = useAuth();
@@ -14,11 +13,6 @@ const Index = () => {
 
   // Le lecteur de musique est visible après une première authentification
   const shouldShowMusicPlayer = authState.isAuthenticated;
-
-  const handleLoginWithGmail = (serviceType: ServiceType) => {
-    console.log("🎯 Service sélectionné dans Index:", serviceType);
-    loginWithGmail(serviceType);
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,7 +36,7 @@ const Index = () => {
           <div className="flex justify-center">
             {!authState.isAuthenticated ? (
               <LoginForm 
-                onLoginWithGmail={handleLoginWithGmail} 
+                onLoginWithGmail={loginWithGmail} 
                 isLoading={authState.loading} 
               />
             ) : (
