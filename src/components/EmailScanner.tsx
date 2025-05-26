@@ -25,13 +25,12 @@ import Dashboard from "./Dashboard";
 interface EmailScannerProps {
   scanState: ScanState;
   onScan: () => void;
-  onDelete: () => void;
+  onDelete: (selectedSenders: Set<string>) => void;
   onExport: () => void;
   userEmail: string;
 }
 
 const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: EmailScannerProps) => {
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
   const [selectedSenders, setSelectedSenders] = useState<Set<string>>(new Set());
 
@@ -106,8 +105,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
   }, [emailsByDender, selectedSenders]);
 
   const handleDelete = () => {
-    setShowConfirmation(false);
-    onDelete();
+    onDelete(selectedSenders);
   };
 
   const toggleView = () => {
@@ -294,13 +292,13 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                   <AlertDialogHeader>
                     <AlertDialogTitle>Confirmation de suppression</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Vous êtes sur le point de supprimer {selectedCount} emails non lus des expéditeurs sélectionnés. 
+                      Vous êtes sur le point de supprimer {selectedCount} emails des expéditeurs sélectionnés. 
                       Cette action est irréversible. Voulez-vous continuer ?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDelete}>
+                    <AlertDialogAction onClick={handleDelete}>
                       Supprimer
                     </AlertDialogAction>
                   </AlertDialogFooter>

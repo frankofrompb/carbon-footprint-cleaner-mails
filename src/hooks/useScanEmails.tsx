@@ -83,7 +83,7 @@ export const useScanEmails = () => {
     }
   }, [toast]);
 
-  const deleteEmails = useCallback(async () => {
+  const deleteEmails = useCallback(async (selectedSenders: Set<string>) => {
     if (!scanState.results) return;
 
     try {
@@ -98,21 +98,35 @@ export const useScanEmails = () => {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
 
+      // Filtrer les emails pour ne garder que ceux des expéditeurs sélectionnés
+      const emailsToDelete = scanState.results.emails.filter(email => 
+        selectedSenders.has(email.from)
+      );
+
+      const emailIds = emailsToDelete.map(email => email.id);
+      const emailCount = emailIds.length;
+
+      if (emailCount === 0) {
+        toast({
+          title: "Aucun email à supprimer",
+          description: "Veuillez sélectionner au moins un expéditeur.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Suppression en cours",
-        description: `Suppression de ${scanState.results.totalEmails} emails de votre boîte Gmail...`,
+        description: `Suppression de ${emailCount} emails de votre boîte Gmail...`,
       });
 
       console.log("Calling Gmail delete function...");
-
-      // Récupérer tous les IDs des emails (pas seulement ceux affichés)
-      const allEmailIds = scanState.results.emails.map(email => email.id);
 
       // Appeler la fonction Edge pour supprimer les emails
       const { data, error } = await supabase.functions.invoke('delete-gmail-emails', {
         body: {
           accessToken: parsedAuth.accessToken,
-          emailIds: allEmailIds
+          emailIds: emailIds
         }
       });
 
@@ -128,9 +142,12 @@ export const useScanEmails = () => {
 
       console.log("Delete results:", data);
 
+      // Calculer l'empreinte carbone économisée
+      const carbonSaved = emailCount * 10; // 10g par email
+
       toast({
         title: "Suppression terminée",
-        description: `${data.deletedCount || scanState.results.totalEmails} emails supprimés avec succès de votre boîte Gmail ! Vous avez économisé ${scanState.results.carbonFootprint}g de CO₂!`,
+        description: `${data.deletedCount || emailCount} emails supprimés avec succès de votre boîte Gmail ! Vous avez économisé ${carbonSaved}g de CO₂!`,
       });
 
       // Réinitialiser les résultats
