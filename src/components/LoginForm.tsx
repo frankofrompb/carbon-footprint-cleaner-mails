@@ -43,6 +43,16 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
         </Card>
       </div>
 
+      {/* Bloc Impact Environnemental déplacé ici */}
+      <div className="flex justify-center">
+        <div className="w-full max-w-md text-center p-6 rounded-2xl border border-green-200" style={{backgroundColor: '#c2edfc'}}>
+          <h4 className="text-xl font-semibold text-[#38c39d] mb-2">Impact Environnemental</h4>
+          <p className="text-muted-foreground">
+            Ils prennent de la place et polluent en silence. 4g à l'envoi, 10g chaque année. Faites le ménage!
+          </p>
+        </div>
+      </div>
+
       {/* Bloc blanc avec les informations de sécurité */}
       <div className="flex justify-center">
         <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
