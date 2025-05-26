@@ -39,10 +39,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Date d'il y a un an
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const oneYearAgoTimestamp = Math.floor(oneYearAgo.getTime() / 1000);
+    const oneYearAgoFormatted = oneYearAgo.toISOString().split('T')[0];
 
-    // Rechercher les emails non lus de plus d'un an
-    const searchQuery = `is:unread before:${oneYearAgo.toISOString().split('T')[0]}`;
+    // Rechercher les emails non lus d'avant il y a un an ET qui sont restés non lus
+    // On utilise "older_than:1y" pour les emails de plus d'un an ET "is:unread" pour qu'ils soient non lus
+    const searchQuery = `is:unread older_than:1y`;
     
     console.log('Search query:', searchQuery);
 
