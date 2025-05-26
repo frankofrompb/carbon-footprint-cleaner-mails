@@ -12,41 +12,158 @@ interface MusicPlayerProps {
 
 const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState([0.5]);
+  const [volume, setVolume] = useState([0.3]);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
 
-  // Pistes zen d'ambiance avec des URLs fonctionnelles
   const tracks = [
     {
       title: "Pluie douce",
-      url: "https://www.soundjay.com/misc/sounds/rain-01.wav"
+      type: "rain"
     },
     {
       title: "Vagues océan", 
-      url: "https://www.soundjay.com/misc/sounds/ocean-wave-1.wav"
+      type: "ocean"
     },
     {
       title: "Vent dans les arbres",
-      url: "https://www.soundjay.com/misc/sounds/wind-chimes-1.wav"
+      type: "wind"
     }
   ];
+
+  // Créer un son d'ambiance synthétique
+  const createAmbientSound = (type: string) => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+
+    const context = audioContextRef.current;
+    
+    // Arrêter l'oscillateur précédent s'il existe
+    if (oscillatorRef.current) {
+      oscillatorRef.current.stop();
+    }
+
+    // Créer un nouveau gain node
+    const gainNode = context.createGain();
+    gainNodeRef.current = gainNode;
+    
+    // Régler le volume
+    gainNode.gain.setValueAtTime(isMuted ? 0 : volume[0] * 0.3, context.currentTime);
+    gainNode.connect(context.destination);
+
+    // Créer différents types de sons selon le type
+    switch (type) {
+      case "rain":
+        // Son de pluie avec du bruit blanc filtré
+        createRainSound(context, gainNode);
+        break;
+      case "ocean":
+        // Son d'océan avec oscillation basse fréquence
+        createOceanSound(context, gainNode);
+        break;
+      case "wind":
+        // Son de vent avec filtrage passe-haut
+        createWindSound(context, gainNode);
+        break;
+    }
+  };
+
+  const createRainSound = (context: AudioContext, gainNode: GainNode) => {
+    // Créer du bruit blanc pour simuler la pluie
+    const bufferSize = 2 * context.sampleRate;
+    const noiseBuffer = context.createBuffer(1, bufferSize, context.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+    
+    const whiteNoise = context.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+    whiteNoise.loop = true;
+    
+    // Filtrer pour créer l'effet pluie
+    const filter = context.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(3000, context.currentTime);
+    
+    whiteNoise.connect(filter);
+    filter.connect(gainNode);
+    whiteNoise.start();
+    
+    oscillatorRef.current = whiteNoise as any;
+  };
+
+  const createOceanSound = (context: AudioContext, gainNode: GainNode) => {
+    // Oscillateur principal pour les vagues
+    const oscillator = context.createOscillator();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(80, context.currentTime);
+    
+    // Modulation pour l'effet vague
+    const modulator = context.createOscillator();
+    modulator.type = "sine";
+    modulator.frequency.setValueAtTime(0.2, context.currentTime);
+    
+    const modulatorGain = context.createGain();
+    modulatorGain.gain.setValueAtTime(20, context.currentTime);
+    
+    modulator.connect(modulatorGain);
+    modulatorGain.connect(oscillator.frequency);
+    
+    oscillator.connect(gainNode);
+    oscillator.start();
+    modulator.start();
+    
+    oscillatorRef.current = oscillator;
+  };
+
+  const createWindSound = (context: AudioContext, gainNode: GainNode) => {
+    // Bruit rose pour le vent
+    const bufferSize = 2 * context.sampleRate;
+    const noiseBuffer = context.createBuffer(1, bufferSize, context.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104856;
+      b4 = 0.55000 * b4 + white * 0.5329522;
+      b5 = -0.7616 * b5 - white * 0.0168980;
+      output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+      output[i] *= 0.11;
+      b6 = white * 0.115926;
+    }
+    
+    const pinkNoise = context.createBufferSource();
+    pinkNoise.buffer = noiseBuffer;
+    pinkNoise.loop = true;
+    
+    // Filtre passe-haut pour l'effet vent
+    const filter = context.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.setValueAtTime(500, context.currentTime);
+    
+    pinkNoise.connect(filter);
+    filter.connect(gainNode);
+    pinkNoise.start();
+    
+    oscillatorRef.current = pinkNoise as any;
+  };
 
   // Écouter l'événement d'activation de la musique
   useEffect(() => {
     const handleActivateMusic = () => {
       console.log("Événement activateMusic reçu");
-      if (audioRef.current && !isPlaying) {
+      if (!isPlaying) {
         setIsPlaying(true);
-        audioRef.current.play().catch(error => {
-          console.error("Erreur lors de la lecture audio:", error);
-          // Essayer avec une source audio alternative
-          if (audioRef.current) {
-            audioRef.current.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhESaHz/DPdyoGKnzJ8N2PQAoTW7Ln665bGQ8+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8=";
-            audioRef.current.play().catch(console.error);
-          }
-        });
       }
     };
 
@@ -55,19 +172,37 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   }, [isPlaying]);
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume[0];
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.setValueAtTime(
+        isMuted ? 0 : volume[0] * 0.3, 
+        audioContextRef.current?.currentTime || 0
+      );
     }
   }, [volume, isMuted]);
 
   useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch(console.error);
-      } else {
-        audioRef.current.pause();
+    if (isPlaying) {
+      createAmbientSound(tracks[currentTrack].type);
+    } else {
+      if (oscillatorRef.current) {
+        try {
+          oscillatorRef.current.stop();
+        } catch (e) {
+          // L'oscillateur était déjà arrêté
+        }
+        oscillatorRef.current = null;
       }
     }
+
+    return () => {
+      if (oscillatorRef.current) {
+        try {
+          oscillatorRef.current.stop();
+        } catch (e) {
+          // L'oscillateur était déjà arrêté
+        }
+      }
+    };
   }, [isPlaying, currentTrack]);
 
   const togglePlay = () => {
@@ -156,17 +291,6 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
               />
             </div>
           </div>
-          
-          <audio
-            ref={audioRef}
-            src={tracks[currentTrack].url}
-            loop
-            onError={(e) => {
-              console.log("Erreur audio:", e);
-              // En cas d'erreur, passer à la piste suivante
-              nextTrack();
-            }}
-          />
         </CardContent>
       </Card>
     </div>
