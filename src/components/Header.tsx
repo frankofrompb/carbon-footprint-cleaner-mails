@@ -39,17 +39,15 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
 
   return (
     <header className="w-full bg-white border-b">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-center relative">
-        {/* Logo centré */}
-        <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-3">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <LogoWithBubbles />
           <div className="flex items-center">
             <span className="font-bold text-lg flex items-center translate-y-1"><span className="text-[#38c39d]">Eco</span>InBox</span>
           </div>
         </div>
         
-        {/* Contrôles à droite */}
-        <div className="absolute right-4 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           {/* Bouton play pour la musique */}
           {onToggleMusic && (
             <Button
