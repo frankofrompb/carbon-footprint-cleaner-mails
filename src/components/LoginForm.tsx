@@ -18,25 +18,37 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
       {/* Cercle vertueux */}
       <VirtuousCircle />
       
-      {/* Carte de connexion */}
+      {/* Carte de connexion avec image */}
       <div className="flex justify-center">
-        <Card className="w-full max-w-md shadow-lg" style={{backgroundColor: '#c2edfc'}}>
+        <Card className="w-full max-w-2xl shadow-lg" style={{backgroundColor: '#c2edfc'}}>
           <CardContent className="space-y-4 pt-6">
-            {/* Champ Email avec le style demandé */}
-            <div className="space-y-2">
-              <div className="bg-white rounded-full px-4 py-2 flex items-center shadow-sm">
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400 flex-1"
+            {/* Formulaire email avec image à droite */}
+            <div className="flex items-center gap-6">
+              {/* Zone du formulaire email */}
+              <div className="flex-1 space-y-2">
+                <div className="bg-white rounded-full px-4 py-2 flex items-center shadow-sm">
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400 flex-1"
+                  />
+                  <Button 
+                    className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-4 py-1 rounded-full text-sm"
+                  >
+                    Commencez le nettoyage
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Image à droite */}
+              <div className="flex-shrink-0">
+                <img 
+                  src="/lovable-uploads/62c68940-c968-4ec4-a7d9-eb4042b35667.png" 
+                  alt="Illustration email marketing" 
+                  className="w-32 h-24 object-contain"
                 />
-                <Button 
-                  className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-6 py-2 rounded-full text-sm"
-                >
-                  Commencez le nettoyage
-                </Button>
               </div>
             </div>
           </CardContent>
