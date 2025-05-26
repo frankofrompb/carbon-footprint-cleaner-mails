@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,28 +17,36 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [currentTrack, setCurrentTrack] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Pistes zen d'ambiance
+  // Pistes zen d'ambiance avec des URLs fonctionnelles
   const tracks = [
     {
-      title: "Rivière paisible",
-      url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
+      title: "Pluie douce",
+      url: "https://www.soundjay.com/misc/sounds/rain-01.wav"
     },
     {
-      title: "Forêt zen", 
-      url: "https://www.soundjay.com/misc/sounds/bell-ringing-04.wav"
+      title: "Vagues océan", 
+      url: "https://www.soundjay.com/misc/sounds/ocean-wave-1.wav"
     },
     {
-      title: "Méditation douce",
-      url: "https://www.soundjay.com/misc/sounds/bell-ringing-03.wav"
+      title: "Vent dans les arbres",
+      url: "https://www.soundjay.com/misc/sounds/wind-chimes-1.wav"
     }
   ];
 
   // Écouter l'événement d'activation de la musique
   useEffect(() => {
     const handleActivateMusic = () => {
+      console.log("Événement activateMusic reçu");
       if (audioRef.current && !isPlaying) {
         setIsPlaying(true);
-        audioRef.current.play().catch(console.error);
+        audioRef.current.play().catch(error => {
+          console.error("Erreur lors de la lecture audio:", error);
+          // Essayer avec une source audio alternative
+          if (audioRef.current) {
+            audioRef.current.src = "data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhESaHz/DPdyoGKnzJ8N2PQAoTW7Ln665bGQ8+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8NSJnl7KdaGg0+ltryxnkkBSl+yPDejz8=";
+            audioRef.current.play().catch(console.error);
+          }
+        });
       }
     };
 

@@ -26,6 +26,7 @@ const Index = () => {
         isAuthenticated={authState.isAuthenticated} 
         userEmail={authState.userEmail} 
         onLogout={logout}
+        onToggleMusic={handleToggleMusic}
       />
       
       <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
@@ -44,7 +45,6 @@ const Index = () => {
               <LoginForm 
                 onLoginWithGmail={loginWithGmail} 
                 isLoading={authState.loading}
-                onToggleMusic={handleToggleMusic}
               />
             ) : (
               <EmailScanner 

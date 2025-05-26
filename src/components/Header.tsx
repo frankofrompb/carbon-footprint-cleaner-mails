@@ -9,16 +9,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Play } from "lucide-react";
 import LogoWithBubbles from "./LogoWithBubbles";
 
 interface HeaderProps {
   isAuthenticated: boolean;
   userEmail?: string | null;
   onLogout: () => void;
+  onToggleMusic?: () => void;
 }
 
-const Header = ({ isAuthenticated, userEmail, onLogout }: HeaderProps) => {
+const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderProps) => {
   // Générer les initiales à partir de l'email
   const getInitials = (email: string) => {
     const parts = email.split('@')[0].split('.');
@@ -26,6 +27,14 @@ const Header = ({ isAuthenticated, userEmail, onLogout }: HeaderProps) => {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return email.substring(0, 2).toUpperCase();
+  };
+
+  const handleActivateMusic = () => {
+    if (onToggleMusic) {
+      onToggleMusic();
+    }
+    // Déclencher l'événement pour activer la musique
+    window.dispatchEvent(new CustomEvent('activateMusic'));
   };
 
   return (
@@ -39,6 +48,19 @@ const Header = ({ isAuthenticated, userEmail, onLogout }: HeaderProps) => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* Bouton play pour la musique */}
+          {onToggleMusic && (
+            <Button
+              onClick={handleActivateMusic}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 rounded-full hover:bg-gray-100"
+              style={{ color: '#4878fe' }}
+            >
+              <Play className="h-4 w-4" />
+            </Button>
+          )}
+          
           {isAuthenticated && userEmail && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
