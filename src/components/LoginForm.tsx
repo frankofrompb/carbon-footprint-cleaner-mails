@@ -1,16 +1,18 @@
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Play } from "lucide-react";
 import { useState } from "react";
 import VirtuousCircle from "./VirtuousCircle";
 
 interface LoginFormProps {
   onLoginWithGmail: () => void;
   isLoading: boolean;
+  onToggleMusic?: () => void;
 }
 
-const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
+const LoginForm = ({ onLoginWithGmail, isLoading, onToggleMusic }: LoginFormProps) => {
   const [email, setEmail] = useState("");
 
   const handleStartCleaning = () => {
@@ -42,6 +44,18 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                 </p>
                 
                 <div className="bg-white rounded-full px-4 py-2 flex items-center shadow-sm">
+                  {/* Bouton play à gauche si email saisi */}
+                  {email.trim() && onToggleMusic && (
+                    <Button 
+                      onClick={onToggleMusic}
+                      variant="ghost"
+                      size="sm"
+                      className="mr-2 p-1 h-8 w-8 rounded-full hover:bg-gray-100"
+                    >
+                      <Play className="h-4 w-4 text-[#38c39d]" />
+                    </Button>
+                  )}
+                  
                   <Input
                     type="email"
                     placeholder="Email"

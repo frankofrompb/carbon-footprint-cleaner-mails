@@ -1,6 +1,15 @@
 
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { User, LogOut } from "lucide-react";
 import LogoWithBubbles from "./LogoWithBubbles";
 
 interface HeaderProps {
@@ -10,6 +19,15 @@ interface HeaderProps {
 }
 
 const Header = ({ isAuthenticated, userEmail, onLogout }: HeaderProps) => {
+  // Générer les initiales à partir de l'email
+  const getInitials = (email: string) => {
+    const parts = email.split('@')[0].split('.');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return email.substring(0, 2).toUpperCase();
+  };
+
   return (
     <header className="w-full bg-white border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -21,15 +39,33 @@ const Header = ({ isAuthenticated, userEmail, onLogout }: HeaderProps) => {
         </div>
         
         <div className="flex items-center gap-2">
-          {isAuthenticated && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground hidden md:inline-block">
-                {userEmail}
-              </span>
-              <Button variant="ghost" size="sm" onClick={onLogout}>
-                Déconnexion
-              </Button>
-            </div>
+          {isAuthenticated && userEmail && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-[#38c39d] text-white text-sm">
+                      {getInitials(userEmail)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-white" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">Mon compte</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {userEmail}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onLogout} className="cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Déconnexion</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

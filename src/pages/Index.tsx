@@ -1,6 +1,7 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { useScanEmails } from "@/hooks/useScanEmails";
+import { useState } from "react";
 import LoginForm from "@/components/LoginForm";
 import EmailScanner from "@/components/EmailScanner";
 import Header from "@/components/Header";
@@ -10,9 +11,14 @@ import MusicPlayer from "@/components/MusicPlayer";
 const Index = () => {
   const { authState, loginWithGmail, logout } = useAuth();
   const { scanState, scanEmails, deleteEmails, exportToCsv } = useScanEmails();
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
 
-  // Le lecteur de musique est visible après une première authentification
-  const shouldShowMusicPlayer = authState.isAuthenticated;
+  // Le lecteur de musique est visible après une première authentification ou après activation manuelle
+  const shouldShowMusicPlayer = authState.isAuthenticated || showMusicPlayer;
+
+  const handleToggleMusic = () => {
+    setShowMusicPlayer(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -37,7 +43,8 @@ const Index = () => {
             {!authState.isAuthenticated ? (
               <LoginForm 
                 onLoginWithGmail={loginWithGmail} 
-                isLoading={authState.loading} 
+                isLoading={authState.loading}
+                onToggleMusic={handleToggleMusic}
               />
             ) : (
               <EmailScanner 
