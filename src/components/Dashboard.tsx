@@ -131,9 +131,9 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
         <CardHeader>
           <CardTitle>Emails non lus par année</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {emailsByYear.length > 0 ? (
-            <div className="h-80">
+            <div className="h-80 w-full">
               <ChartContainer
                 config={{
                   emails: {
@@ -141,9 +141,13 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
                     color: "#38c39d",
                   },
                 }}
+                className="h-full w-full"
               >
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={emailsByYear} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <BarChart 
+                    data={emailsByYear} 
+                    margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                  >
                     <XAxis 
                       dataKey="name" 
                       stroke="#888888" 
