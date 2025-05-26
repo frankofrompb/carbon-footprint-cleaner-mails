@@ -46,7 +46,7 @@ const VirtuousCircle = () => {
               </div>
               <h3 className="font-bold text-lg mb-2 text-green-700">Tri Intelligent</h3>
               <p className="text-sm text-green-600">
-                Classification automatique des anciens emails selon leur importance
+                Classification automatique des anciens emails par dossier
               </p>
             </div>
           </div>
