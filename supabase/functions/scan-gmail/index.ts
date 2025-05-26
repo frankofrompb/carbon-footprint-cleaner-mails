@@ -34,26 +34,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Access token is required');
     }
 
-    console.log('Starting Gmail scan for unread emails older than 6 months (including promotions and social)...');
+    console.log('Starting Gmail scan for all emails from 2000 to 2024...');
 
-    // Calculer la date d'il y a exactement 6 mois (180 jours)
-    const today = new Date();
-    const cutoffDate = new Date(today);
-    cutoffDate.setDate(cutoffDate.getDate() - 180);
+    // Rechercher tous les emails de 2000 à 2024 (toutes catégories)
+    // Utiliser after:2000/01/01 before:2025/01/01 pour couvrir la période
+    const searchQuery = `after:2000/01/01 before:2025/01/01`;
     
-    // Format YYYY/MM/DD pour la requête Gmail
-    const year = cutoffDate.getFullYear();
-    const month = String(cutoffDate.getMonth() + 1).padStart(2, '0');
-    const day = String(cutoffDate.getDate()).padStart(2, '0');
-    const dateQuery = `${year}/${month}/${day}`;
-    
-    // Utiliser une requête qui inclut tous les emails non lus (inbox, promotions, social, spam)
-    // La syntaxe (is:unread OR category:promotions OR category:social) avec before: permet d'inclure tous les types
-    const searchQuery = `(is:unread OR (category:promotions is:unread) OR (category:social is:unread)) before:${dateQuery}`;
-    
-    console.log(`Search query for unread emails older than 6 months (all categories): ${searchQuery}`);
-    console.log(`Searching for emails received before: ${dateQuery} (${cutoffDate.toISOString()})`);
-    console.log(`Today is: ${today.toISOString()}`);
+    console.log(`Search query for emails from 2000-2024: ${searchQuery}`);
 
     // Appel à l'API Gmail pour rechercher les emails
     const searchResponse = await fetch(
@@ -80,7 +67,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!searchData.messages || searchData.messages.length === 0) {
-      console.log('No unread emails older than 6 months found (including promotions and social)');
+      console.log('No emails found from 2000-2024');
       return new Response(JSON.stringify({
         totalEmails: 0,
         totalSizeMB: 0,
@@ -97,7 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
     let totalSize = 0;
     let validEmailsCount = 0;
 
-    console.log(`Fetching details for ${emailsToFetch.length} unread emails older than 6 months (all categories)...`);
+    console.log(`Fetching details for ${emailsToFetch.length} emails from 2000-2024...`);
 
     for (const message of emailsToFetch) {
       try {
@@ -119,17 +106,17 @@ const handler = async (req: Request): Promise<Response> => {
           const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
           const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
           
-          // Vérifier strictement que l'email est plus ancien que 6 mois (180 jours)
+          // Vérifier que l'email est bien dans la période 2000-2024
           const emailDate = dateHeader ? new Date(dateHeader) : new Date();
-          const daysDifference = Math.floor((today.getTime() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
+          const emailYear = emailDate.getFullYear();
           
-          if (daysDifference < 180) {
-            console.log(`Skipping email from ${emailDate.toISOString()} (${daysDifference} days old) - not older than 6 months`);
+          if (emailYear < 2000 || emailYear > 2024) {
+            console.log(`Skipping email from ${emailDate.toISOString()} (year ${emailYear}) - outside 2000-2024 range`);
             continue;
           }
           
           validEmailsCount++;
-          console.log(`Valid email found from ${emailDate.toISOString()} (${daysDifference} days old)`);
+          console.log(`Valid email found from ${emailDate.toISOString()} (year ${emailYear})`);
           
           // Estimer la taille en Ko (sizeEstimate est en bytes)
           const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
@@ -148,7 +135,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Utiliser le nombre total d'emails trouvés par l'API Gmail (incluant promotions et social)
+    // Utiliser le nombre total d'emails trouvés par l'API Gmail
     const totalEmails = searchData.resultSizeEstimate || validEmailsCount;
     const totalSizeMB = totalSize / 1024;
     const carbonFootprint = totalEmails * 10; // 10g par email
@@ -160,15 +147,15 @@ const handler = async (req: Request): Promise<Response> => {
       emails,
     };
 
-    console.log('Unread emails scan completed (all categories):', {
+    console.log('Email scan completed (2000-2024):', {
       totalEmails: results.totalEmails,
       totalSizeMB: results.totalSizeMB,
       carbonFootprint: results.carbonFootprint,
       emailsDisplayed: results.emails.length,
-      searchDate: dateQuery,
+      searchPeriod: '2000-2024',
       validEmailsFound: validEmailsCount,
       totalEmailsFromAPI: searchData.resultSizeEstimate || searchData.messages.length,
-      includedCategories: 'inbox, promotions, social'
+      includedCategories: 'all categories (inbox, promotions, social, spam, etc.)'
     });
 
     return new Response(JSON.stringify(results), {
