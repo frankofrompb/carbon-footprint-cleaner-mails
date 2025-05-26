@@ -1,5 +1,5 @@
 
-import { UserCheck, Brain } from "lucide-react";
+import { Trash2, UserCheck, Brain } from "lucide-react";
 
 const VirtuousCircle = () => {
   return (
@@ -16,11 +16,7 @@ const VirtuousCircle = () => {
           <div className="flex flex-col items-center text-center">
             <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl shadow-lg mb-4 hover:shadow-xl transition-all duration-300 border border-red-200">
               <div className="bg-red-500 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <img 
-                  src="/lovable-uploads/104ab8d0-3c0b-482c-a58b-810eb369f38f.png" 
-                  alt="Suppression intelligente" 
-                  className="h-6 w-6 object-contain"
-                />
+                <Trash2 className="h-6 w-6 text-white" />
               </div>
               <h3 className="font-bold text-lg mb-2 text-red-700">Suppression Intelligente</h3>
               <p className="text-sm text-red-600">
