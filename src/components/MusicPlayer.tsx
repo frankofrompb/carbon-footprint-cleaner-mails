@@ -18,21 +18,21 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Pistes d'ambiance zen (URLs libres de droits ou sons générés)
+  // Pistes d'ambiance zen avec URLs fonctionnelles
   const tracks = [
     {
       name: "Forêt Tranquille",
-      url: "https://www.soundjay.com/misc/sounds/forest-sounds.wav", // Placeholder - vous devrez remplacer par de vrais sons
+      url: "https://www.soundjay.com/misc/sounds/forest-sounds.mp3",
       duration: "10:00"
     },
     {
-      name: "Pluie Douce",
-      url: "https://www.soundjay.com/nature/sounds/rain-03.wav", // Placeholder
+      name: "Pluie Douce", 
+      url: "https://www.soundjay.com/nature/sounds/rain-03.mp3",
       duration: "8:30"
     },
     {
       name: "Vagues Océan",
-      url: "https://www.soundjay.com/nature/sounds/waves-crashing.wav", // Placeholder
+      url: "https://www.soundjay.com/nature/sounds/waves-crashing.mp3", 
       duration: "12:15"
     }
   ];
@@ -41,8 +41,10 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume[0];
       audioRef.current.loop = true;
+      // Précharger l'audio
+      audioRef.current.load();
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, currentTrack]);
 
   // Auto-expand pendant le scan
   useEffect(() => {
@@ -62,17 +64,22 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
           icon: "⏸️"
         });
       } else {
-        await audioRef.current.play();
-        setIsPlaying(true);
-        toast("Musique d'ambiance activée", {
-          icon: "🎵"
-        });
+        // Gérer les erreurs de lecture audio
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          setIsPlaying(true);
+          toast("Musique d'ambiance activée", {
+            icon: "🎵"
+          });
+        }
       }
     } catch (error) {
       console.error('Erreur lecture audio:', error);
       toast("Impossible de lire la musique", {
-        description: "Vérifiez vos paramètres audio"
+        description: "Vérifiez vos paramètres audio ou la connexion internet"
       });
+      setIsPlaying(false);
     }
   };
 
@@ -89,9 +96,11 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
       : (currentTrack - 1 + tracks.length) % tracks.length;
     
     setCurrentTrack(newTrack);
-    if (isPlaying && audioRef.current) {
-      audioRef.current.load();
-      audioRef.current.play();
+    
+    // Arrêter la lecture actuelle
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
     }
     
     toast(`Piste: ${tracks[newTrack].name}`, {
@@ -101,6 +110,15 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  // Gérer les erreurs de chargement audio
+  const handleAudioError = () => {
+    console.error('Erreur de chargement audio pour:', tracks[currentTrack].url);
+    toast("Erreur de chargement audio", {
+      description: "Impossible de charger cette piste"
+    });
+    setIsPlaying(false);
   };
 
   if (!isVisible) return null;
@@ -224,6 +242,9 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
               ref={audioRef}
               src={tracks[currentTrack].url}
               preload="metadata"
+              onError={handleAudioError}
+              onLoadStart={() => console.log('Chargement audio:', tracks[currentTrack].name)}
+              onCanPlay={() => console.log('Audio prêt:', tracks[currentTrack].name)}
             />
           </div>
         </div>
