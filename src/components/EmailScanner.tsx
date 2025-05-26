@@ -4,9 +4,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScanState } from "@/types";
 import { Search, Trash, Download, AlertTriangle } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,7 @@ interface EmailScannerProps {
 const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: EmailScannerProps) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
+  const [selectedSenders, setSelectedSenders] = useState<Set<string>>(new Set());
 
   // Grouper les emails par expéditeur
   const emailsByDender = useMemo(() => {
@@ -69,6 +71,39 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
       }))
       .sort((a, b) => b.count - a.count);
   }, [scanState.results?.emails]);
+
+  // Initialiser tous les expéditeurs comme sélectionnés par défaut
+  useEffect(() => {
+    if (emailsByDender.length > 0) {
+      const allSenders = new Set(emailsByDender.map(item => item.sender));
+      setSelectedSenders(allSenders);
+    }
+  }, [emailsByDender]);
+
+  const handleSenderToggle = (sender: string, checked: boolean) => {
+    const newSelected = new Set(selectedSenders);
+    if (checked) {
+      newSelected.add(sender);
+    } else {
+      newSelected.delete(sender);
+    }
+    setSelectedSenders(newSelected);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedSenders(new Set());
+  };
+
+  const handleSelectAll = () => {
+    const allSenders = new Set(emailsByDender.map(item => item.sender));
+    setSelectedSenders(allSenders);
+  };
+
+  const selectedCount = useMemo(() => {
+    return emailsByDender
+      .filter(item => selectedSenders.has(item.sender))
+      .reduce((total, item) => total + item.count, 0);
+  }, [emailsByDender, selectedSenders]);
 
   const handleDelete = () => {
     setShowConfirmation(false);
@@ -143,11 +178,37 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
 
                   {emailsByDender.length > 0 && (
                     <div className="space-y-2">
-                      <h3 className="font-medium">Emails classés par expéditeur :</h3>
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-medium">Emails classés par expéditeur :</h3>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleDeselectAll}
+                          >
+                            Tout désélectionner
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleSelectAll}
+                          >
+                            Tout sélectionner
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {selectedSenders.size > 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          {selectedCount} emails sélectionnés pour suppression
+                        </p>
+                      )}
+
                       <div className="max-h-96 overflow-y-auto border rounded-md">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-muted sticky top-0">
                             <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Sélection</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expéditeur</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Nb emails</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Taille (Ko)</th>
@@ -157,6 +218,14 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                           <tbody className="divide-y divide-gray-200">
                             {emailsByDender.slice(0, 20).map((senderData, index) => (
                               <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                <td className="px-4 py-2 text-center">
+                                  <Checkbox
+                                    checked={selectedSenders.has(senderData.sender)}
+                                    onCheckedChange={(checked) => 
+                                      handleSenderToggle(senderData.sender, checked as boolean)
+                                    }
+                                  />
+                                </td>
                                 <td className="px-4 py-2 text-sm max-w-xs truncate" title={senderData.sender}>
                                   {senderData.sender}
                                 </td>
@@ -173,7 +242,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                             ))}
                             {emailsByDender.length > 20 && (
                               <tr>
-                                <td colSpan={4} className="px-4 py-2 text-center text-sm text-muted-foreground">
+                                <td colSpan={5} className="px-4 py-2 text-center text-sm text-muted-foreground">
                                   Et {emailsByDender.length - 20} autres expéditeurs...
                                 </td>
                               </tr>
@@ -215,16 +284,17 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                 <AlertDialogTrigger asChild>
                   <Button 
                     className="w-full sm:w-auto bg-destructive hover:bg-destructive/90"
+                    disabled={selectedSenders.size === 0}
                   >
                     <Trash className="mr-2 h-4 w-4" />
-                    Supprimer {scanState.results.totalEmails} emails
+                    Supprimer {selectedCount} emails
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Confirmation de suppression</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Vous êtes sur le point de supprimer {scanState.results.totalEmails} emails non lus. 
+                      Vous êtes sur le point de supprimer {selectedCount} emails non lus des expéditeurs sélectionnés. 
                       Cette action est irréversible. Voulez-vous continuer ?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
