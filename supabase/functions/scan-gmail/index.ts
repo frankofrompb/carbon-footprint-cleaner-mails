@@ -40,12 +40,18 @@ const handler = async (req: Request): Promise<Response> => {
     // On utilise "is:unread before:" avec une date d'il y a un an
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const dateString = `${oneYearAgo.getFullYear()}/${oneYearAgo.getMonth() + 1}/${oneYearAgo.getDate()}`;
+    
+    // Format correct pour Gmail : YYYY/MM/DD
+    const year = oneYearAgo.getFullYear();
+    const month = (oneYearAgo.getMonth() + 1).toString().padStart(2, '0');
+    const day = oneYearAgo.getDate().toString().padStart(2, '0');
+    const dateString = `${year}/${month}/${day}`;
     
     // Cette requête trouve les emails non lus d'AVANT la date (donc de plus d'un an)
     const searchQuery = `is:unread before:${dateString}`;
     
     console.log('Search query:', searchQuery);
+    console.log('Date calculée (il y a un an):', dateString);
 
     // Appel à l'API Gmail pour rechercher les emails
     const searchResponse = await fetch(
