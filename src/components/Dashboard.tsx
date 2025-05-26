@@ -31,7 +31,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
   });
 
   useEffect(() => {
-    if (scanResults && scanResults.emails) {
+    if (scanResults && scanResults.emails && scanResults.emails.length > 0) {
       // Process emails by year
       const emailsByYearMap = new Map<string, number>();
       
@@ -46,18 +46,33 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
         spam: spamCount
       });
 
-      // Group emails by year
+      // Group emails by year - fix the date parsing
       scanResults.emails.forEach(email => {
-        const year = new Date(email.date).getFullYear().toString();
-        emailsByYearMap.set(year, (emailsByYearMap.get(year) || 0) + 1);
+        if (email.date) {
+          try {
+            // Parse the date string properly
+            const emailDate = new Date(email.date);
+            if (!isNaN(emailDate.getTime())) {
+              const year = emailDate.getFullYear().toString();
+              emailsByYearMap.set(year, (emailsByYearMap.get(year) || 0) + 1);
+            }
+          } catch (error) {
+            console.log('Error parsing date:', email.date, error);
+          }
+        }
       });
 
-      // Convert map to array for chart
+      // Convert map to array for chart and sort by year
       const emailsData = Array.from(emailsByYearMap.entries())
         .map(([year, count]) => ({ name: year, count }))
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .sort((a, b) => parseInt(a.name) - parseInt(b.name)); // Sort numerically by year
 
+      console.log('Emails by year data:', emailsData);
       setEmailsByYear(emailsData);
+    } else {
+      // Reset if no emails
+      setEmailsByYear([]);
+      setEmailCategories({ promotional: 0, social: 0, spam: 0 });
     }
   }, [scanResults]);
 
@@ -117,31 +132,58 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
           <CardTitle>Emails non lus par année</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
-            <ChartContainer
-              config={{
-                emails: {
-                  label: "Emails non lus",
-                  color: "#38c39d",
-                },
-              }}
-            >
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={emailsByYear}>
-                  <XAxis dataKey="name" stroke="#888888" fontSize={12} />
-                  <YAxis stroke="#888888" fontSize={12} />
-                  <ChartTooltip 
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value) => [`${value} emails`, "Quantité"]}
-                      />
-                    } 
-                  />
-                  <Bar dataKey="count" name="emails" fill="currentColor" className="fill-[var(--color-emails)]" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
+          {emailsByYear.length > 0 ? (
+            <div className="h-80">
+              <ChartContainer
+                config={{
+                  emails: {
+                    label: "Emails non lus",
+                    color: "#38c39d",
+                  },
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={emailsByYear} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#888888" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      stroke="#888888" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `${value}`}
+                    />
+                    <ChartTooltip 
+                      content={
+                        <ChartTooltipContent 
+                          formatter={(value, name) => [
+                            `${value} emails`,
+                            `Année ${emailsByYear.find(item => item.count === value)?.name || ''}`
+                          ]}
+                        />
+                      } 
+                    />
+                    <Bar 
+                      dataKey="count" 
+                      name="emails" 
+                      fill="currentColor" 
+                      className="fill-[var(--color-emails)]" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center text-muted-foreground">
+              <p>Aucune donnée d'email à afficher</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
