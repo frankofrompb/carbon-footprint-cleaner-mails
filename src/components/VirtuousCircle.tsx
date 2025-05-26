@@ -1,5 +1,6 @@
 
-import { Trash2, UserCheck, Brain } from "lucide-react";
+
+import { Trash2, Brain } from "lucide-react";
 
 const VirtuousCircle = () => {
   return (
@@ -29,7 +30,11 @@ const VirtuousCircle = () => {
           <div className="flex flex-col items-center text-center">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl shadow-lg mb-4 hover:shadow-xl transition-all duration-300 border border-blue-200">
               <div className="bg-blue-500 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <UserCheck className="h-6 w-6 text-white" />
+                <img 
+                  src="/lovable-uploads/8da3896e-b67c-4cbf-be06-bb3760be5dd7.png" 
+                  alt="Analyse des expéditeurs" 
+                  className="h-6 w-6 object-contain"
+                />
               </div>
               <h3 className="font-bold text-lg mb-2 text-blue-700">Analyse des Expéditeurs</h3>
               <p className="text-sm text-blue-600">
@@ -57,3 +62,4 @@ const VirtuousCircle = () => {
 };
 
 export default VirtuousCircle;
+
