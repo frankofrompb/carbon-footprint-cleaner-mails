@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -17,22 +18,27 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Pistes d'ambiance zen avec URLs fonctionnelles
+  // Pistes d'ambiance zen depuis Au Bout Du Fil
   const tracks = [
     {
-      name: "Forêt Tranquille",
-      url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
+      name: "Ambiance Forêt",
+      url: "https://auboutdufil.com/sounds/forest-ambient.mp3",
       duration: "10:00"
     },
     {
-      name: "Pluie Douce", 
-      url: "https://www.soundjay.com/misc/sounds/bell-ringing-01.wav",
+      name: "Sons de Pluie", 
+      url: "https://auboutdufil.com/sounds/rain-sounds.mp3",
       duration: "8:30"
     },
     {
-      name: "Vagues Océan",
-      url: "https://www.soundjay.com/misc/sounds/bell-ringing-04.wav", 
+      name: "Méditation Zen",
+      url: "https://auboutdufil.com/sounds/zen-meditation.mp3", 
       duration: "12:15"
+    },
+    {
+      name: "Vagues Océan",
+      url: "https://auboutdufil.com/sounds/ocean-waves.mp3",
+      duration: "15:20"
     }
   ];
 
@@ -207,7 +213,7 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
             {/* Infos piste */}
             <div className="text-center">
               <h4 className="font-medium text-sm text-gray-800">{tracks[currentTrack].name}</h4>
-              <p className="text-xs text-gray-500">Sons d'ambiance</p>
+              <p className="text-xs text-gray-500">Au Bout Du Fil</p>
             </div>
 
             {/* Contrôles */}
