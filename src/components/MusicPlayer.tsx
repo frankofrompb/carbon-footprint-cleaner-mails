@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -22,17 +21,17 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const tracks = [
     {
       name: "Forêt Tranquille",
-      url: "https://www.soundjay.com/misc/sounds/forest-sounds.mp3",
+      url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
       duration: "10:00"
     },
     {
       name: "Pluie Douce", 
-      url: "https://www.soundjay.com/nature/sounds/rain-03.mp3",
+      url: "https://www.soundjay.com/misc/sounds/bell-ringing-01.wav",
       duration: "8:30"
     },
     {
       name: "Vagues Océan",
-      url: "https://www.soundjay.com/nature/sounds/waves-crashing.mp3", 
+      url: "https://www.soundjay.com/misc/sounds/bell-ringing-04.wav", 
       duration: "12:15"
     }
   ];
@@ -64,7 +63,8 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
           icon: "⏸️"
         });
       } else {
-        // Gérer les erreurs de lecture audio
+        // Test de connexion audio simple
+        audioRef.current.volume = isMuted ? 0 : volume[0];
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           await playPromise;
@@ -76,10 +76,33 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
       }
     } catch (error) {
       console.error('Erreur lecture audio:', error);
-      toast("Impossible de lire la musique", {
-        description: "Vérifiez vos paramètres audio ou la connexion internet"
+      toast("Audio non disponible", {
+        description: "Utilisation d'un son de notification simple"
       });
-      setIsPlaying(false);
+      
+      // Fallback avec un beep simple
+      try {
+        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+        gainNode.gain.setValueAtTime(isMuted ? 0 : volume[0] * 0.1, audioContext.currentTime);
+        
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.2);
+        
+        setIsPlaying(false);
+        toast("Son de notification joué", {
+          icon: "🔔"
+        });
+      } catch (fallbackError) {
+        console.error('Erreur fallback audio:', fallbackError);
+        setIsPlaying(false);
+      }
     }
   };
 
@@ -184,7 +207,7 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
             {/* Infos piste */}
             <div className="text-center">
               <h4 className="font-medium text-sm text-gray-800">{tracks[currentTrack].name}</h4>
-              <p className="text-xs text-gray-500">{tracks[currentTrack].duration}</p>
+              <p className="text-xs text-gray-500">Sons d'ambiance</p>
             </div>
 
             {/* Contrôles */}
@@ -241,7 +264,7 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
             <audio
               ref={audioRef}
               src={tracks[currentTrack].url}
-              preload="metadata"
+              preload="none"
               onError={handleAudioError}
               onLoadStart={() => console.log('Chargement audio:', tracks[currentTrack].name)}
               onCanPlay={() => console.log('Audio prêt:', tracks[currentTrack].name)}
