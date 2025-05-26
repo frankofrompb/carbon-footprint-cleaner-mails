@@ -5,11 +5,17 @@ import { Slider } from '@/components/ui/slider';
 import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 
-const MusicPlayer = () => {
+interface MusicPlayerProps {
+  isVisible: boolean;
+  isScanning: boolean;
+}
+
+const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState([0.3]);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Pistes d'ambiance zen (URLs libres de droits ou sons générés)
@@ -38,6 +44,13 @@ const MusicPlayer = () => {
     }
   }, [volume, isMuted]);
 
+  // Auto-expand pendant le scan
+  useEffect(() => {
+    if (isScanning) {
+      setIsExpanded(true);
+    }
+  }, [isScanning]);
+
   const togglePlay = async () => {
     if (!audioRef.current) return;
 
@@ -58,8 +71,7 @@ const MusicPlayer = () => {
     } catch (error) {
       console.error('Erreur lecture audio:', error);
       toast("Impossible de lire la musique", {
-        description: "Vérifiez vos paramètres audio",
-        variant: "destructive"
+        description: "Vérifiez vos paramètres audio"
       });
     }
   };
@@ -87,101 +99,135 @@ const MusicPlayer = () => {
     });
   };
 
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  if (!isVisible) return null;
+
   return (
-    <div className="fixed bottom-6 right-6 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-4 border border-gray-200 z-50">
-      <div className="flex flex-col items-center space-y-4 w-64">
-        {/* Tourne-disque */}
-        <div className="relative">
-          <div 
-            className={`w-20 h-20 rounded-full bg-gradient-to-br from-gray-800 to-black border-4 border-gray-600 relative ${
-              isPlaying ? 'animate-spin' : ''
-            }`}
-            style={{ animationDuration: '3s' }}
-          >
-            {/* Centre du disque */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-4 h-4 rounded-full bg-gray-400"></div>
+    <div className="fixed top-6 right-6 z-50">
+      {/* Icône play/pause minimisée */}
+      {!isExpanded && (
+        <Button
+          onClick={toggleExpanded}
+          className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm shadow-xl border border-gray-200 hover:bg-white/95"
+          variant="ghost"
+        >
+          <Play className="h-5 w-5 text-gray-700" />
+        </Button>
+      )}
+
+      {/* Lecteur complet */}
+      {isExpanded && (
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-4 border border-gray-200">
+          <div className="flex flex-col items-center space-y-4 w-64">
+            {/* Bouton fermer */}
+            <div className="w-full flex justify-end">
+              <Button
+                onClick={toggleExpanded}
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </Button>
             </div>
-            
-            {/* Rainures du disque */}
-            <div className="absolute inset-2 rounded-full border border-gray-500 opacity-30"></div>
-            <div className="absolute inset-4 rounded-full border border-gray-500 opacity-20"></div>
-            <div className="absolute inset-6 rounded-full border border-gray-500 opacity-10"></div>
+
+            {/* Tourne-disque */}
+            <div className="relative">
+              <div 
+                className={`w-20 h-20 rounded-full bg-gradient-to-br from-gray-800 to-black border-4 border-gray-600 relative ${
+                  isPlaying ? 'animate-spin' : ''
+                }`}
+                style={{ animationDuration: '3s' }}
+              >
+                {/* Centre du disque */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-gray-400"></div>
+                </div>
+                
+                {/* Rainures du disque */}
+                <div className="absolute inset-2 rounded-full border border-gray-500 opacity-30"></div>
+                <div className="absolute inset-4 rounded-full border border-gray-500 opacity-20"></div>
+                <div className="absolute inset-6 rounded-full border border-gray-500 opacity-10"></div>
+              </div>
+              
+              {/* Bras de lecture */}
+              <div 
+                className={`absolute -top-2 -right-1 w-1 h-12 bg-gray-400 rounded-full origin-bottom transition-transform duration-500 ${
+                  isPlaying ? 'rotate-12' : 'rotate-45'
+                }`}
+              >
+                <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-gray-600 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* Infos piste */}
+            <div className="text-center">
+              <h4 className="font-medium text-sm text-gray-800">{tracks[currentTrack].name}</h4>
+              <p className="text-xs text-gray-500">{tracks[currentTrack].duration}</p>
+            </div>
+
+            {/* Contrôles */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => changeTrack('prev')}
+                className="h-8 w-8 p-0"
+              >
+                ⏮️
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePlay}
+                className="h-10 w-10 p-0"
+              >
+                {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => changeTrack('next')}
+                className="h-8 w-8 p-0"
+              >
+                ⏭️
+              </Button>
+            </div>
+
+            {/* Contrôle volume */}
+            <div className="flex items-center space-x-2 w-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleMute}
+                className="h-8 w-8 p-0"
+              >
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </Button>
+              
+              <Slider
+                value={volume}
+                onValueChange={setVolume}
+                max={1}
+                step={0.1}
+                className="flex-1"
+              />
+            </div>
+
+            {/* Element audio */}
+            <audio
+              ref={audioRef}
+              src={tracks[currentTrack].url}
+              preload="metadata"
+            />
           </div>
-          
-          {/* Bras de lecture */}
-          <div 
-            className={`absolute -top-2 -right-1 w-1 h-12 bg-gray-400 rounded-full origin-bottom transition-transform duration-500 ${
-              isPlaying ? 'rotate-12' : 'rotate-45'
-            }`}
-          >
-            <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-gray-600 rounded-full"></div>
-          </div>
         </div>
-
-        {/* Infos piste */}
-        <div className="text-center">
-          <h4 className="font-medium text-sm text-gray-800">{tracks[currentTrack].name}</h4>
-          <p className="text-xs text-gray-500">{tracks[currentTrack].duration}</p>
-        </div>
-
-        {/* Contrôles */}
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => changeTrack('prev')}
-            className="h-8 w-8 p-0"
-          >
-            ⏮️
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={togglePlay}
-            className="h-10 w-10 p-0"
-          >
-            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => changeTrack('next')}
-            className="h-8 w-8 p-0"
-          >
-            ⏭️
-          </Button>
-        </div>
-
-        {/* Contrôle volume */}
-        <div className="flex items-center space-x-2 w-full">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleMute}
-            className="h-8 w-8 p-0"
-          >
-            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </Button>
-          
-          <Slider
-            value={volume}
-            onValueChange={setVolume}
-            max={1}
-            step={0.1}
-            className="flex-1"
-          />
-        </div>
-
-        {/* Element audio */}
-        <audio
-          ref={audioRef}
-          src={tracks[currentTrack].url}
-          preload="metadata"
-        />
-      </div>
+      )}
     </div>
   );
 };

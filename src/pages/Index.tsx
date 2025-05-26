@@ -11,6 +11,9 @@ const Index = () => {
   const { authState, loginWithGmail, logout } = useAuth();
   const { scanState, scanEmails, deleteEmails, exportToCsv } = useScanEmails();
 
+  // Le lecteur de musique est visible après une première authentification
+  const shouldShowMusicPlayer = authState.isAuthenticated;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header 
@@ -52,7 +55,10 @@ const Index = () => {
       <Footer />
       
       {/* Lecteur de musique d'ambiance */}
-      <MusicPlayer />
+      <MusicPlayer 
+        isVisible={shouldShowMusicPlayer}
+        isScanning={scanState.isScanning}
+      />
     </div>
   );
 };
