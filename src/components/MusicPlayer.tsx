@@ -18,26 +18,26 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Pistes d'ambiance zen depuis Au Bout Du Fil
+  // Pistes d'ambiance zen avec URLs fonctionnelles
   const tracks = [
     {
       name: "Ambiance Forêt",
-      url: "https://auboutdufil.com/sounds/forest-ambient.mp3",
+      url: "https://www.soundjay.com/misc/sounds/wind-in-trees.wav",
       duration: "10:00"
     },
     {
       name: "Sons de Pluie", 
-      url: "https://auboutdufil.com/sounds/rain-sounds.mp3",
+      url: "https://www.soundjay.com/misc/sounds/rain-on-roof.wav",
       duration: "8:30"
     },
     {
       name: "Méditation Zen",
-      url: "https://auboutdufil.com/sounds/zen-meditation.mp3", 
+      url: "https://www.soundjay.com/misc/sounds/meditation-bell.wav", 
       duration: "12:15"
     },
     {
       name: "Vagues Océan",
-      url: "https://auboutdufil.com/sounds/ocean-waves.mp3",
+      url: "https://www.soundjay.com/misc/sounds/ocean-waves.wav",
       duration: "15:20"
     }
   ];
@@ -69,8 +69,10 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
           icon: "⏸️"
         });
       } else {
-        // Test de connexion audio simple
+        // Configurer le volume avant de jouer
         audioRef.current.volume = isMuted ? 0 : volume[0];
+        
+        // Essayer de jouer l'audio
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           await playPromise;
@@ -82,38 +84,19 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
       }
     } catch (error) {
       console.error('Erreur lecture audio:', error);
-      toast("Audio non disponible", {
-        description: "Utilisation d'un son de notification simple"
+      toast("Audio indisponible", {
+        description: "Impossible de lire cette piste d'ambiance",
+        icon: "⚠️"
       });
-      
-      // Fallback avec un beep simple
-      try {
-        const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(isMuted ? 0 : volume[0] * 0.1, audioContext.currentTime);
-        
-        oscillator.start();
-        oscillator.stop(audioContext.currentTime + 0.2);
-        
-        setIsPlaying(false);
-        toast("Son de notification joué", {
-          icon: "🔔"
-        });
-      } catch (fallbackError) {
-        console.error('Erreur fallback audio:', fallbackError);
-        setIsPlaying(false);
-      }
+      setIsPlaying(false);
     }
   };
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
+    if (audioRef.current) {
+      audioRef.current.volume = !isMuted ? 0 : volume[0];
+    }
     toast(isMuted ? "Son activé" : "Son coupé", {
       icon: isMuted ? "🔊" : "🔇"
     });
@@ -142,12 +125,19 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   };
 
   // Gérer les erreurs de chargement audio
-  const handleAudioError = () => {
+  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
     console.error('Erreur de chargement audio pour:', tracks[currentTrack].url);
-    toast("Erreur de chargement audio", {
-      description: "Impossible de charger cette piste"
+    console.error('Détails erreur:', e);
+    toast("Erreur de chargement", {
+      description: "Cette piste d'ambiance n'est pas disponible",
+      icon: "⚠️"
     });
     setIsPlaying(false);
+  };
+
+  // Gérer quand l'audio est prêt
+  const handleAudioCanPlay = () => {
+    console.log('Audio prêt pour:', tracks[currentTrack].name);
   };
 
   if (!isVisible) return null;
@@ -213,7 +203,7 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
             {/* Infos piste */}
             <div className="text-center">
               <h4 className="font-medium text-sm text-gray-800">{tracks[currentTrack].name}</h4>
-              <p className="text-xs text-gray-500">Au Bout Du Fil</p>
+              <p className="text-xs text-gray-500">Sons d'ambiance</p>
             </div>
 
             {/* Contrôles */}
@@ -270,10 +260,10 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
             <audio
               ref={audioRef}
               src={tracks[currentTrack].url}
-              preload="none"
+              preload="metadata"
               onError={handleAudioError}
+              onCanPlay={handleAudioCanPlay}
               onLoadStart={() => console.log('Chargement audio:', tracks[currentTrack].name)}
-              onCanPlay={() => console.log('Audio prêt:', tracks[currentTrack].name)}
             />
           </div>
         </div>
