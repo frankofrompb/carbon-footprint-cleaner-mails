@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -21,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import CarbonFootprintVisual from "./CarbonFootprintVisual";
 import Dashboard from "./Dashboard";
+import { formatNumber } from "@/lib/utils";
 
 interface EmailScannerProps {
   scanState: ScanState;
@@ -145,7 +145,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                 <div className="p-4 bg-muted rounded-lg text-center">
                   <p className="text-sm text-muted-foreground">Emails non lus trouvés</p>
                   <p className="text-3xl font-bold text-eco-blue">
-                    {scanState.results.totalEmails}
+                    {formatNumber(scanState.results.totalEmails)}
                   </p>
                 </div>
                 <div className="p-4 bg-muted rounded-lg text-center">
@@ -157,7 +157,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                 <div className="p-4 bg-muted rounded-lg text-center">
                   <p className="text-sm text-muted-foreground">Empreinte CO₂</p>
                   <p className="text-3xl font-bold text-eco-green">
-                    {scanState.results.carbonFootprint}g
+                    {formatNumber(scanState.results.carbonFootprint)}g
                   </p>
                 </div>
               </div>
@@ -202,12 +202,12 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                       
                       {selectedSenders.size > 0 && (
                         <p className="text-sm text-muted-foreground">
-                          {selectedCount} emails sélectionnés pour suppression
+                          {formatNumber(selectedCount)} emails sélectionnés pour suppression
                         </p>
                       )}
 
                       <p className="text-sm text-muted-foreground">
-                        {emailsByDender.length} expéditeurs différents • {scanState.results.emails.length} emails récupérés sur {scanState.results.totalEmails} trouvés
+                        {emailsByDender.length} expéditeurs différents • {formatNumber(scanState.results.emails.length)} emails récupérés sur {formatNumber(scanState.results.totalEmails)} trouvés
                       </p>
 
                       <div className="max-h-96 overflow-y-auto border rounded-md">
@@ -237,7 +237,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                                   {senderData.sender}
                                 </td>
                                 <td className="px-4 py-2 text-sm font-medium text-center">
-                                  {senderData.count}
+                                  {formatNumber(senderData.count)}
                                 </td>
                                 <td className="px-4 py-2 text-sm text-center">
                                   {senderData.years.join(', ')}
@@ -287,14 +287,14 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                     disabled={selectedSenders.size === 0}
                   >
                     <Trash className="mr-2 h-4 w-4" />
-                    Supprimer {selectedCount} emails
+                    Supprimer {formatNumber(selectedCount)} emails
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Confirmation de suppression</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Vous êtes sur le point de supprimer {selectedCount} emails des expéditeurs sélectionnés. 
+                      Vous êtes sur le point de supprimer {formatNumber(selectedCount)} emails des expéditeurs sélectionnés. 
                       Cette action est irréversible. Voulez-vous continuer ?
                     </AlertDialogDescription>
                   </AlertDialogHeader>

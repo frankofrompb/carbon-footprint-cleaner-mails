@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatNumber } from "@/lib/utils";
 
 interface DashboardProps {
   scanResults: ScanResults;
@@ -89,7 +89,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{emailCategories.promotional}</div>
+            <div className="text-2xl font-bold">{formatNumber(emailCategories.promotional)}</div>
             <p className="text-xs text-muted-foreground">
               {Math.round(emailCategories.promotional / scanResults.totalEmails * 100)}% du total
             </p>
@@ -104,7 +104,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{emailCategories.social}</div>
+            <div className="text-2xl font-bold">{formatNumber(emailCategories.social)}</div>
             <p className="text-xs text-muted-foreground">
               {Math.round(emailCategories.social / scanResults.totalEmails * 100)}% du total
             </p>
@@ -119,7 +119,7 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{emailCategories.spam}</div>
+            <div className="text-2xl font-bold">{formatNumber(emailCategories.spam)}</div>
             <p className="text-xs text-muted-foreground">
               {Math.round(emailCategories.spam / scanResults.totalEmails * 100)}% du total
             </p>
@@ -160,13 +160,13 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
                       fontSize={12}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(value) => `${value}`}
+                      tickFormatter={(value) => formatNumber(value)}
                     />
                     <ChartTooltip 
                       content={
                         <ChartTooltipContent 
                           formatter={(value, name) => [
-                            `${value} emails`,
+                            `${formatNumber(Number(value))} emails`,
                             `Année ${emailsByYear.find(item => item.count === value)?.name || ''}`
                           ]}
                         />
@@ -207,23 +207,23 @@ const Dashboard = ({ scanResults }: DashboardProps) => {
             <TableBody>
               <TableRow>
                 <TableCell>Promotions</TableCell>
-                <TableCell>{emailCategories.promotional}</TableCell>
-                <TableCell>{emailCategories.promotional * 10}g</TableCell>
+                <TableCell>{formatNumber(emailCategories.promotional)}</TableCell>
+                <TableCell>{formatNumber(emailCategories.promotional * 10)}g</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Réseaux sociaux</TableCell>
-                <TableCell>{emailCategories.social}</TableCell>
-                <TableCell>{emailCategories.social * 10}g</TableCell>
+                <TableCell>{formatNumber(emailCategories.social)}</TableCell>
+                <TableCell>{formatNumber(emailCategories.social * 10)}g</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Spam</TableCell>
-                <TableCell>{emailCategories.spam}</TableCell>
-                <TableCell>{emailCategories.spam * 10}g</TableCell>
+                <TableCell>{formatNumber(emailCategories.spam)}</TableCell>
+                <TableCell>{formatNumber(emailCategories.spam * 10)}g</TableCell>
               </TableRow>
               <TableRow className="font-medium">
                 <TableCell>Total</TableCell>
-                <TableCell>{scanResults.totalEmails}</TableCell>
-                <TableCell>{scanResults.carbonFootprint}g</TableCell>
+                <TableCell>{formatNumber(scanResults.totalEmails)}</TableCell>
+                <TableCell>{formatNumber(scanResults.carbonFootprint)}g</TableCell>
               </TableRow>
             </TableBody>
           </Table>
