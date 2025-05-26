@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -35,25 +36,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Starting Gmail scan...');
 
-    // Calculer correctement la date d'il y a un an
-    const today = new Date();
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(today.getFullYear() - 1);
-    oneYearAgo.setMonth(today.getMonth());
-    oneYearAgo.setDate(today.getDate());
+    // TEST SPECIFIQUE POUR 2020 : chercher TOUS les emails de 2020 (lus et non lus)
+    // Période de test : du 1er janvier 2020 au 31 décembre 2020
+    const searchQuery = `after:2020/01/01 before:2021/01/01`;
     
-    // Format correct pour Gmail : YYYY/MM/DD
-    const year = oneYearAgo.getFullYear();
-    const month = (oneYearAgo.getMonth() + 1).toString().padStart(2, '0');
-    const day = oneYearAgo.getDate().toString().padStart(2, '0');
-    const dateString = `${year}/${month}/${day}`;
-    
-    // Cette requête trouve les emails non lus d'AVANT la date (donc de plus d'un an)
-    const searchQuery = `is:unread before:${dateString}`;
-    
-    console.log('Search query:', searchQuery);
-    console.log('Date calculée (il y a un an):', dateString);
-    console.log('Date actuelle:', `${today.getFullYear()}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`);
+    console.log('Search query for 2020 test:', searchQuery);
 
     // Appel à l'API Gmail pour rechercher les emails
     const searchResponse = await fetch(
@@ -91,7 +78,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emails: EmailData[] = [];
     let totalSize = 0;
 
-    console.log(`Fetching details for ${emailsToFetch.length} emails...`);
+    console.log(`Fetching details for ${emailsToFetch.length} emails from 2020...`);
 
     for (const message of emailsToFetch) {
       try {
@@ -141,7 +128,7 @@ const handler = async (req: Request): Promise<Response> => {
       emails,
     };
 
-    console.log('Scan completed:', results);
+    console.log('2020 scan completed:', results);
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
