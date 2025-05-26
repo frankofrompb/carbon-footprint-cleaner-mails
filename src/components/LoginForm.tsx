@@ -24,16 +24,17 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
           <CardContent className="space-y-6 pt-6">
             {/* Section Impact Environnemental */}
             <div className="text-center">
-              <h4 className="text-xl font-semibold text-[#38c39d] mb-2">Impact Environnemental</h4>
-              <p className="text-muted-foreground">
-                Ils prennent de la place et polluent en silence. 4g à l'envoi, 10g chaque année. Faites le ménage!
-              </p>
+              <h4 className="text-xl font-semibold text-[#38c39d] mb-4">Impact Environnemental</h4>
             </div>
             
-            {/* Formulaire email avec nouvelle image à droite */}
-            <div className="flex items-center gap-6">
-              {/* Zone du formulaire email */}
-              <div className="flex-1 space-y-2">
+            {/* Disposition en deux blocs: texte/formulaire à gauche, image à droite */}
+            <div className="flex items-center gap-8">
+              {/* Bloc gauche: texte et formulaire */}
+              <div className="flex-1 space-y-4">
+                <p className="text-muted-foreground text-left">
+                  Ils prennent de la place et polluent en silence. 4g à l'envoi, 10g chaque année. Faites le ménage!
+                </p>
+                
                 <div className="bg-white rounded-full px-4 py-2 flex items-center shadow-sm">
                   <Input
                     type="email"
@@ -50,7 +51,7 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                 </div>
               </div>
               
-              {/* Nouvelle image à droite */}
+              {/* Bloc droite: image */}
               <div className="flex-shrink-0">
                 <img 
                   src="/lovable-uploads/d99667ce-630c-4f0e-a5ad-53cd33c95f28.png" 
