@@ -40,15 +40,6 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={onLoginWithGmail} 
-              disabled={isLoading} 
-              className="w-full py-6 text-lg bg-[#38c39d] hover:bg-[#2d8b61]"
-            >
-              {isLoading ? "Connexion en cours..." : "Se connecter avec Gmail"}
-            </Button>
-          </CardFooter>
         </Card>
       </div>
 
