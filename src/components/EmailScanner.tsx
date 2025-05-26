@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScanState } from "@/types";
 import { Search, Trash, Download, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +32,43 @@ interface EmailScannerProps {
 const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: EmailScannerProps) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
+
+  // Grouper les emails par expéditeur
+  const emailsByDender = useMemo(() => {
+    if (!scanState.results?.emails) return [];
+
+    const senderGroups = new Map<string, { count: number; totalSize: number; latestDate: string }>();
+
+    scanState.results.emails.forEach(email => {
+      const sender = email.from;
+      const existing = senderGroups.get(sender);
+      
+      if (existing) {
+        existing.count += 1;
+        existing.totalSize += email.size || 0;
+        // Garder la date la plus récente
+        if (new Date(email.date) > new Date(existing.latestDate)) {
+          existing.latestDate = email.date;
+        }
+      } else {
+        senderGroups.set(sender, {
+          count: 1,
+          totalSize: email.size || 0,
+          latestDate: email.date
+        });
+      }
+    });
+
+    // Convertir en tableau et trier par nombre d'emails (décroissant)
+    return Array.from(senderGroups.entries())
+      .map(([sender, data]) => ({
+        sender,
+        count: data.count,
+        totalSize: data.totalSize,
+        latestDate: data.latestDate
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [scanState.results?.emails]);
 
   const handleDelete = () => {
     setShowConfirmation(false);
@@ -91,7 +128,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
               {showDashboard ? (
                 <>
                   <Button variant="outline" onClick={toggleView} className="w-full">
-                    Voir les emails trouvés
+                    Voir les emails trouvés par expéditeur
                   </Button>
                   <Dashboard scanResults={scanState.results} />
                 </>
@@ -104,38 +141,49 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
 
                   <Separator />
 
-                  {scanState.results.emails.length > 0 && (
+                  {emailsByDender.length > 0 && (
                     <div className="space-y-2">
-                      <h3 className="font-medium">Échantillon des emails trouvés :</h3>
-                      <div className="max-h-60 overflow-y-auto border rounded-md">
+                      <h3 className="font-medium">Emails classés par expéditeur :</h3>
+                      <div className="max-h-96 overflow-y-auto border rounded-md">
                         <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-muted">
+                          <thead className="bg-muted sticky top-0">
                             <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Sujet</th>
                               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expéditeur</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Date</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Nb emails</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Taille (Ko)</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Dernier email</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {scanState.results.emails.slice(0, 5).map((email) => (
-                              <tr key={email.id}>
-                                <td className="px-4 py-2 text-sm">{email.subject}</td>
-                                <td className="px-4 py-2 text-sm">{email.from}</td>
-                                <td className="px-4 py-2 text-sm">
-                                  {new Date(email.date).toLocaleDateString()}
+                            {emailsByDender.slice(0, 20).map((senderData, index) => (
+                              <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                <td className="px-4 py-2 text-sm max-w-xs truncate" title={senderData.sender}>
+                                  {senderData.sender}
+                                </td>
+                                <td className="px-4 py-2 text-sm font-medium text-center">
+                                  {senderData.count}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-center">
+                                  {senderData.totalSize.toFixed(1)}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-center">
+                                  {new Date(senderData.latestDate).toLocaleDateString()}
                                 </td>
                               </tr>
                             ))}
-                            {scanState.results.emails.length > 5 && (
+                            {emailsByDender.length > 20 && (
                               <tr>
-                                <td colSpan={3} className="px-4 py-2 text-center text-sm text-muted-foreground">
-                                  Et {scanState.results.emails.length - 5} autres emails...
+                                <td colSpan={4} className="px-4 py-2 text-center text-sm text-muted-foreground">
+                                  Et {emailsByDender.length - 20} autres expéditeurs...
                                 </td>
                               </tr>
                             )}
                           </tbody>
                         </table>
                       </div>
+                      <p className="text-sm text-muted-foreground text-center">
+                        Top {Math.min(20, emailsByDender.length)} expéditeurs sur {emailsByDender.length} au total
+                      </p>
                     </div>
                   )}
                 </>
