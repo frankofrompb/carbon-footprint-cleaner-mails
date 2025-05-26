@@ -6,10 +6,11 @@ import { AuthState } from "@/types";
 // Client ID Gmail pour l'accès à l'API
 const GMAIL_CLIENT_ID = "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com";
 
-// Périmètres étendus pour Gmail
+// Périmètres étendus pour Gmail avec permissions de suppression
 const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
   "https://www.googleapis.com/auth/gmail.modify",
+  "https://mail.google.com/",
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile"
 ].join(" ");
@@ -112,10 +113,10 @@ export const useAuth = () => {
       return;
     }
 
-    console.log("🔐 Demande de connexion à Google...");
+    console.log("🔐 Demande de connexion à Google avec scopes étendus...");
 
     try {
-      // Créer un client OAuth2 avec la nouvelle API
+      // Créer un client OAuth2 avec la nouvelle API et les scopes étendus
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: GMAIL_CLIENT_ID,
         scope: GMAIL_SCOPES,
@@ -156,7 +157,7 @@ export const useAuth = () => {
               
               toast({
                 title: "Authentification réussie",
-                description: `Connecté avec ${userInfo.email}`,
+                description: `Connecté avec ${userInfo.email} - Permissions de suppression accordées`,
               });
             })
             .catch(error => {
@@ -180,7 +181,7 @@ export const useAuth = () => {
             if (response.error === 'popup_closed_by_user') {
               errorMessage = "Connexion annulée par l'utilisateur.";
             } else if (response.error === 'access_denied') {
-              errorMessage = "Accès refusé. Veuillez autoriser l'application.";
+              errorMessage = "Accès refusé. Veuillez autoriser l'application à accéder à Gmail.";
             }
             
             setAuthState((prev) => ({

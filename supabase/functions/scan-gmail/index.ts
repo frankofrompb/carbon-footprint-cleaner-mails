@@ -34,13 +34,16 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Access token is required');
     }
 
-    console.log('Starting Gmail scan...');
+    console.log('Starting Gmail scan for unread emails older than 1 year...');
 
-    // TEST SPECIFIQUE POUR 2020 : chercher TOUS les emails de 2020 (lus et non lus)
-    // Période de test : du 1er janvier 2020 au 31 décembre 2020
-    const searchQuery = `after:2020/01/01 before:2021/01/01`;
+    // Chercher les emails non lus de plus d'un an
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    const dateQuery = oneYearAgo.toISOString().split('T')[0].replace(/-/g, '/');
     
-    console.log('Search query for 2020 test:', searchQuery);
+    const searchQuery = `is:unread before:${dateQuery}`;
+    
+    console.log('Search query for unread emails older than 1 year:', searchQuery);
 
     // Appel à l'API Gmail pour rechercher les emails
     const searchResponse = await fetch(
@@ -78,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
     const emails: EmailData[] = [];
     let totalSize = 0;
 
-    console.log(`Fetching details for ${emailsToFetch.length} emails from 2020...`);
+    console.log(`Fetching details for ${emailsToFetch.length} unread emails older than 1 year...`);
 
     for (const message of emailsToFetch) {
       try {
@@ -128,7 +131,7 @@ const handler = async (req: Request): Promise<Response> => {
       emails,
     };
 
-    console.log('2020 scan completed:', results);
+    console.log('Unread emails scan completed:', results);
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
