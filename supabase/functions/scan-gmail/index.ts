@@ -34,7 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Access token is required');
     }
 
-    console.log('Starting Gmail scan for unread emails older than 6 months...');
+    console.log('Starting Gmail scan for unread emails older than 6 months (including promotions and social)...');
 
     // Calculer la date d'il y a exactement 6 mois (180 jours)
     const today = new Date();
@@ -47,10 +47,11 @@ const handler = async (req: Request): Promise<Response> => {
     const day = String(cutoffDate.getDate()).padStart(2, '0');
     const dateQuery = `${year}/${month}/${day}`;
     
-    // Utiliser "before:" pour la date de réception et "is:unread" pour les non lus
-    const searchQuery = `is:unread before:${dateQuery}`;
+    // Utiliser une requête qui inclut tous les emails non lus (inbox, promotions, social, spam)
+    // La syntaxe (is:unread OR category:promotions OR category:social) avec before: permet d'inclure tous les types
+    const searchQuery = `(is:unread OR (category:promotions is:unread) OR (category:social is:unread)) before:${dateQuery}`;
     
-    console.log(`Search query for unread emails older than 6 months: ${searchQuery}`);
+    console.log(`Search query for unread emails older than 6 months (all categories): ${searchQuery}`);
     console.log(`Searching for emails received before: ${dateQuery} (${cutoffDate.toISOString()})`);
     console.log(`Today is: ${today.toISOString()}`);
 
@@ -79,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (!searchData.messages || searchData.messages.length === 0) {
-      console.log('No unread emails older than 6 months found');
+      console.log('No unread emails older than 6 months found (including promotions and social)');
       return new Response(JSON.stringify({
         totalEmails: 0,
         totalSizeMB: 0,
@@ -96,7 +97,7 @@ const handler = async (req: Request): Promise<Response> => {
     let totalSize = 0;
     let validEmailsCount = 0;
 
-    console.log(`Fetching details for ${emailsToFetch.length} unread emails older than 6 months...`);
+    console.log(`Fetching details for ${emailsToFetch.length} unread emails older than 6 months (all categories)...`);
 
     for (const message of emailsToFetch) {
       try {
@@ -147,8 +148,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Utiliser le nombre d'emails réellement valides (plus anciens que 6 mois)
-    const totalEmails = validEmailsCount;
+    // Utiliser le nombre total d'emails trouvés par l'API Gmail (incluant promotions et social)
+    const totalEmails = searchData.resultSizeEstimate || validEmailsCount;
     const totalSizeMB = totalSize / 1024;
     const carbonFootprint = totalEmails * 10; // 10g par email
 
@@ -159,14 +160,15 @@ const handler = async (req: Request): Promise<Response> => {
       emails,
     };
 
-    console.log('Unread emails scan completed:', {
+    console.log('Unread emails scan completed (all categories):', {
       totalEmails: results.totalEmails,
       totalSizeMB: results.totalSizeMB,
       carbonFootprint: results.carbonFootprint,
       emailsDisplayed: results.emails.length,
       searchDate: dateQuery,
       validEmailsFound: validEmailsCount,
-      totalEmailsFromAPI: searchData.messages.length
+      totalEmailsFromAPI: searchData.resultSizeEstimate || searchData.messages.length,
+      includedCategories: 'inbox, promotions, social'
     });
 
     return new Response(JSON.stringify(results), {
