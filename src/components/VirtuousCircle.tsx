@@ -33,7 +33,7 @@ const VirtuousCircle = () => {
               </div>
               <h3 className="font-bold text-lg mb-2 text-blue-700">Analyse des Expéditeurs</h3>
               <p className="text-sm text-blue-600">
-                Identification des expéditeurs fréquents et gestion des abonnements
+                Classer vos mails les plus fréquents (spam, desabonnement ou à conserver)
               </p>
             </div>
           </div>
