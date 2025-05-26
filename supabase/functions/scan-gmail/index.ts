@@ -36,14 +36,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Starting Gmail scan for unread emails older than 1 year...');
 
-    // Chercher les emails non lus de plus d'un an
+    // Calculer la date d'il y a exactement un an
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-    const dateQuery = oneYearAgo.toISOString().split('T')[0].replace(/-/g, '/');
+    
+    // Format YYYY/MM/DD pour la requête Gmail
+    const year = oneYearAgo.getFullYear();
+    const month = String(oneYearAgo.getMonth() + 1).padStart(2, '0');
+    const day = String(oneYearAgo.getDate()).padStart(2, '0');
+    const dateQuery = `${year}/${month}/${day}`;
     
     const searchQuery = `is:unread before:${dateQuery}`;
     
-    console.log('Search query for unread emails older than 1 year:', searchQuery);
+    console.log(`Search query for unread emails older than 1 year: ${searchQuery}`);
+    console.log(`Searching for emails before: ${dateQuery} (${oneYearAgo.toISOString()})`);
 
     // Appel à l'API Gmail pour rechercher les emails
     const searchResponse = await fetch(
@@ -63,9 +69,14 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const searchData = await searchResponse.json();
-    console.log('Search results:', searchData);
+    console.log('Search results summary:', {
+      resultSizeEstimate: searchData.resultSizeEstimate,
+      messagesFound: searchData.messages?.length || 0,
+      nextPageToken: searchData.nextPageToken ? 'present' : 'none'
+    });
 
     if (!searchData.messages || searchData.messages.length === 0) {
+      console.log('No unread emails older than 1 year found');
       return new Response(JSON.stringify({
         totalEmails: 0,
         totalSizeMB: 0,
@@ -103,6 +114,13 @@ const handler = async (req: Request): Promise<Response> => {
           const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
           const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
           
+          // Vérifier que l'email est vraiment plus ancien qu'un an
+          const emailDate = dateHeader ? new Date(dateHeader) : new Date();
+          if (emailDate > oneYearAgo) {
+            console.log(`Skipping email from ${emailDate.toISOString()} as it's not older than 1 year`);
+            continue;
+          }
+          
           // Estimer la taille en Ko (sizeEstimate est en bytes)
           const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
           totalSize += sizeInKb;
@@ -111,7 +129,7 @@ const handler = async (req: Request): Promise<Response> => {
             id: message.id,
             subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
             from: from.includes('<') ? from.split('<')[0].trim() : from,
-            date: dateHeader ? new Date(dateHeader).toISOString() : new Date().toISOString(),
+            date: emailDate.toISOString(),
             size: sizeInKb,
           });
         }
@@ -120,7 +138,8 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    const totalEmails = searchData.resultSizeEstimate || searchData.messages.length;
+    // Utiliser le nombre d'emails réellement trouvés au lieu de l'estimation
+    const totalEmails = emails.length > 0 ? (searchData.resultSizeEstimate || searchData.messages.length) : 0;
     const totalSizeMB = totalSize / 1024;
     const carbonFootprint = totalEmails * 10; // 10g par email
 
@@ -131,7 +150,13 @@ const handler = async (req: Request): Promise<Response> => {
       emails,
     };
 
-    console.log('Unread emails scan completed:', results);
+    console.log('Unread emails scan completed:', {
+      totalEmails: results.totalEmails,
+      totalSizeMB: results.totalSizeMB,
+      carbonFootprint: results.carbonFootprint,
+      emailsDisplayed: results.emails.length,
+      searchDate: dateQuery
+    });
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
