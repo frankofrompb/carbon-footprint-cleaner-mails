@@ -131,7 +131,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
               <div className="flex items-center justify-center">
                 <Search className="h-8 w-8 text-eco-blue animate-pulse" />
               </div>
-              <p className="text-center">Recherche des emails de 2000 à 2024...</p>
+              <p className="text-center">Recherche de tous vos emails non lus...</p>
               <Progress value={50} className="w-full" />
             </div>
           ) : scanState.error ? (
@@ -143,7 +143,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Emails trouvés (2000-2024)</p>
+                  <p className="text-sm text-muted-foreground">Emails non lus trouvés</p>
                   <p className="text-3xl font-bold text-eco-blue">
                     {scanState.results.totalEmails}
                   </p>
@@ -165,7 +165,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
               {showDashboard ? (
                 <>
                   <Button variant="outline" onClick={toggleView} className="w-full">
-                    Voir les emails trouvés par expéditeur
+                    Voir tous les emails trouvés par expéditeur
                   </Button>
                   <Dashboard scanResults={scanState.results} />
                 </>
@@ -181,7 +181,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                   {emailsByDender.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <h3 className="font-medium">Emails classés par expéditeur :</h3>
+                        <h3 className="font-medium">Tous les emails classés par expéditeur :</h3>
                         <div className="flex gap-2">
                           <Button 
                             variant="outline" 
@@ -206,6 +206,10 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                         </p>
                       )}
 
+                      <p className="text-sm text-muted-foreground">
+                        {emailsByDender.length} expéditeurs différents • {scanState.results.emails.length} emails récupérés sur {scanState.results.totalEmails} trouvés
+                      </p>
+
                       <div className="max-h-96 overflow-y-auto border rounded-md">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-muted sticky top-0">
@@ -219,7 +223,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {emailsByDender.slice(0, 20).map((senderData, index) => (
+                            {emailsByDender.map((senderData, index) => (
                               <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                                 <td className="px-4 py-2 text-center">
                                   <Checkbox
@@ -246,19 +250,9 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                                 </td>
                               </tr>
                             ))}
-                            {emailsByDender.length > 20 && (
-                              <tr>
-                                <td colSpan={6} className="px-4 py-2 text-center text-sm text-muted-foreground">
-                                  Et {emailsByDender.length - 20} autres expéditeurs...
-                                </td>
-                              </tr>
-                            )}
                           </tbody>
                         </table>
                       </div>
-                      <p className="text-sm text-muted-foreground text-center">
-                        Top {Math.min(20, emailsByDender.length)} expéditeurs sur {emailsByDender.length} au total
-                      </p>
                     </div>
                   )}
                 </>

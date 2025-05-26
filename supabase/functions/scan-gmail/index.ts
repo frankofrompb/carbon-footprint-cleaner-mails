@@ -34,74 +34,102 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Access token is required');
     }
 
-    console.log('Starting Gmail scan for unread emails...');
+    console.log('Starting Gmail scan for all unread emails...');
 
-    // Récupérer les emails non lus avec un nombre plus élevé
+    // Récupérer tous les emails non lus avec pagination
     const searchQuery = 'is:unread';
-    
-    const searchResponse = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(searchQuery)}&maxResults=100`,
-      {
+    let allMessageIds: string[] = [];
+    let nextPageToken: string | undefined;
+
+    // Récupérer tous les IDs des emails non lus avec pagination
+    do {
+      const searchUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(searchQuery)}&maxResults=500${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
+      
+      const searchResponse = await fetch(searchUrl, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
+      });
+
+      if (!searchResponse.ok) {
+        console.error('Gmail API search error:', await searchResponse.text());
+        throw new Error('Erreur lors de la recherche des emails');
       }
-    );
 
-    if (!searchResponse.ok) {
-      console.error('Gmail API search error:', await searchResponse.text());
-      throw new Error('Erreur lors de la recherche des emails');
-    }
+      const searchData = await searchResponse.json();
+      
+      if (searchData.messages) {
+        allMessageIds.push(...searchData.messages.map((msg: any) => msg.id));
+      }
+      
+      nextPageToken = searchData.nextPageToken;
+      
+      console.log(`Récupéré ${allMessageIds.length} IDs d'emails jusqu'à présent...`);
+      
+    } while (nextPageToken);
 
-    const searchData = await searchResponse.json();
-    const totalEmails = searchData.resultSizeEstimate || 0;
-    
-    console.log(`Found ${totalEmails} unread emails`);
+    const totalEmails = allMessageIds.length;
+    console.log(`Found ${totalEmails} unread emails total`);
 
     let allEmails: EmailData[] = [];
 
-    if (searchData.messages && searchData.messages.length > 0) {
-      // Récupérer les détails des emails (limité à 50 pour éviter les timeouts)
-      const emailsToFetch = searchData.messages.slice(0, 50);
+    if (allMessageIds.length > 0) {
+      // Récupérer les détails des emails par batch pour éviter les timeouts
+      const batchSize = 100;
       
-      console.log(`Fetching details for ${emailsToFetch.length} emails...`);
-      
-      for (const message of emailsToFetch) {
-        try {
-          const messageResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
-            {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-              },
+      for (let i = 0; i < allMessageIds.length; i += batchSize) {
+        const batch = allMessageIds.slice(i, i + batchSize);
+        console.log(`Fetching details for emails ${i + 1} to ${Math.min(i + batchSize, allMessageIds.length)}...`);
+        
+        // Traiter le batch en parallèle avec une limite
+        const batchPromises = batch.map(async (messageId) => {
+          try {
+            const messageResponse = await fetch(
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+              }
+            );
+
+            if (messageResponse.ok) {
+              const messageData = await messageResponse.json();
+              const headers = messageData.payload?.headers || [];
+              
+              const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
+              const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
+              const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
+              
+              const emailDate = dateHeader ? new Date(dateHeader) : new Date();
+              
+              // Estimer la taille en Ko
+              const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
+
+              return {
+                id: messageId,
+                subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
+                from: from.includes('<') ? from.split('<')[0].trim() : from,
+                date: emailDate.toISOString(),
+                size: sizeInKb,
+              };
             }
-          );
-
-          if (messageResponse.ok) {
-            const messageData = await messageResponse.json();
-            const headers = messageData.payload?.headers || [];
-            
-            const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
-            const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
-            const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
-            
-            const emailDate = dateHeader ? new Date(dateHeader) : new Date();
-            
-            // Estimer la taille en Ko
-            const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
-
-            allEmails.push({
-              id: message.id,
-              subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
-              from: from.includes('<') ? from.split('<')[0].trim() : from,
-              date: emailDate.toISOString(),
-              size: sizeInKb,
-            });
+          } catch (error) {
+            console.error(`Error fetching message ${messageId}:`, error);
           }
-        } catch (error) {
-          console.error(`Error fetching message ${message.id}:`, error);
+          return null;
+        });
+
+        // Attendre que le batch soit traité
+        const batchResults = await Promise.all(batchPromises);
+        const validResults = batchResults.filter((email): email is EmailData => email !== null);
+        allEmails.push(...validResults);
+        
+        // Petite pause entre les batches pour éviter de surcharger l'API
+        if (i + batchSize < allMessageIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
     }
@@ -109,11 +137,11 @@ const handler = async (req: Request): Promise<Response> => {
     // Trier les emails par date (plus récents en premier)
     allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Calculer les totaux basés sur les emails récupérés
+    // Calculer les totaux
     const totalSize = allEmails.reduce((sum, email) => sum + (email.size || 0), 0);
     const totalSizeMB = totalSize / 1024;
     
-    // Utiliser le nombre total réel d'emails pour le calcul carbone
+    // Calcul carbone basé sur le nombre total d'emails
     const carbonFootprint = totalEmails * 10; // 10g par email
 
     const results: ScanResults = {
