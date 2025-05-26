@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -36,10 +35,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Starting Gmail scan...');
 
-    // Rechercher les emails non lus de PLUS d'un an
-    // On utilise "is:unread before:" avec une date d'il y a un an
+    // Calculer correctement la date d'il y a un an
+    const today = new Date();
     const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    oneYearAgo.setFullYear(today.getFullYear() - 1);
+    oneYearAgo.setMonth(today.getMonth());
+    oneYearAgo.setDate(today.getDate());
     
     // Format correct pour Gmail : YYYY/MM/DD
     const year = oneYearAgo.getFullYear();
@@ -52,6 +53,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Search query:', searchQuery);
     console.log('Date calculée (il y a un an):', dateString);
+    console.log('Date actuelle:', `${today.getFullYear()}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getDate().toString().padStart(2, '0')}`);
 
     // Appel à l'API Gmail pour rechercher les emails
     const searchResponse = await fetch(
