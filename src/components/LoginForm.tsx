@@ -24,16 +24,16 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
           <CardContent className="space-y-4 pt-6">
             {/* Champ Email avec le style demandé */}
             <div className="space-y-2">
-              <div className="bg-white rounded-full px-4 py-3 flex items-center shadow-sm">
+              <div className="bg-white rounded-full px-4 py-2 flex items-center shadow-sm">
                 <Input
                   type="email"
                   placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400"
+                  className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400 flex-1"
                 />
                 <Button 
-                  className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-8 py-4 rounded-full text-lg font-semibold"
+                  className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-6 py-2 rounded-full text-sm"
                 >
                   Commencez le nettoyage
                 </Button>
