@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import CarbonFootprintVisual from "./CarbonFootprintVisual";
 import Dashboard from "./Dashboard";
+import ScanningAnimation from "./ScanningAnimation";
+import MusicPrompt from "./MusicPrompt";
 import { formatNumber } from "@/lib/utils";
 
 interface EmailScannerProps {
@@ -33,6 +35,32 @@ interface EmailScannerProps {
 const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: EmailScannerProps) => {
   const [showDashboard, setShowDashboard] = useState(true);
   const [selectedSenders, setSelectedSenders] = useState<Set<string>>(new Set());
+  const [showMusicPrompt, setShowMusicPrompt] = useState(false);
+
+  // Afficher le prompt musique quand le scan commence
+  useEffect(() => {
+    if (scanState.isScanning && !showMusicPrompt) {
+      // Délai de 2 secondes pour laisser l'animation de scan s'installer
+      const timer = setTimeout(() => {
+        setShowMusicPrompt(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+    if (!scanState.isScanning) {
+      setShowMusicPrompt(false);
+    }
+  }, [scanState.isScanning]);
+
+  const handleActivateMusic = () => {
+    // Déclencher l'activation de la musique (via l'event custom ou callback parent)
+    const event = new CustomEvent('activateMusic');
+    window.dispatchEvent(event);
+    setShowMusicPrompt(false);
+  };
+
+  const handleDismissMusicPrompt = () => {
+    setShowMusicPrompt(false);
+  };
 
   // Grouper les emails par expéditeur
   const emailsByDender = useMemo(() => {
@@ -127,12 +155,18 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
         </CardHeader>
         <CardContent className="space-y-4">
           {scanState.isScanning ? (
-            <div className="space-y-4 py-8">
-              <div className="flex items-center justify-center">
-                <Search className="h-8 w-8 text-eco-blue animate-pulse" />
-              </div>
-              <p className="text-center">Recherche de tous vos emails non lus...</p>
-              <Progress value={50} className="w-full" />
+            <div className="space-y-6">
+              <ScanningAnimation />
+              
+              {/* Prompt pour activer la musique */}
+              {showMusicPrompt && (
+                <div className="animate-fade-in">
+                  <MusicPrompt 
+                    onActivateMusic={handleActivateMusic}
+                    onDismiss={handleDismissMusicPrompt}
+                  />
+                </div>
+              )}
             </div>
           ) : scanState.error ? (
             <Alert variant="destructive">
