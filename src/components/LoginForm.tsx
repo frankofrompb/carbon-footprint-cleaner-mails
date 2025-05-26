@@ -13,6 +13,12 @@ interface LoginFormProps {
 const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
   const [email, setEmail] = useState("");
 
+  const handleStartCleaning = () => {
+    console.log("🚀 Démarrage du nettoyage pour l'email:", email);
+    // Déclencher l'authentification Gmail
+    onLoginWithGmail();
+  };
+
   return (
     <div className="w-full space-y-8">
       {/* Cercle vertueux */}
@@ -44,9 +50,11 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                     className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400 flex-1"
                   />
                   <Button 
-                    className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-4 py-1 rounded-full text-sm"
+                    onClick={handleStartCleaning}
+                    disabled={isLoading || !email.trim()}
+                    className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-4 py-1 rounded-full text-sm disabled:opacity-50"
                   >
-                    Commencez le nettoyage
+                    {isLoading ? "Connexion..." : "Commencez le nettoyage"}
                   </Button>
                 </div>
               </div>
