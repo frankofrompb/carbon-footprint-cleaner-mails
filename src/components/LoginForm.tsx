@@ -18,11 +18,19 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
       {/* Cercle vertueux */}
       <VirtuousCircle />
       
-      {/* Carte de connexion avec image */}
+      {/* Bloc unifié: Impact Environnemental + Formulaire */}
       <div className="flex justify-center">
         <Card className="w-full max-w-2xl shadow-lg" style={{backgroundColor: '#c2edfc'}}>
-          <CardContent className="space-y-4 pt-6">
-            {/* Formulaire email avec image à droite */}
+          <CardContent className="space-y-6 pt-6">
+            {/* Section Impact Environnemental */}
+            <div className="text-center">
+              <h4 className="text-xl font-semibold text-[#38c39d] mb-2">Impact Environnemental</h4>
+              <p className="text-muted-foreground">
+                Ils prennent de la place et polluent en silence. 4g à l'envoi, 10g chaque année. Faites le ménage!
+              </p>
+            </div>
+            
+            {/* Formulaire email avec nouvelle image à droite */}
             <div className="flex items-center gap-6">
               {/* Zone du formulaire email */}
               <div className="flex-1 space-y-2">
@@ -42,27 +50,17 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                 </div>
               </div>
               
-              {/* Image à droite */}
+              {/* Nouvelle image à droite */}
               <div className="flex-shrink-0">
                 <img 
-                  src="/lovable-uploads/62c68940-c968-4ec4-a7d9-eb4042b35667.png" 
-                  alt="Illustration email marketing" 
+                  src="/lovable-uploads/aec75153-e8dd-4904-b1f7-38a352b8d1d7.png" 
+                  alt="Illustration impact environnemental" 
                   className="w-32 h-24 object-contain"
                 />
               </div>
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Bloc Impact Environnemental déplacé ici */}
-      <div className="flex justify-center">
-        <div className="w-full max-w-md text-center p-6 rounded-2xl border border-green-200" style={{backgroundColor: '#c2edfc'}}>
-          <h4 className="text-xl font-semibold text-[#38c39d] mb-2">Impact Environnemental</h4>
-          <p className="text-muted-foreground">
-            Ils prennent de la place et polluent en silence. 4g à l'envoi, 10g chaque année. Faites le ménage!
-          </p>
-        </div>
       </div>
 
       {/* Bloc blanc avec les informations de sécurité */}
