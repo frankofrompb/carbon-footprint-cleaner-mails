@@ -5,6 +5,7 @@ import LoginForm from "@/components/LoginForm";
 import EmailScanner from "@/components/EmailScanner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import MusicPlayer from "@/components/MusicPlayer";
 
 const Index = () => {
   const { authState, loginWithGmail, logout } = useAuth();
@@ -49,6 +50,9 @@ const Index = () => {
       </main>
       
       <Footer />
+      
+      {/* Lecteur de musique d'ambiance */}
+      <MusicPlayer />
     </div>
   );
 };
