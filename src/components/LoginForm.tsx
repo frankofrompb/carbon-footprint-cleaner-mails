@@ -33,7 +33,7 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                   className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400"
                 />
                 <Button 
-                  className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-6 py-2 rounded-full"
+                  className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-8 py-4 rounded-full text-lg font-semibold"
                 >
                   Commencez le nettoyage
                 </Button>
