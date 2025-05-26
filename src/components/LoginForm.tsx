@@ -21,13 +21,7 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
       {/* Carte de connexion */}
       <div className="flex justify-center">
         <Card className="w-full max-w-md shadow-lg" style={{backgroundColor: '#c2edfc'}}>
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Commencez votre nettoyage</CardTitle>
-            <CardDescription>
-              Connectez-vous avec votre compte Gmail pour analyser et nettoyer vos emails
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-6">
             {/* Champ Email avec le style demandé */}
             <div className="space-y-2">
               <div className="bg-white rounded-full px-4 py-3 flex items-center shadow-sm">
