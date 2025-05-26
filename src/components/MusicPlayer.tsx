@@ -15,148 +15,22 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [volume, setVolume] = useState([0.3]);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const tracks = [
     {
       title: "Pluie douce",
-      type: "rain"
+      url: "https://zenmix.io/assets/sounds/rain.mp3"
     },
     {
       title: "Vagues océan", 
-      type: "ocean"
+      url: "https://zenmix.io/assets/sounds/ocean.mp3"
     },
     {
       title: "Vent dans les arbres",
-      type: "wind"
+      url: "https://zenmix.io/assets/sounds/wind.mp3"
     }
   ];
-
-  // Créer un son d'ambiance synthétique
-  const createAmbientSound = (type: string) => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-
-    const context = audioContextRef.current;
-    
-    // Arrêter l'oscillateur précédent s'il existe
-    if (oscillatorRef.current) {
-      oscillatorRef.current.stop();
-    }
-
-    // Créer un nouveau gain node
-    const gainNode = context.createGain();
-    gainNodeRef.current = gainNode;
-    
-    // Régler le volume
-    gainNode.gain.setValueAtTime(isMuted ? 0 : volume[0] * 0.3, context.currentTime);
-    gainNode.connect(context.destination);
-
-    // Créer différents types de sons selon le type
-    switch (type) {
-      case "rain":
-        // Son de pluie avec du bruit blanc filtré
-        createRainSound(context, gainNode);
-        break;
-      case "ocean":
-        // Son d'océan avec oscillation basse fréquence
-        createOceanSound(context, gainNode);
-        break;
-      case "wind":
-        // Son de vent avec filtrage passe-haut
-        createWindSound(context, gainNode);
-        break;
-    }
-  };
-
-  const createRainSound = (context: AudioContext, gainNode: GainNode) => {
-    // Créer du bruit blanc pour simuler la pluie
-    const bufferSize = 2 * context.sampleRate;
-    const noiseBuffer = context.createBuffer(1, bufferSize, context.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    
-    for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1;
-    }
-    
-    const whiteNoise = context.createBufferSource();
-    whiteNoise.buffer = noiseBuffer;
-    whiteNoise.loop = true;
-    
-    // Filtrer pour créer l'effet pluie
-    const filter = context.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(3000, context.currentTime);
-    
-    whiteNoise.connect(filter);
-    filter.connect(gainNode);
-    whiteNoise.start();
-    
-    oscillatorRef.current = whiteNoise as any;
-  };
-
-  const createOceanSound = (context: AudioContext, gainNode: GainNode) => {
-    // Oscillateur principal pour les vagues
-    const oscillator = context.createOscillator();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(80, context.currentTime);
-    
-    // Modulation pour l'effet vague
-    const modulator = context.createOscillator();
-    modulator.type = "sine";
-    modulator.frequency.setValueAtTime(0.2, context.currentTime);
-    
-    const modulatorGain = context.createGain();
-    modulatorGain.gain.setValueAtTime(20, context.currentTime);
-    
-    modulator.connect(modulatorGain);
-    modulatorGain.connect(oscillator.frequency);
-    
-    oscillator.connect(gainNode);
-    oscillator.start();
-    modulator.start();
-    
-    oscillatorRef.current = oscillator;
-  };
-
-  const createWindSound = (context: AudioContext, gainNode: GainNode) => {
-    // Bruit rose pour le vent
-    const bufferSize = 2 * context.sampleRate;
-    const noiseBuffer = context.createBuffer(1, bufferSize, context.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
-    
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      b3 = 0.86650 * b3 + white * 0.3104856;
-      b4 = 0.55000 * b4 + white * 0.5329522;
-      b5 = -0.7616 * b5 - white * 0.0168980;
-      output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-      output[i] *= 0.11;
-      b6 = white * 0.115926;
-    }
-    
-    const pinkNoise = context.createBufferSource();
-    pinkNoise.buffer = noiseBuffer;
-    pinkNoise.loop = true;
-    
-    // Filtre passe-haut pour l'effet vent
-    const filter = context.createBiquadFilter();
-    filter.type = "highpass";
-    filter.frequency.setValueAtTime(500, context.currentTime);
-    
-    pinkNoise.connect(filter);
-    filter.connect(gainNode);
-    pinkNoise.start();
-    
-    oscillatorRef.current = pinkNoise as any;
-  };
 
   // Écouter l'événement d'activation de la musique
   useEffect(() => {
@@ -171,39 +45,51 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     return () => window.removeEventListener('activateMusic', handleActivateMusic);
   }, [isPlaying]);
 
+  // Créer et gérer l'élément audio
   useEffect(() => {
-    if (gainNodeRef.current) {
-      gainNodeRef.current.gain.setValueAtTime(
-        isMuted ? 0 : volume[0] * 0.3, 
-        audioContextRef.current?.currentTime || 0
-      );
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.loop = true;
+      audioRef.current.crossOrigin = "anonymous";
     }
-  }, [volume, isMuted]);
 
-  useEffect(() => {
-    if (isPlaying) {
-      createAmbientSound(tracks[currentTrack].type);
-    } else {
-      if (oscillatorRef.current) {
-        try {
-          oscillatorRef.current.stop();
-        } catch (e) {
-          // L'oscillateur était déjà arrêté
-        }
-        oscillatorRef.current = null;
-      }
-    }
+    const audio = audioRef.current;
+    
+    // Mettre à jour la source audio quand la piste change
+    audio.src = tracks[currentTrack].url;
+    audio.volume = isMuted ? 0 : volume[0];
 
     return () => {
-      if (oscillatorRef.current) {
-        try {
-          oscillatorRef.current.stop();
-        } catch (e) {
-          // L'oscillateur était déjà arrêté
-        }
+      if (audio) {
+        audio.pause();
+        audio.src = "";
       }
     };
+  }, [currentTrack]);
+
+  // Gérer la lecture/pause
+  useEffect(() => {
+    if (!audioRef.current) return;
+
+    const audio = audioRef.current;
+
+    if (isPlaying) {
+      console.log("Démarrage de la lecture:", tracks[currentTrack].title);
+      audio.play().catch(error => {
+        console.error("Erreur lors de la lecture:", error);
+        setIsPlaying(false);
+      });
+    } else {
+      audio.pause();
+    }
   }, [isPlaying, currentTrack]);
+
+  // Mettre à jour le volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume[0];
+    }
+  }, [volume, isMuted]);
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
