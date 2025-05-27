@@ -13,7 +13,10 @@ const CarbonFootprintVisual = ({ carbonGrams }: CarbonFootprintVisualProps) => {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-medium">Impact environnemental</h3>
+      <div className="flex items-center gap-2">
+        <Smartphone className="w-5 h-5 text-eco-brand" />
+        <h3 className="font-medium">Impact environnemental</h3>
+      </div>
       
       <div className="space-y-4">
         {/* Bloc Voiture */}
