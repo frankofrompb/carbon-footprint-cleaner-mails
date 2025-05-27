@@ -15,20 +15,25 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   const [volume, setVolume] = useState([0.3]);
   const [isMuted, setIsMuted] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const tracks = [
     {
-      title: "Pluie douce",
-      url: "https://zenmix.io/assets/sounds/rain.mp3"
+      title: "Calm Piano",
+      artist: "Free Music Archive",
+      url: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kevin_MacLeod/Impact/Kevin_MacLeod_-_Wallpaper.mp3"
     },
     {
-      title: "Vagues océan", 
-      url: "https://zenmix.io/assets/sounds/ocean.mp3"
+      title: "Peaceful Guitar", 
+      artist: "Free Music Archive",
+      url: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kevin_MacLeod/Classical/Kevin_MacLeod_-_Gymnopedie_No_1.mp3"
     },
     {
-      title: "Vent dans les arbres",
-      url: "https://zenmix.io/assets/sounds/wind.mp3"
+      title: "Ambient Relaxation",
+      artist: "Free Music Archive",
+      url: "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Kevin_MacLeod/Electronica/Kevin_MacLeod_-_Healing.mp3"
     }
   ];
 
@@ -49,7 +54,6 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
-      audioRef.current.loop = true;
       audioRef.current.crossOrigin = "anonymous";
     }
 
@@ -59,7 +63,28 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     audio.src = tracks[currentTrack].url;
     audio.volume = isMuted ? 0 : volume[0];
 
+    // Événements audio
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleEnded = () => {
+      // Passer à la piste suivante automatiquement
+      setCurrentTrack((prev) => (prev + 1) % tracks.length);
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+
     return () => {
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
       if (audio) {
         audio.pause();
         audio.src = "";
@@ -110,6 +135,12 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     }
   };
 
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -119,7 +150,7 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-[#38c39d] rounded-full animate-pulse"></div>
-              <h3 className="font-medium text-sm">Ambiance zen</h3>
+              <h3 className="font-medium text-sm">Musique zen</h3>
             </div>
             {isScanning && (
               <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
@@ -128,9 +159,28 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
             )}
           </div>
           
-          <p className="text-xs text-gray-600 mb-3">
-            {tracks[currentTrack].title}
-          </p>
+          <div className="mb-3">
+            <p className="text-xs font-medium text-gray-800">
+              {tracks[currentTrack].title}
+            </p>
+            <p className="text-xs text-gray-500">
+              {tracks[currentTrack].artist}
+            </p>
+          </div>
+
+          {/* Barre de progression */}
+          <div className="mb-3">
+            <div className="w-full bg-gray-200 rounded-full h-1">
+              <div 
+                className="bg-[#38c39d] h-1 rounded-full transition-all duration-300"
+                style={{ width: `${duration > 0 ? (currentTime / duration) * 100 : 0}%` }}
+              ></div>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
           
           <div className="flex items-center space-x-2 mb-3">
             <Button
