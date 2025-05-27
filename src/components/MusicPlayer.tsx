@@ -36,22 +36,34 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     }
   ];
 
+  // Debug: Log du rendu du composant
+  console.log("MusicPlayer rendu - isVisible:", isVisible, "isPlaying:", isPlaying);
+
   // Écouter l'événement d'activation de la musique
   useEffect(() => {
     const handleActivateMusic = () => {
-      console.log("Événement activateMusic reçu");
-      setIsPlaying(true); // Toujours démarrer la musique quand l'événement est reçu
+      console.log("Événement activateMusic reçu dans MusicPlayer");
+      console.log("État actuel - isPlaying:", isPlaying, "isVisible:", isVisible);
+      setIsPlaying(true);
     };
 
     window.addEventListener('activateMusic', handleActivateMusic);
-    return () => window.removeEventListener('activateMusic', handleActivateMusic);
-  }, []); // Retirer isPlaying de la dépendance
+    console.log("Event listener activateMusic ajouté");
+    
+    return () => {
+      window.removeEventListener('activateMusic', handleActivateMusic);
+      console.log("Event listener activateMusic retiré");
+    };
+  }, []);
 
   // Créer et gérer l'élément audio
   useEffect(() => {
+    console.log("Effet audio - currentTrack:", currentTrack);
+    
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.crossOrigin = "anonymous";
+      console.log("Nouvel élément audio créé");
     }
 
     const audio = audioRef.current;
@@ -59,9 +71,11 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     // Mettre à jour la source audio quand la piste change
     audio.src = tracks[currentTrack].url;
     audio.volume = isMuted ? 0 : volume[0];
+    console.log("Audio source mise à jour:", tracks[currentTrack].url);
 
     // Événements audio
     const handleLoadedMetadata = () => {
+      console.log("Audio metadata chargées, durée:", audio.duration);
       setDuration(audio.duration);
     };
 
@@ -70,18 +84,30 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     };
 
     const handleEnded = () => {
-      // Passer à la piste suivante automatiquement
+      console.log("Piste terminée, passage à la suivante");
       setCurrentTrack((prev) => (prev + 1) % tracks.length);
+    };
+
+    const handleError = (e: Event) => {
+      console.error("Erreur audio:", e);
+    };
+
+    const handleCanPlay = () => {
+      console.log("Audio prêt à être lu");
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('canplay', handleCanPlay);
 
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('canplay', handleCanPlay);
       if (audio) {
         audio.pause();
         audio.src = "";
@@ -91,17 +117,30 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
 
   // Gérer la lecture/pause
   useEffect(() => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      console.log("Pas d'élément audio disponible");
+      return;
+    }
 
     const audio = audioRef.current;
+    console.log("Effet lecture - isPlaying:", isPlaying, "currentTrack:", currentTrack);
 
     if (isPlaying) {
-      console.log("Démarrage de la lecture:", tracks[currentTrack].title);
-      audio.play().catch(error => {
-        console.error("Erreur lors de la lecture:", error);
-        setIsPlaying(false);
-      });
+      console.log("Tentative de démarrage de la lecture:", tracks[currentTrack].title);
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("Lecture démarrée avec succès");
+          })
+          .catch(error => {
+            console.error("Erreur lors de la lecture:", error);
+            setIsPlaying(false);
+          });
+      }
     } else {
+      console.log("Pause de la lecture");
       audio.pause();
     }
   }, [isPlaying, currentTrack]);
@@ -138,7 +177,10 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    console.log("MusicPlayer non visible");
+    return null;
+  }
 
   return (
     <div className="fixed bottom-4 right-4 z-50 animate-fade-in">

@@ -30,10 +30,13 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
   };
 
   const handleActivateMusic = () => {
+    console.log("Bouton musique cliqué dans Header");
     if (onToggleMusic) {
+      console.log("Appel de onToggleMusic");
       onToggleMusic();
     }
     // Déclencher l'événement pour activer la musique
+    console.log("Dispatch de l'événement activateMusic");
     window.dispatchEvent(new CustomEvent('activateMusic'));
   };
 
