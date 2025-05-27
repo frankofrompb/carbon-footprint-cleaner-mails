@@ -6,9 +6,20 @@ import { Trash2, FolderOpen, Brain } from "lucide-react";
 interface ScanTypeSelectorProps {
   onSelectScanType: (scanType: 'smart-deletion' | 'sender-analysis' | 'smart-sorting') => void;
   userEmail: string;
+  onScan?: () => void;
 }
 
-const ScanTypeSelector = ({ onSelectScanType, userEmail }: ScanTypeSelectorProps) => {
+const ScanTypeSelector = ({ onSelectScanType, userEmail, onScan }: ScanTypeSelectorProps) => {
+  const handleSmartDeletion = () => {
+    onSelectScanType('smart-deletion');
+    // Déclencher automatiquement le scan après un petit délai
+    if (onScan) {
+      setTimeout(() => {
+        onScan();
+      }, 100);
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl space-y-6">
       <div className="text-center mb-8">
@@ -36,7 +47,7 @@ const ScanTypeSelector = ({ onSelectScanType, userEmail }: ScanTypeSelectorProps
               Détection automatique des emails non lus depuis plus d'un an
             </p>
             <Button 
-              onClick={() => onSelectScanType('smart-deletion')}
+              onClick={handleSmartDeletion}
               className="w-full bg-red-500 hover:bg-red-600 text-white"
             >
               Commencer la suppression

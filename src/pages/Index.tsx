@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { useScanEmails } from "@/hooks/useScanEmails";
 import { useState } from "react";
@@ -83,6 +82,7 @@ const Index = () => {
               <ScanTypeSelector 
                 onSelectScanType={handleSelectScanType}
                 userEmail={authState.userEmail || ""}
+                onScan={scanEmails}
               />
             )}
           </div>
