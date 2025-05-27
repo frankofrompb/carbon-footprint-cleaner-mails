@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -22,6 +23,7 @@ import CarbonFootprintVisual from "./CarbonFootprintVisual";
 import Dashboard from "./Dashboard";
 import ScanningAnimation from "./ScanningAnimation";
 import MusicPrompt from "./MusicPrompt";
+import SenderAnalysisView from "./SenderAnalysisView";
 import { formatNumber } from "@/lib/utils";
 
 type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting';
@@ -245,7 +247,10 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                 </div>
               </div>
 
-              {showDashboard ? (
+              {/* Vue spéciale pour l'analyse des expéditeurs */}
+              {scanType === 'sender-analysis' ? (
+                <SenderAnalysisView scanState={scanState} />
+              ) : showDashboard ? (
                 <>
                   <Button variant="outline" onClick={toggleView} className="w-full">
                     Voir tous les emails trouvés par expéditeur
@@ -365,7 +370,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
             </span>
           </Button>
 
-          {scanState.results && (
+          {scanState.results && scanType !== 'sender-analysis' && (
             <>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -405,6 +410,17 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                 Exporter en CSV
               </Button>
             </>
+          )}
+
+          {scanState.results && scanType === 'sender-analysis' && (
+            <Button 
+              onClick={onExport} 
+              className="w-full sm:w-auto" 
+              variant="outline"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exporter en CSV
+            </Button>
           )}
         </CardFooter>
       </Card>

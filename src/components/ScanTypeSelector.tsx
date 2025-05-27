@@ -20,6 +20,16 @@ const ScanTypeSelector = ({ onSelectScanType, userEmail, onScan }: ScanTypeSelec
     }
   };
 
+  const handleSenderAnalysis = () => {
+    onSelectScanType('sender-analysis');
+    // Déclencher automatiquement le scan après un petit délai
+    if (onScan) {
+      setTimeout(() => {
+        onScan();
+      }, 100);
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl space-y-6">
       <div className="text-center mb-8">
@@ -70,7 +80,7 @@ const ScanTypeSelector = ({ onSelectScanType, userEmail, onScan }: ScanTypeSelec
               Analysez les expéditeurs et triez vos messages d'un simple glissement du doigt.
             </p>
             <Button 
-              onClick={() => onSelectScanType('sender-analysis')}
+              onClick={handleSenderAnalysis}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white"
             >
               Analyser les expéditeurs
