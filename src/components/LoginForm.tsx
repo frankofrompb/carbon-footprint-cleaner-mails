@@ -63,7 +63,7 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
               {/* Bloc droite: image */}
               <div className="flex-shrink-0">
                 <img 
-                  src="/lovable-uploads/d99667ce-630c-4f0e-a5ad-53cd33c95f28.png" 
+                  src="/lovable-uploads/8f10e0d3-c771-47ec-b599-64b89e137f5c.png" 
                   alt="Illustration cycle écologique" 
                   className="w-40 h-32 object-contain"
                 />
