@@ -42,26 +42,22 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <LogoWithBubbles />
-          <div className="flex items-center">
-            <span className="font-bold text-lg flex items-center translate-y-1"><span className="text-[#38c39d]">Eco</span>InBox</span>
-          </div>
         </div>
         
         <div className="flex items-center gap-2">
-          {/* Bouton play pour la musique */}
+          {/* Bouton play rond bleu pour la musique */}
           {onToggleMusic && (
             <Button
               onClick={handleActivateMusic}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 rounded-full hover:bg-gray-100"
-              style={{ color: '#4878fe' }}
+              className="h-10 w-10 rounded-full bg-[#4878fe] hover:bg-[#3d6bfe] text-white"
+              size="icon"
             >
-              <Play className="h-4 w-4" />
+              <Play className="h-5 w-5 fill-white" />
             </Button>
           )}
           
-          {isAuthenticated && userEmail && (
+          {/* Icône utilisateur pour accéder au compte */}
+          {isAuthenticated && userEmail ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -88,6 +84,10 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          ) : (
+            <Button variant="ghost" className="h-10 w-10 rounded-full">
+              <User className="h-5 w-5" />
+            </Button>
           )}
         </div>
       </div>
