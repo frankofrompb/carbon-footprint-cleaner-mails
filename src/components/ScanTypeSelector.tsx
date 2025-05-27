@@ -44,19 +44,19 @@ const ScanTypeSelector = ({ onSelectScanType, userEmail }: ScanTypeSelectorProps
           </CardContent>
         </Card>
 
-        {/* Analyse des Expéditeurs */}
+        {/* Qualifiez vos e-mails en un geste */}
         <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
           <CardHeader className="text-center">
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl mb-4 group-hover:shadow-xl transition-all duration-300 border border-blue-200">
               <div className="bg-blue-500 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
                 <FolderOpen className="h-6 w-6 text-white" />
               </div>
-              <CardTitle className="text-lg text-blue-700">Analyse des Expéditeurs</CardTitle>
+              <CardTitle className="text-lg text-blue-700">Qualifiez vos e-mails en un geste</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-sm text-blue-600 mb-4">
-              Classer vos mails les plus fréquents (spam, désabonnement ou à conserver)
+              Analysez les expéditeurs et triez vos messages d'un simple glissement du doigt.
             </p>
             <Button 
               onClick={() => onSelectScanType('sender-analysis')}
