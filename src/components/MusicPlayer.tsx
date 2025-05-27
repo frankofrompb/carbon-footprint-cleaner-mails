@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,14 +40,12 @@ const MusicPlayer = ({ isVisible, isScanning }: MusicPlayerProps) => {
   useEffect(() => {
     const handleActivateMusic = () => {
       console.log("Événement activateMusic reçu");
-      if (!isPlaying) {
-        setIsPlaying(true);
-      }
+      setIsPlaying(true); // Toujours démarrer la musique quand l'événement est reçu
     };
 
     window.addEventListener('activateMusic', handleActivateMusic);
     return () => window.removeEventListener('activateMusic', handleActivateMusic);
-  }, [isPlaying]);
+  }, []); // Retirer isPlaying de la dépendance
 
   // Créer et gérer l'élément audio
   useEffect(() => {
