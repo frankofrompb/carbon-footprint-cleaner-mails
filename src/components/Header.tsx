@@ -40,7 +40,13 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
   return (
     <header className="w-full bg-white border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Espace vide à gauche pour équilibrer */}
+        <div className="flex items-center gap-3">
+          <LogoWithBubbles />
+          <div className="flex items-center">
+            <span className="font-bold text-lg flex items-center translate-y-1"><span className="text-[#38c39d]">Eco</span>InBox</span>
+          </div>
+        </div>
+        
         <div className="flex items-center gap-2">
           {/* Bouton play pour la musique */}
           {onToggleMusic && (
@@ -54,16 +60,7 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
               <Play className="h-4 w-4" />
             </Button>
           )}
-        </div>
-        
-        {/* Logo et nom centrés */}
-        <div className="flex flex-col items-center gap-1">
-          <LogoWithBubbles />
-          <span className="font-bold text-lg text-[#38c39d]">EcoInBox</span>
-        </div>
-        
-        {/* Avatar utilisateur à droite */}
-        <div className="flex items-center">
+          
           {isAuthenticated && userEmail && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
