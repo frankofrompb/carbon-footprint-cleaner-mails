@@ -4,20 +4,32 @@ import { useScanEmails } from "@/hooks/useScanEmails";
 import { useState } from "react";
 import LoginForm from "@/components/LoginForm";
 import EmailScanner from "@/components/EmailScanner";
+import ScanTypeSelector from "@/components/ScanTypeSelector";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MusicPlayer from "@/components/MusicPlayer";
+
+type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | null;
 
 const Index = () => {
   const { authState, loginWithGmail, logout } = useAuth();
   const { scanState, scanEmails, deleteEmails, exportToCsv } = useScanEmails();
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
+  const [selectedScanType, setSelectedScanType] = useState<ScanType>(null);
 
   // Le lecteur de musique est visible après une première authentification ou après activation manuelle
   const shouldShowMusicPlayer = authState.isAuthenticated || showMusicPlayer;
 
   const handleToggleMusic = () => {
     setShowMusicPlayer(true);
+  };
+
+  const handleSelectScanType = (scanType: ScanType) => {
+    setSelectedScanType(scanType);
+  };
+
+  const handleBackToSelection = () => {
+    setSelectedScanType(null);
   };
 
   return (
@@ -46,12 +58,28 @@ const Index = () => {
                 onLoginWithGmail={loginWithGmail} 
                 isLoading={authState.loading}
               />
+            ) : selectedScanType ? (
+              <div className="w-full space-y-4">
+                <div className="flex justify-center">
+                  <button 
+                    onClick={handleBackToSelection}
+                    className="text-[#38c39d] hover:underline mb-4"
+                  >
+                    ← Retour à la sélection du type de scan
+                  </button>
+                </div>
+                <EmailScanner 
+                  scanState={scanState}
+                  onScan={scanEmails}
+                  onDelete={deleteEmails}
+                  onExport={exportToCsv}
+                  userEmail={authState.userEmail || ""}
+                  scanType={selectedScanType}
+                />
+              </div>
             ) : (
-              <EmailScanner 
-                scanState={scanState}
-                onScan={scanEmails}
-                onDelete={deleteEmails}
-                onExport={exportToCsv}
+              <ScanTypeSelector 
+                onSelectScanType={handleSelectScanType}
                 userEmail={authState.userEmail || ""}
               />
             )}

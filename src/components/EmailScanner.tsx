@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScanState } from "@/types";
-import { Search, Trash, Download, AlertTriangle } from "lucide-react";
+import { Search, Trash, Download, AlertTriangle, Trash2, FolderOpen, Brain } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { 
   AlertDialog,
@@ -24,18 +24,63 @@ import ScanningAnimation from "./ScanningAnimation";
 import MusicPrompt from "./MusicPrompt";
 import { formatNumber } from "@/lib/utils";
 
+type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting';
+
 interface EmailScannerProps {
   scanState: ScanState;
   onScan: () => void;
   onDelete: (selectedSenders: Set<string>) => void;
   onExport: () => void;
   userEmail: string;
+  scanType: ScanType;
 }
 
-const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: EmailScannerProps) => {
+const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanType }: EmailScannerProps) => {
   const [showDashboard, setShowDashboard] = useState(true);
   const [selectedSenders, setSelectedSenders] = useState<Set<string>>(new Set());
   const [showMusicPrompt, setShowMusicPrompt] = useState(false);
+
+  // Configuration selon le type de scan
+  const scanConfig = useMemo(() => {
+    switch (scanType) {
+      case 'smart-deletion':
+        return {
+          title: 'Suppression Intelligente',
+          icon: <Trash2 className="h-5 w-5" />,
+          color: 'text-red-700',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200',
+          buttonColor: 'bg-red-500 hover:bg-red-600',
+          description: 'Analyse des emails non lus depuis plus d\'un an pour suppression automatique',
+          scanButtonText: 'Scanner pour suppression',
+          actionButtonText: 'Supprimer'
+        };
+      case 'sender-analysis':
+        return {
+          title: 'Analyse des Expéditeurs',
+          icon: <FolderOpen className="h-5 w-5" />,
+          color: 'text-blue-700',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
+          buttonColor: 'bg-blue-500 hover:bg-blue-600',
+          description: 'Classification des expéditeurs par fréquence et pertinence',
+          scanButtonText: 'Analyser les expéditeurs',
+          actionButtonText: 'Traiter'
+        };
+      case 'smart-sorting':
+        return {
+          title: 'Tri Intelligent',
+          icon: <Brain className="h-5 w-5" />,
+          color: 'text-green-700',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
+          buttonColor: 'bg-[#38c39d] hover:bg-[#2ea082]',
+          description: 'Organisation automatique des emails par dossiers intelligents',
+          scanButtonText: 'Organiser mes emails',
+          actionButtonText: 'Organiser'
+        };
+    }
+  }, [scanType]);
 
   // Afficher le prompt musique quand le scan commence
   useEffect(() => {
@@ -146,12 +191,16 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
 
   return (
     <div className="w-full max-w-4xl space-y-6">
-      <Card className="shadow-md">
-        <CardHeader>
+      <Card className={`shadow-md ${scanConfig.borderColor} border-2`}>
+        <CardHeader className={scanConfig.bgColor}>
           <CardTitle className="flex justify-between items-center">
-            <span>Analyseur d'emails</span>
+            <div className="flex items-center gap-2">
+              {scanConfig.icon}
+              <span className={scanConfig.color}>{scanConfig.title}</span>
+            </div>
             <span className="text-sm font-normal text-muted-foreground">{userEmail}</span>
           </CardTitle>
+          <p className="text-sm text-muted-foreground">{scanConfig.description}</p>
         </CardHeader>
         <CardContent className="space-y-4">
           {scanState.isScanning ? (
@@ -177,7 +226,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
             <div className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Emails non lus trouvés</p>
+                  <p className="text-sm text-muted-foreground">Emails trouvés</p>
                   <p className="text-3xl font-bold text-eco-blue">
                     {formatNumber(scanState.results.totalEmails)}
                   </p>
@@ -215,7 +264,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                   {emailsByDender.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <h3 className="font-medium">Tous les emails classés par expéditeur :</h3>
+                        <h3 className="font-medium">Emails classés par expéditeur :</h3>
                         <div className="flex gap-2">
                           <Button 
                             variant="outline" 
@@ -236,7 +285,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
                       
                       {selectedSenders.size > 0 && (
                         <p className="text-sm text-muted-foreground">
-                          {formatNumber(selectedCount)} emails sélectionnés pour suppression
+                          {formatNumber(selectedCount)} emails sélectionnés pour traitement
                         </p>
                       )}
 
@@ -294,9 +343,11 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
             </div>
           ) : (
             <div className="py-8 text-center">
-              <Search className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <div className={`mx-auto h-12 w-12 mb-4 ${scanConfig.color}`}>
+                {scanConfig.icon}
+              </div>
               <p className="text-muted-foreground">
-                Cliquez sur "Scanner ma boîte mail" pour commencer l'analyse
+                Cliquez sur "{scanConfig.scanButtonText}" pour commencer l'analyse
               </p>
             </div>
           )}
@@ -305,11 +356,13 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
           <Button
             onClick={onScan}
             disabled={scanState.isScanning}
-            className="w-full sm:w-auto"
+            className={`w-full sm:w-auto ${scanConfig.buttonColor} text-white`}
             variant={scanState.results ? "outline" : "default"}
           >
-            <Search className="mr-2 h-4 w-4" />
-            {scanState.results ? "Relancer le scan" : "Scanner ma boîte mail"}
+            {scanConfig.icon}
+            <span className="ml-2">
+              {scanState.results ? `Relancer ${scanConfig.scanButtonText.toLowerCase()}` : scanConfig.scanButtonText}
+            </span>
           </Button>
 
           {scanState.results && (
@@ -317,25 +370,27 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: Emai
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button 
-                    className="w-full sm:w-auto bg-destructive hover:bg-destructive/90"
+                    className={`w-full sm:w-auto ${scanConfig.buttonColor} text-white`}
                     disabled={selectedSenders.size === 0}
                   >
-                    <Trash className="mr-2 h-4 w-4" />
-                    Supprimer {formatNumber(selectedCount)} emails
+                    {scanConfig.icon}
+                    <span className="ml-2">
+                      {scanConfig.actionButtonText} {formatNumber(selectedCount)} emails
+                    </span>
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmation de suppression</AlertDialogTitle>
+                    <AlertDialogTitle>Confirmation de {scanConfig.actionButtonText.toLowerCase()}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Vous êtes sur le point de supprimer {formatNumber(selectedCount)} emails des expéditeurs sélectionnés. 
-                      Cette action est irréversible. Voulez-vous continuer ?
+                      Vous êtes sur le point de {scanConfig.actionButtonText.toLowerCase()} {formatNumber(selectedCount)} emails des expéditeurs sélectionnés. 
+                      {scanType === 'smart-deletion' && ' Cette action est irréversible.'} Voulez-vous continuer ?
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Annuler</AlertDialogCancel>
                     <AlertDialogAction onClick={handleDelete}>
-                      Supprimer
+                      {scanConfig.actionButtonText}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
