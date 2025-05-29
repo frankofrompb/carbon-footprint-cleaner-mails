@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -191,6 +190,10 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     setShowDashboard(!showDashboard);
   };
 
+  const handleScanEmails = () => {
+    onScan(scanType);
+  };
+
   return (
     <div className="w-full max-w-4xl space-y-6">
       <Card className={`shadow-md ${scanConfig.borderColor} border-2`}>
@@ -359,7 +362,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-3 justify-between">
           <Button
-            onClick={onScan}
+            onClick={handleScanEmails}
             disabled={scanState.isScanning}
             className={`w-full sm:w-auto ${scanConfig.buttonColor} text-white`}
             variant={scanState.results ? "outline" : "default"}

@@ -12,7 +12,7 @@ export const useScanEmails = () => {
     error: null,
   });
 
-  const scanEmails = useCallback(async () => {
+  const scanEmails = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting') => {
     setScanState({
       isScanning: true,
       results: null,
@@ -31,15 +31,21 @@ export const useScanEmails = () => {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
 
+      // Choisir la fonction appropriée selon le type de scan
+      const functionName = scanType === 'sender-analysis' ? 'scan-all-gmail' : 'scan-gmail';
+      const description = scanType === 'sender-analysis' 
+        ? "Analyse de tous vos emails en cours..." 
+        : "Analyse de votre vraie boîte Gmail en cours...";
+
       toast({
         title: "Scan démarré",
-        description: "Analyse de votre vraie boîte Gmail en cours...",
+        description: description,
       });
 
-      console.log("Calling Gmail scan function...");
+      console.log(`Calling ${functionName} function...`);
 
-      // Appeler la fonction Edge pour scanner Gmail
-      const { data, error } = await supabase.functions.invoke('scan-gmail', {
+      // Appeler la fonction Edge appropriée
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           accessToken: parsedAuth.accessToken
         }
@@ -63,9 +69,10 @@ export const useScanEmails = () => {
         error: null,
       });
 
+      const emailText = scanType === 'sender-analysis' ? "emails" : "emails non lus";
       toast({
         title: "Scan terminé",
-        description: `${data.totalEmails} emails non lus trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
+        description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
       });
     } catch (error) {
       console.error("Erreur lors du scan des emails", error);
