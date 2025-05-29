@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -191,7 +192,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
   };
 
   const handleScanEmails = () => {
-    onScan(scanType);
+    onScan();
   };
 
   return (

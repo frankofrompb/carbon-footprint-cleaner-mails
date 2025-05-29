@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import ScanTypeSelector from "@/components/ScanTypeSelector";
 import EmailScanner from "@/components/EmailScanner";
@@ -9,7 +10,7 @@ type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting';
 const Index = () => {
   const { scanState, scanEmails, deleteEmails, exportToCsv } = useScanEmails();
   const [selectedScanType, setSelectedScanType] = useState<ScanType | null>(null);
-  const { userEmail, logout } = useAuth();
+  const { authState, logout } = useAuth();
 
   const handleScanEmails = (scanType?: ScanType) => {
     scanEmails(scanType);
@@ -25,7 +26,7 @@ const Index = () => {
 
   return (
     <div className="container mx-auto py-12">
-      {!userEmail ? (
+      {!authState.userEmail ? (
         <div className="text-center">
           <p className="text-lg">Vous n'êtes pas connecté. Veuillez vous connecter pour continuer.</p>
         </div>
@@ -35,13 +36,13 @@ const Index = () => {
           onScan={() => handleScanEmails(selectedScanType)}
           onDelete={deleteEmails}
           onExport={exportToCsv}
-          userEmail={userEmail}
+          userEmail={authState.userEmail}
           scanType={selectedScanType}
         />
       ) : (
         <ScanTypeSelector
           onSelectScanType={handleSelectScanType}
-          userEmail={userEmail}
+          userEmail={authState.userEmail}
           onScan={() => handleScanEmails()}
         />
       )}
