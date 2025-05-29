@@ -32,9 +32,14 @@ export const useScanEmails = () => {
       }
 
       // Choisir la fonction appropriée selon le type de scan
-      const functionName = scanType === 'sender-analysis' ? 'scan-all-gmail' : 'scan-gmail';
+      const functionName = (scanType === 'sender-analysis' || scanType === 'smart-sorting') 
+        ? 'scan-all-gmail' 
+        : 'scan-gmail';
+      
       const description = scanType === 'sender-analysis' 
         ? "Analyse de tous vos emails en cours..." 
+        : scanType === 'smart-sorting'
+        ? "Récupération des emails pour tri intelligent..."
         : "Analyse de votre vraie boîte Gmail en cours...";
 
       toast({
@@ -69,7 +74,7 @@ export const useScanEmails = () => {
         error: null,
       });
 
-      const emailText = scanType === 'sender-analysis' ? "emails" : "emails non lus";
+      const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
       toast({
         title: "Scan terminé",
         description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -24,6 +23,7 @@ import Dashboard from "./Dashboard";
 import ScanningAnimation from "./ScanningAnimation";
 import MusicPrompt from "./MusicPrompt";
 import SenderAnalysisView from "./SenderAnalysisView";
+import SmartSortingView from "./SmartSortingView";
 import { formatNumber } from "@/lib/utils";
 
 type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting';
@@ -254,6 +254,8 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
               {/* Vue spéciale pour l'analyse des expéditeurs */}
               {scanType === 'sender-analysis' ? (
                 <SenderAnalysisView scanState={scanState} />
+              ) : scanType === 'smart-sorting' ? (
+                <SmartSortingView scanState={scanState} />
               ) : showDashboard ? (
                 <>
                   <Button variant="outline" onClick={toggleView} className="w-full">
@@ -374,7 +376,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
             </span>
           </Button>
 
-          {scanState.results && scanType !== 'sender-analysis' && (
+          {scanState.results && scanType !== 'sender-analysis' && scanType !== 'smart-sorting' && (
             <>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -416,7 +418,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
             </>
           )}
 
-          {scanState.results && scanType === 'sender-analysis' && (
+          {scanState.results && (scanType === 'sender-analysis' || scanType === 'smart-sorting') && (
             <Button 
               onClick={onExport} 
               className="w-full sm:w-auto" 
