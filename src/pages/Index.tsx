@@ -11,7 +11,7 @@ type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting';
 const Index = () => {
   const { scanState, scanEmails, deleteEmails, exportToCsv } = useScanEmails();
   const [selectedScanType, setSelectedScanType] = useState<ScanType | null>(null);
-  const { authState, login, logout } = useAuth();
+  const { authState, loginWithGmail, logout } = useAuth();
 
   const handleScanEmails = (scanType?: ScanType) => {
     scanEmails(scanType);
@@ -22,7 +22,7 @@ const Index = () => {
   };
 
   const handleLoginWithGmail = () => {
-    login();
+    loginWithGmail();
   };
 
   const handleLogout = () => {
@@ -34,7 +34,7 @@ const Index = () => {
       {!authState.userEmail ? (
         <LoginForm 
           onLoginWithGmail={handleLoginWithGmail}
-          isLoading={authState.isLoading}
+          isLoading={authState.loading}
         />
       ) : selectedScanType ? (
         <EmailScanner
