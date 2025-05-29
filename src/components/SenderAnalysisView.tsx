@@ -2,9 +2,10 @@
 import { useMemo, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { ScanState } from "@/types";
 import { formatNumber } from "@/lib/utils";
-import { Trash2, UserMinus, Check, X, Archive } from "lucide-react";
+import { Trash2, UserMinus, Check, X, Archive, Spam } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SenderData {
@@ -204,8 +205,38 @@ const SenderAnalysisView = ({ scanState }: SenderAnalysisViewProps) => {
     }
   };
 
-  const handleButtonAction = (senderEmail: string, action: 'keep' | 'delete') => {
-    handleSwipeAction(senderEmail, action === 'delete' ? 'left' : 'right');
+  const handleButtonAction = (senderEmail: string, action: 'unsubscribe-delete' | 'delete-only' | 'keep' | 'spam') => {
+    const sender = senderData.find(s => s.email === senderEmail);
+    if (!sender) return;
+
+    setProcessedSenders(prev => new Set([...prev, senderEmail]));
+
+    switch (action) {
+      case 'unsubscribe-delete':
+        toast({
+          title: "🗑️ Désabonnement et suppression",
+          description: `${sender.sender} - ${formatNumber(sender.emailCount)} emails supprimés et désabonnement effectué`,
+        });
+        break;
+      case 'delete-only':
+        toast({
+          title: "🗑️ Suppression uniquement",
+          description: `${sender.sender} - ${formatNumber(sender.emailCount)} emails supprimés`,
+        });
+        break;
+      case 'keep':
+        toast({
+          title: "✅ Expéditeur conservé",
+          description: `${sender.sender} - ${formatNumber(sender.emailCount)} emails conservés`,
+        });
+        break;
+      case 'spam':
+        toast({
+          title: "🚫 Marqué comme spam",
+          description: `${sender.sender} - ${formatNumber(sender.emailCount)} emails marqués comme spam`,
+        });
+        break;
+    }
   };
 
   const currentSender = senderData[0];
@@ -229,7 +260,7 @@ const SenderAnalysisView = ({ scanState }: SenderAnalysisViewProps) => {
       <div className="text-center mb-6">
         <h3 className="text-2xl font-bold mb-2">Triez vos expéditeurs</h3>
         <p className="text-muted-foreground mb-2">
-          Glissez à gauche pour supprimer et vous désabonner, à droite pour conserver
+          Choisissez l'action appropriée pour chaque expéditeur
         </p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <p className="text-sm text-blue-700">
@@ -271,37 +302,64 @@ const SenderAnalysisView = ({ scanState }: SenderAnalysisViewProps) => {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4 py-4">
+                  <div className="grid grid-cols-1 gap-4 py-4">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-blue-600">
                         {formatNumber(currentSender.emailCount)}
                       </p>
                       <p className="text-xs text-muted-foreground">emails reçus</p>
                     </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-green-600">
-                        {currentSender.openRate.toFixed(1)}%
+                    
+                    <div className="text-center space-y-2">
+                      <p className="text-lg font-bold text-green-600">
+                        {currentSender.openRate.toFixed(1)}% ouvert
                       </p>
+                      <div className="w-full bg-gray-200 rounded-full">
+                        <Progress 
+                          value={currentSender.openRate} 
+                          className="h-3"
+                        />
+                      </div>
                       <p className="text-xs text-muted-foreground">taux d'ouverture</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 mt-6">
+                  <div className="grid grid-cols-2 gap-2 mt-6">
                     <Button
                       variant="outline"
-                      className="border-red-200 text-red-600 hover:bg-red-50"
-                      onClick={() => handleButtonAction(currentSender.email, 'delete')}
+                      size="sm"
+                      className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
+                      onClick={() => handleButtonAction(currentSender.email, 'unsubscribe-delete')}
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Supprimer
+                      <UserMinus className="h-3 w-3 mr-1" />
+                      Désabo. + Suppr.
                     </Button>
                     <Button
                       variant="outline"
-                      className="border-green-200 text-green-600 hover:bg-green-50"
+                      size="sm"
+                      className="border-orange-200 text-orange-600 hover:bg-orange-50 text-xs"
+                      onClick={() => handleButtonAction(currentSender.email, 'delete-only')}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Suppr. uniquement
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-green-200 text-green-600 hover:bg-green-50 text-xs"
                       onClick={() => handleButtonAction(currentSender.email, 'keep')}
                     >
-                      <Check className="h-4 w-4 mr-2" />
+                      <Check className="h-3 w-3 mr-1" />
                       Conserver
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-200 text-gray-600 hover:bg-gray-50 text-xs"
+                      onClick={() => handleButtonAction(currentSender.email, 'spam')}
+                    >
+                      <Spam className="h-3 w-3 mr-1" />
+                      Spam
                     </Button>
                   </div>
                 </div>
