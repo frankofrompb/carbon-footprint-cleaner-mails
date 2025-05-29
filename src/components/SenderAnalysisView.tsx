@@ -1,11 +1,10 @@
-
 import { useMemo, useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScanState } from "@/types";
 import { formatNumber } from "@/lib/utils";
-import { Trash2, UserMinus, Check, X, Archive, Spam } from "lucide-react";
+import { Trash2, UserMinus, Check, X, Archive } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SenderData {
@@ -358,7 +357,7 @@ const SenderAnalysisView = ({ scanState }: SenderAnalysisViewProps) => {
                       className="border-gray-200 text-gray-600 hover:bg-gray-50 text-xs"
                       onClick={() => handleButtonAction(currentSender.email, 'spam')}
                     >
-                      <Spam className="h-3 w-3 mr-1" />
+                      <X className="h-3 w-3 mr-1" />
                       Spam
                     </Button>
                   </div>
