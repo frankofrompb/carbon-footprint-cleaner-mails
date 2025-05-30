@@ -2,7 +2,9 @@
 import { useState } from "react";
 import ScanTypeSelector from "@/components/ScanTypeSelector";
 import EmailScanner from "@/components/EmailScanner";
-import LoginForm from "@/components/LoginForm";
+import ModernLandingPage from "@/components/ModernLandingPage";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useScanEmails } from "@/hooks/useScanEmails";
 
@@ -30,27 +32,41 @@ const Index = () => {
   };
 
   return (
-    <div className="container mx-auto py-12">
+    <div className="min-h-screen flex flex-col">
       {!authState.userEmail ? (
-        <LoginForm 
+        <ModernLandingPage 
           onLoginWithGmail={handleLoginWithGmail}
           isLoading={authState.loading}
         />
-      ) : selectedScanType ? (
-        <EmailScanner
-          scanState={scanState}
-          onScan={() => handleScanEmails(selectedScanType)}
-          onDelete={deleteEmails}
-          onExport={exportToCsv}
-          userEmail={authState.userEmail}
-          scanType={selectedScanType}
-        />
       ) : (
-        <ScanTypeSelector
-          onSelectScanType={handleSelectScanType}
-          userEmail={authState.userEmail}
-          onScan={() => handleScanEmails()}
-        />
+        <>
+          <Header 
+            isAuthenticated={!!authState.userEmail}
+            userEmail={authState.userEmail}
+            onLogout={handleLogout}
+          />
+          <main className="flex-1">
+            <div className="container mx-auto py-12">
+              {selectedScanType ? (
+                <EmailScanner
+                  scanState={scanState}
+                  onScan={() => handleScanEmails(selectedScanType)}
+                  onDelete={deleteEmails}
+                  onExport={exportToCsv}
+                  userEmail={authState.userEmail}
+                  scanType={selectedScanType}
+                />
+              ) : (
+                <ScanTypeSelector
+                  onSelectScanType={handleSelectScanType}
+                  userEmail={authState.userEmail}
+                  onScan={() => handleScanEmails()}
+                />
+              )}
+            </div>
+          </main>
+          <Footer />
+        </>
       )}
     </div>
   );
