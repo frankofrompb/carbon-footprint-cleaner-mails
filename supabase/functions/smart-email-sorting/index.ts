@@ -28,7 +28,20 @@ serve(async (req) => {
   try {
     const { accessToken, emails, period } = await req.json();
 
-    console.log(`Starting smart sorting for ${emails.length} emails with period: ${period}`);
+    console.log(`Starting smart sorting for ${emails?.length || 0} emails with period: ${period}`);
+
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      throw new Error("Aucun email fourni pour la classification");
+    }
+
+    // Vérifier la clé API OpenAI
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      console.error('OpenAI API key not found in environment');
+      throw new Error('Clé API OpenAI manquante. Veuillez la configurer dans les secrets Supabase.');
+    }
+
+    console.log('OpenAI API key found, proceeding with classification...');
 
     // Classifier les emails par batch
     const classifiedEmails: ClassifiedEmail[] = [];
@@ -38,12 +51,30 @@ serve(async (req) => {
       const batch = emails.slice(i, i + batchSize);
       console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(emails.length / batchSize)}`);
 
-      const batchClassifications = await classifyEmailBatch(batch);
-      classifiedEmails.push(...batchClassifications);
+      try {
+        const batchClassifications = await classifyEmailBatch(batch, openAIApiKey);
+        classifiedEmails.push(...batchClassifications);
+      } catch (error) {
+        console.error(`Error processing batch ${Math.floor(i / batchSize) + 1}:`, error);
+        // Continuer avec le batch suivant en cas d'erreur
+        const fallbackClassifications = batch.map(email => ({
+          id: email.id,
+          subject: email.subject,
+          from: email.from,
+          classification: {
+            category: 'other',
+            confidence: 0.5,
+            suggestedFolder: 'Autres'
+          }
+        }));
+        classifiedEmails.push(...fallbackClassifications);
+      }
     }
 
     // Grouper par catégorie
     const categorizedEmails = groupEmailsByCategory(classifiedEmails);
+
+    console.log(`Classification completed: ${classifiedEmails.length} emails processed into ${Object.keys(categorizedEmails).length} categories`);
 
     return new Response(
       JSON.stringify({
@@ -58,7 +89,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in smart email sorting:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Erreur lors de la classification des emails',
+        details: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,39 +101,39 @@ serve(async (req) => {
   }
 });
 
-async function classifyEmailBatch(emails: any[]): Promise<ClassifiedEmail[]> {
-  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-  
-  if (!openAIApiKey) {
-    throw new Error('OpenAI API key not configured');
+async function classifyEmailBatch(emails: any[], openAIApiKey: string): Promise<ClassifiedEmail[]> {
+  if (!emails || emails.length === 0) {
+    return [];
   }
 
   const emailTexts = emails.map(email => 
-    `Subject: ${email.subject}\nFrom: ${email.from}\nSnippet: ${email.snippet || ''}`
+    `Subject: ${email.subject || 'Sans sujet'}\nFrom: ${email.from || 'Expéditeur inconnu'}\nSnippet: ${email.snippet || ''}`
   ).join('\n---\n');
 
-  const prompt = `Analyze these emails and classify each one into categories. Return a JSON array with classifications for each email in the same order.
+  const prompt = `Analyse ces emails et classe chacun dans une catégorie. Retourne un array JSON avec les classifications pour chaque email dans le même ordre.
 
-Categories available:
-- "order_confirmation" (confirmations de commande, receipts, order confirmations)
-- "newsletter" (newsletters, marketing emails, promotions)
-- "invoice" (factures, billing, payment notifications)
-- "social" (notifications from social networks, comments, likes)
-- "travel" (booking confirmations, travel itineraries, flight tickets)
-- "bank" (bank statements, account notifications, payment alerts)
-- "work" (professional emails, meeting invites, work communications)
-- "support" (customer support, help desk, technical assistance)
-- "other" (everything else)
+Catégories disponibles:
+- "order_confirmation" (confirmations de commande, reçus, confirmations d'achat)
+- "newsletter" (newsletters, emails marketing, promotions)
+- "invoice" (factures, facturation, notifications de paiement)
+- "social" (notifications des réseaux sociaux, commentaires, likes)
+- "travel" (confirmations de réservation, itinéraires de voyage, billets)
+- "bank" (relevés bancaires, notifications de compte, alertes de paiement)
+- "work" (emails professionnels, invitations à des réunions, communications de travail)
+- "support" (support client, help desk, assistance technique)
+- "other" (tout le reste)
 
-For each email, provide:
-- category: one of the categories above
-- confidence: number between 0 and 1
-- suggestedFolder: French name for the folder (e.g., "Confirmations de commande", "Newsletters", etc.)
+Pour chaque email, fournis:
+- category: une des catégories ci-dessus
+- confidence: nombre entre 0 et 1
+- suggestedFolder: nom français pour le dossier (ex: "Confirmations de commande", "Newsletters", etc.)
 
-Emails to analyze:
+Emails à analyser:
 ${emailTexts}`;
 
   try {
+    console.log(`Making OpenAI API call for ${emails.length} emails...`);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -111,7 +145,7 @@ ${emailTexts}`;
         messages: [
           {
             role: 'system',
-            content: 'You are an email classification expert. Always respond with valid JSON array matching the exact number of input emails.'
+            content: 'Tu es un expert en classification d\'emails. Réponds toujours avec un array JSON valide correspondant exactement au nombre d\'emails en entrée.'
           },
           {
             role: 'user',
@@ -123,13 +157,36 @@ ${emailTexts}`;
       }),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorText}`);
+      throw new Error(`Erreur API OpenAI: ${response.status}`);
+    }
+
     const data = await response.json();
-    const classifications = JSON.parse(data.choices[0].message.content);
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Réponse invalide de l\'API OpenAI');
+    }
+
+    console.log('OpenAI response received, parsing classifications...');
+    
+    let classifications;
+    try {
+      classifications = JSON.parse(data.choices[0].message.content);
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      throw new Error('Erreur lors du parsing de la réponse OpenAI');
+    }
+
+    if (!Array.isArray(classifications)) {
+      throw new Error('La réponse OpenAI n\'est pas un array');
+    }
 
     return emails.map((email, index) => ({
       id: email.id,
-      subject: email.subject,
-      from: email.from,
+      subject: email.subject || 'Sans sujet',
+      from: email.from || 'Expéditeur inconnu',
       classification: classifications[index] || {
         category: 'other',
         confidence: 0.5,
@@ -137,18 +194,8 @@ ${emailTexts}`;
       }
     }));
   } catch (error) {
-    console.error('Error classifying emails:', error);
-    // Fallback classification
-    return emails.map(email => ({
-      id: email.id,
-      subject: email.subject,
-      from: email.from,
-      classification: {
-        category: 'other',
-        confidence: 0.5,
-        suggestedFolder: 'Autres'
-      }
-    }));
+    console.error('Error in classifyEmailBatch:', error);
+    throw error;
   }
 }
 
@@ -156,7 +203,7 @@ function groupEmailsByCategory(classifiedEmails: ClassifiedEmail[]): Record<stri
   const groups: Record<string, ClassifiedEmail[]> = {};
   
   classifiedEmails.forEach(email => {
-    const folder = email.classification.suggestedFolder;
+    const folder = email.classification.suggestedFolder || 'Autres';
     if (!groups[folder]) {
       groups[folder] = [];
     }

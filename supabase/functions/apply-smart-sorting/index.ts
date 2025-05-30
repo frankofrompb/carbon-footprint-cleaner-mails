@@ -17,13 +17,26 @@ serve(async (req) => {
 
     console.log(`Applying smart sorting for ${Object.keys(folderActions).length} folders`);
 
+    if (!accessToken) {
+      throw new Error('Token d\'accès manquant');
+    }
+
+    if (!folderActions || typeof folderActions !== 'object') {
+      throw new Error('Actions de dossier invalides');
+    }
+
     let totalProcessed = 0;
     const results = [];
 
     for (const [folderName, emailIds] of Object.entries(folderActions)) {
-      if (!Array.isArray(emailIds) || emailIds.length === 0) continue;
+      if (!Array.isArray(emailIds) || emailIds.length === 0) {
+        console.log(`Skipping folder ${folderName} - no emails`);
+        continue;
+      }
 
       try {
+        console.log(`Processing folder: ${folderName} with ${emailIds.length} emails`);
+        
         // Créer ou récupérer le libellé
         const labelId = await createOrGetLabel(accessToken, folderName);
         
@@ -37,6 +50,7 @@ serve(async (req) => {
         });
         
         totalProcessed += processed;
+        console.log(`Successfully processed ${processed} emails for folder ${folderName}`);
       } catch (error) {
         console.error(`Error processing folder ${folderName}:`, error);
         results.push({
@@ -61,7 +75,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error applying smart sorting:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Erreur lors de l\'application du tri',
+        details: error.stack
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -71,62 +88,78 @@ serve(async (req) => {
 });
 
 async function createOrGetLabel(accessToken: string, labelName: string): Promise<string> {
-  // D'abord, vérifier si le libellé existe déjà
-  const listResponse = await fetch(
-    'https://gmail.googleapis.com/gmail/v1/users/me/labels',
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
+  try {
+    // D'abord, vérifier si le libellé existe déjà
+    console.log(`Checking if label "${labelName}" exists...`);
+    
+    const listResponse = await fetch(
+      'https://gmail.googleapis.com/gmail/v1/users/me/labels',
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!listResponse.ok) {
+      const errorText = await listResponse.text();
+      console.error(`Failed to list labels: ${listResponse.status} - ${errorText}`);
+      throw new Error(`Échec de la récupération des libellés: ${listResponse.statusText}`);
     }
-  );
 
-  if (!listResponse.ok) {
-    throw new Error(`Failed to list labels: ${listResponse.statusText}`);
-  }
+    const listData = await listResponse.json();
+    const existingLabel = listData.labels?.find((label: any) => label.name === labelName);
 
-  const listData = await listResponse.json();
-  const existingLabel = listData.labels?.find((label: any) => label.name === labelName);
-
-  if (existingLabel) {
-    console.log(`Using existing label: ${labelName}`);
-    return existingLabel.id;
-  }
-
-  // Créer le nouveau libellé
-  console.log(`Creating new label: ${labelName}`);
-  const createResponse = await fetch(
-    'https://gmail.googleapis.com/gmail/v1/users/me/labels',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: labelName,
-        labelListVisibility: 'labelShow',
-        messageListVisibility: 'show'
-      }),
+    if (existingLabel) {
+      console.log(`Using existing label: ${labelName} (ID: ${existingLabel.id})`);
+      return existingLabel.id;
     }
-  );
 
-  if (!createResponse.ok) {
-    throw new Error(`Failed to create label: ${createResponse.statusText}`);
+    // Créer le nouveau libellé
+    console.log(`Creating new label: ${labelName}`);
+    const createResponse = await fetch(
+      'https://gmail.googleapis.com/gmail/v1/users/me/labels',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: labelName,
+          labelListVisibility: 'labelShow',
+          messageListVisibility: 'show'
+        }),
+      }
+    );
+
+    if (!createResponse.ok) {
+      const errorText = await createResponse.text();
+      console.error(`Failed to create label: ${createResponse.status} - ${errorText}`);
+      throw new Error(`Échec de la création du libellé: ${createResponse.statusText}`);
+    }
+
+    const createData = await createResponse.json();
+    console.log(`Created new label: ${labelName} (ID: ${createData.id})`);
+    return createData.id;
+  } catch (error) {
+    console.error(`Error in createOrGetLabel for "${labelName}":`, error);
+    throw error;
   }
-
-  const createData = await createResponse.json();
-  return createData.id;
 }
 
 async function applyLabelToEmails(accessToken: string, emailIds: string[], labelId: string): Promise<number> {
   let processed = 0;
   const batchSize = 100; // Gmail API limit
 
+  console.log(`Applying label to ${emailIds.length} emails in batches of ${batchSize}`);
+
   for (let i = 0; i < emailIds.length; i += batchSize) {
     const batch = emailIds.slice(i, i + batchSize);
     
     try {
+      console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(emailIds.length / batchSize)} with ${batch.length} emails`);
+      
       const response = await fetch(
         'https://gmail.googleapis.com/gmail/v1/users/me/messages/batchModify',
         {
@@ -147,10 +180,18 @@ async function applyLabelToEmails(accessToken: string, emailIds: string[], label
         processed += batch.length;
         console.log(`Successfully processed batch of ${batch.length} emails`);
       } else {
-        console.error(`Failed to process batch: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`Failed to process batch: ${response.status} - ${errorText}`);
+        throw new Error(`Échec du traitement du batch: ${response.statusText}`);
       }
     } catch (error) {
       console.error(`Error processing batch:`, error);
+      throw error;
+    }
+
+    // Petite pause entre les batches pour éviter les limites de taux
+    if (i + batchSize < emailIds.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
