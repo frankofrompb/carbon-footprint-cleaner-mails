@@ -1,22 +1,31 @@
-
 import { useState, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { ScanResults, ScanState, EmailData } from "@/types";
+import { ScanResults, EmailData } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+
+interface ScanState {
+  status: 'idle' | 'scanning' | 'completed' | 'error';
+  results: ScanResults | null;
+  error: string | null;
+  progress: number;
+  intelligentResults?: any;
+}
 
 export const useScanEmails = () => {
   const { toast } = useToast();
   const [scanState, setScanState] = useState<ScanState>({
-    isScanning: false,
+    status: 'idle',
     results: null,
     error: null,
+    progress: 0,
   });
 
   const scanEmails = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan') => {
     setScanState({
-      isScanning: true,
+      status: 'scanning',
       results: null,
       error: null,
+      progress: 0,
     });
 
     try {
@@ -53,12 +62,17 @@ export const useScanEmails = () => {
 
       console.log(`Calling ${functionName} function...`);
 
+      // Simuler progression
+      setScanState(prev => ({ ...prev, progress: 25 }));
+
       // Appeler la fonction Edge appropriée
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           accessToken: parsedAuth.accessToken
         }
       });
+
+      setScanState(prev => ({ ...prev, progress: 75 }));
 
       if (error) {
         console.error("Function error:", error);
@@ -73,15 +87,16 @@ export const useScanEmails = () => {
       console.log("Scan results:", data);
 
       setScanState({
-        isScanning: false,
+        status: 'completed',
         results: data,
         error: null,
+        progress: 100,
       });
 
       if (scanType === 'intelligent-scan') {
         toast({
           title: "Scan intelligent terminé",
-          description: `${data.summary.oldUnreadEmails} emails non lus +6 mois, ${data.summary.promotionalEmails} promotionnels, ${data.summary.autoClassifiableEmails} auto-classifiables détectés`,
+          description: `${data.summary?.oldUnreadEmails || 0} emails non lus +6 mois, ${data.summary?.promotionalEmails || 0} promotionnels, ${data.summary?.autoClassifiableEmails || 0} auto-classifiables détectés`,
         });
       } else {
         const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
@@ -93,9 +108,10 @@ export const useScanEmails = () => {
     } catch (error) {
       console.error("Erreur lors du scan des emails", error);
       setScanState({
-        isScanning: false,
+        status: 'error',
         results: null,
         error: error instanceof Error ? error.message : "Erreur lors du scan des emails",
+        progress: 0,
       });
 
       toast({
@@ -106,7 +122,7 @@ export const useScanEmails = () => {
     }
   }, [toast]);
 
-  const deleteEmails = useCallback(async (selectedSenders: Set<string>) => {
+  const deleteEmails = useCallback(async (emailIds: string[]) => {
     if (!scanState.results) return;
 
     try {
@@ -121,18 +137,12 @@ export const useScanEmails = () => {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
 
-      // Filtrer les emails pour ne garder que ceux des expéditeurs sélectionnés
-      const emailsToDelete = scanState.results.emails.filter(email => 
-        selectedSenders.has(email.from)
-      );
-
-      const emailIds = emailsToDelete.map(email => email.id);
       const emailCount = emailIds.length;
 
       if (emailCount === 0) {
         toast({
           title: "Aucun email à supprimer",
-          description: "Veuillez sélectionner au moins un expéditeur.",
+          description: "Veuillez sélectionner au moins un email.",
           variant: "destructive",
         });
         return;
@@ -175,9 +185,10 @@ export const useScanEmails = () => {
 
       // Réinitialiser les résultats
       setScanState({
-        isScanning: false,
+        status: 'idle',
         results: null,
         error: null,
+        progress: 0,
       });
     } catch (error) {
       console.error("Erreur lors de la suppression des emails", error);

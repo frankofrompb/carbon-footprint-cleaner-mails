@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,7 @@ interface Email {
 
 interface ScanResults {
   emails: Email[];
-  totalSizeMB: number;
+  totalSizeMB?: number;
 }
 
 interface ScanState {
@@ -87,10 +88,8 @@ interface IntelligentScanResultsProps {
 const IntelligentScanResults = ({ results, onDelete, onExport }: IntelligentScanResultsProps) => {
   return (
     <div>
-      {/* Display intelligent scan results here */}
       <p>Intelligent Scan Results:</p>
       <pre>{JSON.stringify(results, null, 2)}</pre>
-      {/* Add buttons for delete and export actions */}
       <Button onClick={() => onDelete(results.map((r: any) => r.id))}>Delete All</Button>
       <Button onClick={onExport}>Export</Button>
     </div>
@@ -252,18 +251,16 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                       <Pagination>
                         <PaginationContent>
                           <PaginationPrevious
-                            href="#"
-                            onClick={() => setPage(page - 1)}
-                            disabled={page === 1}
+                            onClick={() => setPage(Math.max(1, page - 1))}
+                            className={page === 1 ? "pointer-events-none opacity-50" : ""}
                           >
                             <ArrowLeft className="h-4 w-4" />
                           </PaginationPrevious>
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-                            <PaginationItem key={pageNumber} active={pageNumber === page}>
+                            <PaginationItem key={pageNumber}>
                               <PaginationLink
-                                href="#"
                                 onClick={() => setPage(pageNumber)}
-                                isCurrent={pageNumber === page}
+                                isActive={pageNumber === page}
                                 aria-label={`Aller à la page ${pageNumber}`}
                               >
                                 {pageNumber}
@@ -271,9 +268,8 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                             </PaginationItem>
                           ))}
                           <PaginationNext
-                            href="#"
-                            onClick={() => setPage(page + 1)}
-                            disabled={page === totalPages}
+                            onClick={() => setPage(Math.min(totalPages, page + 1))}
+                            className={page === totalPages ? "pointer-events-none opacity-50" : ""}
                           >
                             <ArrowRight className="h-4 w-4" />
                           </PaginationNext>
