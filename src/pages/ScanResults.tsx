@@ -300,8 +300,11 @@ const ScanResults = () => {
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg mt-8">
           <CardContent className="p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">🌱 Progression vers un Email Plus Vert</h2>
-            <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-4">
-              <div className="h-full bg-gradient-to-r from-[#4CAF50] to-[#45a049] rounded-full animate-[fillProgress_3s_ease_forwards] w-0"></div>
+            <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-4 relative">
+              <div 
+                className="h-full bg-gradient-to-r from-[#4CAF50] to-[#45a049] rounded-full transition-all duration-[3s] ease-out"
+                style={{ width: '75%' }}
+              ></div>
             </div>
             <div className="text-lg text-gray-600">
               En appliquant toutes ces actions, vous économiserez <strong>79.2 kg de CO₂</strong> et libérerez <strong>2.1 GB d'espace</strong>
@@ -311,12 +314,6 @@ const ScanResults = () => {
       </div>
 
       <Footer />
-      
-      <style jsx>{`
-        @keyframes fillProgress {
-          to { width: 75%; }
-        }
-      `}</style>
     </div>
   );
 };
