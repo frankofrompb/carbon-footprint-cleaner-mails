@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,32 +53,33 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#667eea] to-[#764ba2]">
+    <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61]">
       {/* Header */}
       <header className="bg-white/95 backdrop-blur-md border-b border-white/20 sticky top-0 z-50 shadow-lg">
         <div className="container mx-auto px-4">
           <nav className="flex justify-between items-center py-4">
-            <div className="flex items-center text-2xl font-bold text-[#667eea]">
-              <Leaf className="mr-2 h-8 w-8" />
-              EcoInBox
+            <div className="flex items-center text-2xl font-bold">
+              <Leaf className="mr-2 h-8 w-8 text-[#38c39d]" />
+              <span className="text-[#38c39d]">Eco</span>
+              <span className="text-black">InBox</span>
             </div>
             <ul className="hidden md:flex space-x-8">
-              <li><a href="#services" className="text-gray-600 hover:text-[#667eea] font-medium transition-colors">Services</a></li>
-              <li><a href="#tableau-bord" className="text-gray-600 hover:text-[#667eea] font-medium transition-colors">Tableau de bord</a></li>
-              <li><a href="#tarifs" className="text-gray-600 hover:text-[#667eea] font-medium transition-colors">Tarifs</a></li>
+              <li><a href="#services" className="text-gray-600 hover:text-[#38c39d] font-medium transition-colors">Services</a></li>
+              <li><a href="#tableau-bord" className="text-gray-600 hover:text-[#38c39d] font-medium transition-colors">Tableau de bord</a></li>
+              <li><a href="#tarifs" className="text-gray-600 hover:text-[#38c39d] font-medium transition-colors">Tarifs</a></li>
             </ul>
             <div className="flex gap-4">
               <Button
                 variant="outline"
                 onClick={() => openModal('login')}
-                className="border-2 border-[#667eea] text-[#667eea] hover:bg-[#667eea] hover:text-white rounded-full"
+                className="border-2 border-[#38c39d] text-[#38c39d] hover:bg-[#38c39d] hover:text-white rounded-full"
               >
                 <LogIn className="mr-2 h-4 w-4" />
                 Connexion
               </Button>
               <Button
                 onClick={() => openModal('register')}
-                className="bg-gradient-to-r from-[#667eea] to-[#764ba2] hover:shadow-lg hover:-translate-y-0.5 transition-all rounded-full"
+                className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] hover:shadow-lg hover:-translate-y-0.5 transition-all rounded-full"
               >
                 <UserPlus className="mr-2 h-4 w-4" />
                 Créer un compte
@@ -115,7 +117,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
           <Button
             onClick={handleStartCleaning}
             disabled={isLoading}
-            className="bg-gradient-to-r from-[#667eea] to-[#764ba2] hover:shadow-xl hover:-translate-y-1 transition-all text-lg px-8 py-3 rounded-full"
+            className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] hover:shadow-xl hover:-translate-y-1 transition-all text-lg px-8 py-3 rounded-full"
           >
             <Rocket className="mr-2 h-5 w-5" />
             {isLoading ? "Connexion..." : "Commencer gratuitement"}
@@ -131,9 +133,9 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
           </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-t-4 border-t-[#667eea] hover:-translate-y-2 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <Card className="border-t-4 border-t-[#38c39d] hover:-translate-y-2 transition-all duration-300 shadow-lg hover:shadow-xl">
               <CardContent className="p-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#667eea] to-[#764ba2] rounded-xl flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#38c39d] to-[#2d8b61] rounded-xl flex items-center justify-center mb-6">
                   <Trash2 className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Suppression intelligente</h3>
@@ -158,16 +160,16 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                     Sauvegarde avant suppression
                   </li>
                 </ul>
-                <Button className="bg-gradient-to-r from-[#667eea] to-[#764ba2] rounded-full">
+                <Button className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full">
                   <Play className="mr-2 h-4 w-4" />
                   Démarrer l'analyse
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-t-4 border-t-[#667eea] hover:-translate-y-2 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <Card className="border-t-4 border-t-[#38c39d] hover:-translate-y-2 transition-all duration-300 shadow-lg hover:shadow-xl">
               <CardContent className="p-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#667eea] to-[#764ba2] rounded-xl flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#38c39d] to-[#2d8b61] rounded-xl flex items-center justify-center mb-6">
                   <BarChart3 className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Classification avancée</h3>
@@ -192,16 +194,16 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                     Suggestions de désabonnement
                   </li>
                 </ul>
-                <Button className="bg-gradient-to-r from-[#667eea] to-[#764ba2] rounded-full">
+                <Button className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full">
                   <ChartLine className="mr-2 h-4 w-4" />
                   Voir les statistiques
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="border-t-4 border-t-[#667eea] hover:-translate-y-2 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <Card className="border-t-4 border-t-[#38c39d] hover:-translate-y-2 transition-all duration-300 shadow-lg hover:shadow-xl">
               <CardContent className="p-8">
-                <div className="w-20 h-20 bg-gradient-to-br from-[#667eea] to-[#764ba2] rounded-xl flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-[#38c39d] to-[#2d8b61] rounded-xl flex items-center justify-center mb-6">
                   <FolderOpen className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold mb-4 text-gray-800">Organisation automatique</h3>
@@ -226,7 +228,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                     Apprentissage adaptatif
                   </li>
                 </ul>
-                <Button className="bg-gradient-to-r from-[#667eea] to-[#764ba2] rounded-full">
+                <Button className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full">
                   <Wand2 className="mr-2 h-4 w-4" />
                   Organiser maintenant
                 </Button>
@@ -248,20 +250,20 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
               
               <ul className="space-y-4 mb-8">
                 <li className="flex items-center text-lg text-gray-700">
-                  <Leaf className="text-[#667eea] mr-4 h-5 w-5" />
+                  <Leaf className="text-[#38c39d] mr-4 h-5 w-5" />
                   Impact carbone économisé
                 </li>
                 <li className="flex items-center text-lg text-gray-700">
-                  <BarChart3 className="text-[#667eea] mr-4 h-5 w-5" />
+                  <BarChart3 className="text-[#38c39d] mr-4 h-5 w-5" />
                   Nombre d'emails traités
                 </li>
                 <li className="flex items-center text-lg text-gray-700">
-                  <FolderOpen className="text-[#667eea] mr-4 h-5 w-5" />
+                  <FolderOpen className="text-[#38c39d] mr-4 h-5 w-5" />
                   Espace de stockage libéré
                 </li>
               </ul>
 
-              <Button className="bg-gradient-to-r from-[#667eea] to-[#764ba2] rounded-full">
+              <Button className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full">
                 <Eye className="mr-2 h-4 w-4" />
                 Voir le tableau de bord
               </Button>
@@ -279,28 +281,28 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                 
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-[#667eea]">1,247</div>
+                    <div className="text-2xl font-bold text-[#38c39d]">1,247</div>
                     <div className="text-sm text-gray-600">Emails supprimés</div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-[#667eea]">3.2 GB</div>
+                    <div className="text-2xl font-bold text-[#38c39d]">3.2 GB</div>
                     <div className="text-sm text-gray-600">Espace libéré</div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-[#667eea]">89%</div>
+                    <div className="text-2xl font-bold text-[#38c39d]">89%</div>
                     <div className="text-sm text-gray-600">Optimisation</div>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-[#667eea]">24</div>
+                    <div className="text-2xl font-bold text-[#38c39d]">24</div>
                     <div className="text-sm text-gray-600">Désabonnements</div>
                   </div>
                 </div>
 
-                <div className="h-32 bg-gradient-to-r from-[#667eea]/20 to-[#764ba2]/20 rounded-lg flex items-end justify-around p-4">
+                <div className="h-32 bg-gradient-to-r from-[#38c39d]/20 to-[#2d8b61]/20 rounded-lg flex items-end justify-around p-4">
                   {[60, 80, 40, 90, 70, 50, 85].map((height, index) => (
                     <div
                       key={index}
-                      className="bg-gradient-to-t from-[#667eea] to-[#764ba2] rounded-t w-4 transition-all duration-500 hover:scale-110"
+                      className="bg-gradient-to-t from-[#38c39d] to-[#2d8b61] rounded-t w-4 transition-all duration-500 hover:scale-110"
                       style={{ height: `${height}%` }}
                     />
                   ))}
@@ -320,7 +322,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
             <Card className="border-2 border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-8 text-center">
                 <h3 className="text-2xl font-bold mb-4">Gratuit</h3>
-                <div className="text-4xl font-bold text-[#667eea] mb-6">
+                <div className="text-4xl font-bold text-[#38c39d] mb-6">
                   0€<span className="text-lg text-gray-500">/mois</span>
                 </div>
                 <ul className="space-y-3 mb-8 text-left">
@@ -345,13 +347,13 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-[#667eea] transform scale-105 shadow-xl relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white px-6 py-1 rounded-full text-sm font-semibold">
+            <Card className="border-2 border-[#38c39d] transform scale-105 shadow-xl relative">
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-[#38c39d] to-[#2d8b61] text-white px-6 py-1 rounded-full text-sm font-semibold">
                 Populaire
               </div>
               <CardContent className="p-8 text-center">
                 <h3 className="text-2xl font-bold mb-4">Pro</h3>
-                <div className="text-4xl font-bold text-[#667eea] mb-6">
+                <div className="text-4xl font-bold text-[#38c39d] mb-6">
                   9€<span className="text-lg text-gray-500">/mois</span>
                 </div>
                 <ul className="space-y-3 mb-8 text-left">
@@ -376,7 +378,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                     Support prioritaire
                   </li>
                 </ul>
-                <Button className="w-full bg-gradient-to-r from-[#667eea] to-[#764ba2] rounded-full">
+                <Button className="w-full bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full">
                   Choisir Pro
                 </Button>
               </CardContent>
@@ -385,7 +387,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
             <Card className="border-2 border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-8 text-center">
                 <h3 className="text-2xl font-bold mb-4">Entreprise</h3>
-                <div className="text-4xl font-bold text-[#667eea] mb-6">
+                <div className="text-4xl font-bold text-[#38c39d] mb-6">
                   29€<span className="text-lg text-gray-500">/mois</span>
                 </div>
                 <ul className="space-y-3 mb-8 text-left">
@@ -431,7 +433,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                 <X className="h-4 w-4" />
               </Button>
               <div className="text-center mb-6">
-                <LogIn className="h-8 w-8 mx-auto mb-2 text-[#667eea]" />
+                <LogIn className="h-8 w-8 mx-auto mb-2 text-[#38c39d]" />
                 <h3 className="text-2xl font-bold">Connexion</h3>
               </div>
               <div className="space-y-4">
@@ -446,7 +448,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                 <Button 
                   onClick={handleStartCleaning}
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-[#667eea] to-[#764ba2] rounded-full"
+                  className="w-full bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full"
                 >
                   <LogIn className="mr-2 h-4 w-4" />
                   {isLoading ? "Connexion..." : "Se connecter"}
@@ -456,7 +458,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                 Pas encore de compte ?{" "}
                 <button 
                   onClick={() => switchModal('login', 'register')}
-                  className="text-[#667eea] font-medium hover:underline"
+                  className="text-[#38c39d] font-medium hover:underline"
                 >
                   Créer un compte
                 </button>
@@ -480,7 +482,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                 <X className="h-4 w-4" />
               </Button>
               <div className="text-center mb-6">
-                <UserPlus className="h-8 w-8 mx-auto mb-2 text-[#667eea]" />
+                <UserPlus className="h-8 w-8 mx-auto mb-2 text-[#38c39d]" />
                 <h3 className="text-2xl font-bold">Créer un compte</h3>
               </div>
               <div className="space-y-4">
@@ -499,7 +501,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                 <Button 
                   onClick={handleStartCleaning}
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-[#667eea] to-[#764ba2] rounded-full"
+                  className="w-full bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full"
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
                   {isLoading ? "Création..." : "Créer mon compte"}
@@ -509,7 +511,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                 Déjà un compte ?{" "}
                 <button 
                   onClick={() => switchModal('register', 'login')}
-                  className="text-[#667eea] font-medium hover:underline"
+                  className="text-[#38c39d] font-medium hover:underline"
                 >
                   Se connecter
                 </button>
