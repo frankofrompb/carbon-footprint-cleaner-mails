@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useScanEmails } from "@/hooks/useScanEmails";
@@ -6,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Leaf, Search, BarChart3 } from "lucide-react";
+import { Leaf, Search } from "lucide-react";
 
 const Dashboard = () => {
   const { authState, logout } = useAuth();
@@ -102,93 +101,61 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-10">
-          {/* Scan Card */}
-          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-15 h-15 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E8E] rounded-2xl flex items-center justify-center text-white text-3xl">
-                  <Search />
-                </div>
-                <h2 className="text-2xl font-semibold text-gray-800">Commencer le Scan</h2>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
-                  <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.emails.toLocaleString()}</span>
-                  <div className="text-gray-600 text-xs mt-1">Emails détectés</div>
-                </div>
-                <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
-                  <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.space} GB</span>
-                  <div className="text-gray-600 text-xs mt-1">Espace utilisé</div>
-                </div>
-                <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
-                  <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.co2} kg</span>
-                  <div className="text-gray-600 text-xs mt-1">CO₂ estimé</div>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Le scan va permettre de :</h3>
-                <div className="space-y-3">
-                  {[
-                    "Identifier les emails volumineux et inutiles",
-                    "Détecter les newsletters non lues depuis 6 mois",
-                    "Trouver les doublons et spams archivés",
-                    "Calculer l'impact carbone de chaque catégorie",
-                    "Proposer un nettoyage intelligent et sécurisé"
-                  ].map((feature, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-[#38c39d]/5 rounded-lg">
-                      <div className="w-5 h-5 bg-[#38c39d] rounded-full flex items-center justify-center text-white text-xs">✓</div>
-                      <span className="text-gray-700">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Button 
-                onClick={handleStartScan}
-                disabled={scanState.status === 'scanning'}
-                className="w-full bg-gradient-to-r from-[#FF6B6B] to-[#FF8E8E] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-lg py-4 rounded-2xl"
-              >
-                {scanState.status === 'scanning' ? '⏳ Scan en cours...' : '🚀 Lancer le Scan Intelligent'}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* History Card */}
-          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardContent className="p-8">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-15 h-15 bg-gradient-to-br from-[#4ECDC4] to-[#44A08D] rounded-2xl flex items-center justify-center text-white text-3xl">
-                  <BarChart3 />
-                </div>
-                <h2 className="text-2xl font-semibold text-gray-800">Historique de Nettoyage</h2>
-              </div>
-
-              <div className="max-h-96 overflow-y-auto space-y-1">
-                {[
-                  { date: "15 Mai 2025", description: "Nettoyage newsletters + fichiers volumineux", co2: "24.5", emails: "1,247" },
-                  { date: "28 Avril 2025", description: "Suppression spams et doublons", co2: "18.2", emails: "892" },
-                  { date: "12 Avril 2025", description: "Nettoyage complet boîte mail", co2: "35.7", emails: "2,103" },
-                  { date: "01 Mars 2025", description: "Optimisation pièces jointes", co2: "41.3", emails: "567" },
-                  { date: "14 Février 2025", description: "Premier scan EcoInBox", co2: "52.1", emails: "3,456" }
-                ].map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-4 border-b border-gray-100 hover:bg-[#38c39d]/5 transition-colors duration-200">
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-800 mb-1">{item.date}</div>
-                      <div className="text-gray-600 text-sm">{item.description}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-[#38c39d] text-lg">-{item.co2} kg CO₂</div>
-                      <div className="text-gray-600 text-xs">{item.emails} emails supprimés</div>
-                    </div>
+        {/* Main Content - Centered Scan Card */}
+        <div className="flex justify-center mb-10">
+          <div className="w-full max-w-2xl">
+            <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+              <CardContent className="p-8">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-15 h-15 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E8E] rounded-2xl flex items-center justify-center text-white text-3xl">
+                    <Search />
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <h2 className="text-2xl font-semibold text-gray-800">Commencer le Scan</h2>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
+                    <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.emails.toLocaleString()}</span>
+                    <div className="text-gray-600 text-xs mt-1">Emails détectés</div>
+                  </div>
+                  <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
+                    <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.space} GB</span>
+                    <div className="text-gray-600 text-xs mt-1">Espace utilisé</div>
+                  </div>
+                  <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
+                    <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.co2} kg</span>
+                    <div className="text-gray-600 text-xs mt-1">CO₂ estimé</div>
+                  </div>
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Le scan va permettre de :</h3>
+                  <div className="space-y-3">
+                    {[
+                      "Identifier les emails volumineux et inutiles",
+                      "Détecter les newsletters non lues depuis 6 mois",
+                      "Trouver les doublons et spams archivés",
+                      "Calculer l'impact carbone de chaque catégorie",
+                      "Proposer un nettoyage intelligent et sécurisé"
+                    ].map((feature, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-[#38c39d]/5 rounded-lg">
+                        <div className="w-5 h-5 bg-[#38c39d] rounded-full flex items-center justify-center text-white text-xs">✓</div>
+                        <span className="text-gray-700">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleStartScan}
+                  disabled={scanState.status === 'scanning'}
+                  className="w-full bg-gradient-to-r from-[#FF6B6B] to-[#FF8E8E] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-lg py-4 rounded-2xl"
+                >
+                  {scanState.status === 'scanning' ? '⏳ Scan en cours...' : '🚀 Lancer le Scan Intelligent'}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Bottom Stats */}
