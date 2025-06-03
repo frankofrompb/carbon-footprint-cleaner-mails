@@ -18,7 +18,7 @@ export interface EmailData {
 
 export interface ScanResults {
   totalEmails: number;
-  totalSizeMB?: number;
+  totalSizeMB?: number; // Rendu optionnel pour correspondre à la fonction Edge
   carbonFootprint: number; // en grammes
   emails: EmailData[];
   summary?: {
