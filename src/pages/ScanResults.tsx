@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { CheckCircle2, Mail, Tag, FolderOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ScanResults = () => {
   const { authState, logout } = useAuth();
+  const navigate = useNavigate();
   const [animatedStats, setAnimatedStats] = useState({
     totalEmails: 0,
     totalSpace: 0,
@@ -60,8 +61,7 @@ const ScanResults = () => {
   }, []);
 
   const handleUnreadEmails = () => {
-    // Logique pour supprimer les emails non lus
-    console.log("Suppression des emails non lus...");
+    navigate('/email-details');
   };
 
   const toggleCategoryOptions = () => {
@@ -178,7 +178,7 @@ const ScanResults = () => {
                 onClick={handleUnreadEmails}
                 className="w-full bg-gradient-to-r from-[#FF6B6B] to-[#FF8E8E] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-lg py-4 rounded-2xl"
               >
-                🗑️ Supprimer les Emails Non Ouverts
+                🔍 Voyons cela de plus près
               </Button>
             </CardContent>
           </Card>
