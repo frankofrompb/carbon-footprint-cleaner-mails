@@ -43,13 +43,8 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
   return (
     <header className="w-full bg-white border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <LogoWithBubbles />
-          <div className="flex items-center">
-            <span className="font-bold text-lg flex items-center translate-y-1">
-              <span className="text-[#38c39d]">Eco</span>InBox
-            </span>
-          </div>
+        <div className="flex items-center">
+          <LogoWithBubbles className="h-12 w-12" />
         </div>
         
         <div className="flex items-center gap-2">
