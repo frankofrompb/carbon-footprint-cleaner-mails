@@ -24,9 +24,10 @@ import ScanningAnimation from "./ScanningAnimation";
 import MusicPrompt from "./MusicPrompt";
 import SenderAnalysisView from "./SenderAnalysisView";
 import SmartSortingView from "./SmartSortingView";
+import IntelligentScanResults from "./IntelligentScanResults";
 import { formatNumber } from "@/lib/utils";
 
-type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting';
+type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan';
 
 interface EmailScannerProps {
   scanState: ScanState;
@@ -45,6 +46,18 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
   // Configuration selon le type de scan
   const scanConfig = useMemo(() => {
     switch (scanType) {
+      case 'intelligent-scan':
+        return {
+          title: 'Scan Intelligent',
+          icon: <Search className="h-5 w-5" />,
+          color: 'text-green-700',
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
+          buttonColor: 'bg-green-500 hover:bg-green-600',
+          description: 'Détection automatique des emails problématiques et classification intelligente',
+          scanButtonText: 'Lancer le scan intelligent',
+          actionButtonText: 'Traiter'
+        };
       case 'smart-deletion':
         return {
           title: 'Suppression Intelligente',
@@ -187,6 +200,22 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     onDelete(selectedSenders);
   };
 
+  const handleDeleteSelected = (emailIds: string[]) => {
+    // Adapter la logique pour le nouveau format
+    const uniqueSenders = new Set(
+      emailIds.map(id => {
+        const email = scanState.results?.emails.find(e => e.id === id);
+        return email?.from || '';
+      }).filter(Boolean)
+    );
+    onDelete(uniqueSenders);
+  };
+
+  const handleOrganizeSelected = (emailIds: string[]) => {
+    console.log('Organiser les emails sélectionnés:', emailIds);
+    // TODO: Implémenter la logique d'organisation
+  };
+
   const toggleView = () => {
     setShowDashboard(!showDashboard);
   };
@@ -230,124 +259,135 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
             </Alert>
           ) : scanState.results ? (
             <div className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Emails trouvés</p>
-                  <p className="text-3xl font-bold text-eco-blue">
-                    {formatNumber(scanState.results.totalEmails)}
-                  </p>
-                </div>
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Taille totale</p>
-                  <p className="text-3xl font-bold text-eco-blue">
-                    {scanState.results.totalSizeMB?.toFixed(2)} Mo
-                  </p>
-                </div>
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p className="text-sm text-muted-foreground">Empreinte CO₂</p>
-                  <p className="text-3xl font-bold text-eco-green">
-                    {formatNumber(scanState.results.carbonFootprint)}g
-                  </p>
-                </div>
-              </div>
-
-              {/* Vue spéciale pour l'analyse des expéditeurs */}
-              {scanType === 'sender-analysis' ? (
-                <SenderAnalysisView scanState={scanState} />
-              ) : scanType === 'smart-sorting' ? (
-                <SmartSortingView scanState={scanState} />
-              ) : showDashboard ? (
-                <>
-                  <Button variant="outline" onClick={toggleView} className="w-full">
-                    Voir tous les emails trouvés par expéditeur
-                  </Button>
-                  <Dashboard scanResults={scanState.results} />
-                </>
+              {/* Vue spéciale pour le scan intelligent */}
+              {scanType === 'intelligent-scan' ? (
+                <IntelligentScanResults 
+                  results={scanState.results}
+                  onDeleteSelected={handleDeleteSelected}
+                  onOrganizeSelected={handleOrganizeSelected}
+                />
               ) : (
                 <>
-                  <Button variant="outline" onClick={toggleView} className="w-full">
-                    Voir le tableau de bord
-                  </Button>
-                  <CarbonFootprintVisual carbonGrams={scanState.results.carbonFootprint} />
-
-                  <Separator />
-
-                  {emailsByDender.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-medium">Emails classés par expéditeur :</h3>
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={handleDeselectAll}
-                          >
-                            Tout désélectionner
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={handleSelectAll}
-                          >
-                            Tout sélectionner
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      {selectedSenders.size > 0 && (
-                        <p className="text-sm text-muted-foreground">
-                          {formatNumber(selectedCount)} emails sélectionnés pour traitement
-                        </p>
-                      )}
-
-                      <p className="text-sm text-muted-foreground">
-                        {emailsByDender.length} expéditeurs différents • {formatNumber(scanState.results.emails.length)} emails récupérés sur {formatNumber(scanState.results.totalEmails)} trouvés
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-muted rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">Emails trouvés</p>
+                      <p className="text-3xl font-bold text-eco-blue">
+                        {formatNumber(scanState.results.totalEmails)}
                       </p>
-
-                      <div className="max-h-96 overflow-y-auto border rounded-md">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-muted sticky top-0">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Sélection</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expéditeur</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Nb emails</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Années</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Taille (Ko)</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Dernier email</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {emailsByDender.map((senderData, index) => (
-                              <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                <td className="px-4 py-2 text-center">
-                                  <Checkbox
-                                    checked={selectedSenders.has(senderData.sender)}
-                                    onCheckedChange={(checked) => 
-                                      handleSenderToggle(senderData.sender, checked as boolean)
-                                    }
-                                  />
-                                </td>
-                                <td className="px-4 py-2 text-sm max-w-xs truncate" title={senderData.sender}>
-                                  {senderData.sender}
-                                </td>
-                                <td className="px-4 py-2 text-sm font-medium text-center">
-                                  {formatNumber(senderData.count)}
-                                </td>
-                                <td className="px-4 py-2 text-sm text-center">
-                                  {senderData.years.join(', ')}
-                                </td>
-                                <td className="px-4 py-2 text-sm text-center">
-                                  {senderData.totalSize.toFixed(1)}
-                                </td>
-                                <td className="px-4 py-2 text-sm text-center">
-                                  {new Date(senderData.latestDate).toLocaleDateString()}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
                     </div>
+                    <div className="p-4 bg-muted rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">Taille totale</p>
+                      <p className="text-3xl font-bold text-eco-blue">
+                        {scanState.results.totalSizeMB?.toFixed(2)} Mo
+                      </p>
+                    </div>
+                    <div className="p-4 bg-muted rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">Empreinte CO₂</p>
+                      <p className="text-3xl font-bold text-eco-green">
+                        {formatNumber(scanState.results.carbonFootprint)}g
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Vue spéciale pour l'analyse des expéditeurs */}
+                  {scanType === 'sender-analysis' ? (
+                    <SenderAnalysisView scanState={scanState} />
+                  ) : scanType === 'smart-sorting' ? (
+                    <SmartSortingView scanState={scanState} />
+                  ) : showDashboard ? (
+                    <>
+                      <Button variant="outline" onClick={toggleView} className="w-full">
+                        Voir tous les emails trouvés par expéditeur
+                      </Button>
+                      <Dashboard scanResults={scanState.results} />
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={toggleView} className="w-full">
+                        Voir le tableau de bord
+                      </Button>
+                      <CarbonFootprintVisual carbonGrams={scanState.results.carbonFootprint} />
+
+                      <Separator />
+
+                      {emailsByDender.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <h3 className="font-medium">Emails classés par expéditeur :</h3>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={handleDeselectAll}
+                              >
+                                Tout désélectionner
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={handleSelectAll}
+                              >
+                                Tout sélectionner
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {selectedSenders.size > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                              {formatNumber(selectedCount)} emails sélectionnés pour traitement
+                            </p>
+                          )}
+
+                          <p className="text-sm text-muted-foreground">
+                            {emailsByDender.length} expéditeurs différents • {formatNumber(scanState.results.emails.length)} emails récupérés sur {formatNumber(scanState.results.totalEmails)} trouvés
+                          </p>
+
+                          <div className="max-h-96 overflow-y-auto border rounded-md">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-muted sticky top-0">
+                                <tr>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Sélection</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Expéditeur</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Nb emails</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Années</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Taille (Ko)</th>
+                                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">Dernier email</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {emailsByDender.map((senderData, index) => (
+                                  <tr key={index} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                    <td className="px-4 py-2 text-center">
+                                      <Checkbox
+                                        checked={selectedSenders.has(senderData.sender)}
+                                        onCheckedChange={(checked) => 
+                                          handleSenderToggle(senderData.sender, checked as boolean)
+                                        }
+                                      />
+                                    </td>
+                                    <td className="px-4 py-2 text-sm max-w-xs truncate" title={senderData.sender}>
+                                      {senderData.sender}
+                                    </td>
+                                    <td className="px-4 py-2 text-sm font-medium text-center">
+                                      {formatNumber(senderData.count)}
+                                    </td>
+                                    <td className="px-4 py-2 text-sm text-center">
+                                      {senderData.years.join(', ')}
+                                    </td>
+                                    <td className="px-4 py-2 text-sm text-center">
+                                      {senderData.totalSize.toFixed(1)}
+                                    </td>
+                                    <td className="px-4 py-2 text-sm text-center">
+                                      {new Date(senderData.latestDate).toLocaleDateString()}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}

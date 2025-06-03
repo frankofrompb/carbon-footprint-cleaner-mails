@@ -12,7 +12,7 @@ export const useScanEmails = () => {
     error: null,
   });
 
-  const scanEmails = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting') => {
+  const scanEmails = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan') => {
     setScanState({
       isScanning: true,
       results: null,
@@ -32,11 +32,15 @@ export const useScanEmails = () => {
       }
 
       // Choisir la fonction appropriée selon le type de scan
-      const functionName = (scanType === 'sender-analysis' || scanType === 'smart-sorting') 
+      const functionName = scanType === 'intelligent-scan' 
+        ? 'intelligent-email-scan'
+        : (scanType === 'sender-analysis' || scanType === 'smart-sorting') 
         ? 'scan-all-gmail' 
         : 'scan-gmail';
       
-      const description = scanType === 'sender-analysis' 
+      const description = scanType === 'intelligent-scan'
+        ? "Scan intelligent en cours : détection des emails non lus +6 mois, classification automatique..."
+        : scanType === 'sender-analysis' 
         ? "Analyse de tous vos emails en cours..." 
         : scanType === 'smart-sorting'
         ? "Récupération des emails pour tri intelligent..."
@@ -74,11 +78,18 @@ export const useScanEmails = () => {
         error: null,
       });
 
-      const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
-      toast({
-        title: "Scan terminé",
-        description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
-      });
+      if (scanType === 'intelligent-scan') {
+        toast({
+          title: "Scan intelligent terminé",
+          description: `${data.summary.oldUnreadEmails} emails non lus +6 mois, ${data.summary.promotionalEmails} promotionnels, ${data.summary.autoClassifiableEmails} auto-classifiables détectés`,
+        });
+      } else {
+        const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
+        toast({
+          title: "Scan terminé",
+          description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
+        });
+      }
     } catch (error) {
       console.error("Erreur lors du scan des emails", error);
       setScanState({

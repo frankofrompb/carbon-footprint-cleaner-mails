@@ -1,112 +1,159 @@
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, FolderOpen, Brain } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  Trash2, 
+  FolderOpen, 
+  Brain, 
+  Search,
+  Calendar,
+  Mail,
+  Users,
+  AlertTriangle
+} from "lucide-react";
+
+type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan';
 
 interface ScanTypeSelectorProps {
-  onSelectScanType: (scanType: 'smart-deletion' | 'sender-analysis' | 'smart-sorting') => void;
+  onSelectScanType: (scanType: ScanType) => void;
   userEmail: string;
-  onScan?: () => void;
+  onScan: () => void;
 }
 
 const ScanTypeSelector = ({ onSelectScanType, userEmail, onScan }: ScanTypeSelectorProps) => {
-  const handleSmartDeletion = () => {
-    onSelectScanType('smart-deletion');
-    // Déclencher automatiquement le scan après un petit délai
-    if (onScan) {
-      setTimeout(() => {
-        onScan();
-      }, 100);
-    }
-  };
-
-  const handleSenderAnalysis = () => {
-    onSelectScanType('sender-analysis');
-    // Déclencher automatiquement le scan après un petit délai
-    if (onScan) {
-      setTimeout(() => {
-        onScan();
-      }, 100);
-    }
-  };
-
   return (
-    <div className="w-full max-w-4xl space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold mb-2">
-          Bienvenue <span className="text-[#38c39d]">{userEmail}</span>
-        </h2>
-        <p className="text-lg text-muted-foreground">
-          Choisissez le type de nettoyage que vous souhaitez effectuer
+    <div className="w-full max-w-6xl space-y-6">
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-bold text-gray-900">
+          Nettoyez votre boîte mail intelligemment
+        </h1>
+        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          Choisissez le type d'analyse qui correspond à vos besoins. 
+          Connecté en tant que <span className="font-semibold text-eco-blue">{userEmail}</span>
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Suppression Intelligente */}
-        <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Scan Intelligent - NOUVEAU */}
+        <Card className="border-2 border-green-200 bg-green-50 hover:border-green-300 transition-all duration-300 transform hover:scale-105">
           <CardHeader className="text-center">
-            <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-2xl mb-4 group-hover:shadow-xl transition-all duration-300 border border-red-200">
-              <div className="bg-red-500 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Trash2 className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-lg text-red-700">Suppression Intelligente</CardTitle>
+            <div className="mx-auto h-16 w-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
+              <Search className="h-8 w-8 text-white" />
             </div>
+            <CardTitle className="text-green-700 flex items-center justify-center gap-2">
+              <span>Scan Intelligent</span>
+              <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">NOUVEAU</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-sm text-red-600 mb-4">
-              Détection automatique des emails non lus depuis plus d'un an
+            <p className="text-sm text-green-700">
+              Détection automatique des emails non lus depuis +6 mois, classification des promotions, réseaux sociaux et spam
             </p>
+            <div className="space-y-2 text-xs text-green-600">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-3 w-3" />
+                <span>Non lus +6 mois</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-3 w-3" />
+                <span>Promotions & newsletters</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="h-3 w-3" />
+                <span>Réseaux sociaux</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-3 w-3" />
+                <span>Spam potentiel</span>
+              </div>
+            </div>
             <Button 
-              onClick={handleSmartDeletion}
-              className="w-full bg-red-500 hover:bg-red-600 text-white"
+              onClick={() => onSelectScanType('intelligent-scan')}
+              className="w-full bg-green-500 hover:bg-green-600 text-white"
             >
-              Commencer la suppression
+              <Search className="mr-2 h-4 w-4" />
+              Scan Intelligent
             </Button>
           </CardContent>
         </Card>
 
-        {/* Qualifiez vos e-mails en un geste */}
-        <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+        {/* Suppression Intelligente */}
+        <Card className="border-2 border-red-200 bg-red-50 hover:border-red-300 transition-all duration-300 transform hover:scale-105">
           <CardHeader className="text-center">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-2xl mb-4 group-hover:shadow-xl transition-all duration-300 border border-blue-200">
-              <div className="bg-blue-500 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <FolderOpen className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-lg text-blue-700">Qualifiez vos e-mails en un geste</CardTitle>
+            <div className="mx-auto h-16 w-16 bg-red-500 rounded-full flex items-center justify-center mb-4">
+              <Trash2 className="h-8 w-8 text-white" />
             </div>
+            <CardTitle className="text-red-700">Suppression Intelligente</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-sm text-blue-600 mb-4">
-              Analysez les expéditeurs et triez vos messages d'un simple glissement du doigt.
+            <p className="text-sm text-red-700">
+              Analyse des emails non lus depuis plus d'un an pour suppression automatique
             </p>
+            <div className="text-xs text-red-600 space-y-1">
+              <div>• Emails anciens non ouverts</div>
+              <div>• Newsletters inactives</div>
+              <div>• Suppression sécurisée</div>
+            </div>
             <Button 
-              onClick={handleSenderAnalysis}
+              onClick={() => onSelectScanType('smart-deletion')}
+              className="w-full bg-red-500 hover:bg-red-600 text-white"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Supprimer
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Analyse des Expéditeurs */}
+        <Card className="border-2 border-blue-200 bg-blue-50 hover:border-blue-300 transition-all duration-300 transform hover:scale-105">
+          <CardHeader className="text-center">
+            <div className="mx-auto h-16 w-16 bg-blue-500 rounded-full flex items-center justify-center mb-4">
+              <FolderOpen className="h-8 w-8 text-white" />
+            </div>
+            <CardTitle className="text-blue-700">Analyse des Expéditeurs</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center space-y-4">
+            <p className="text-sm text-blue-700">
+              Classification des expéditeurs par fréquence et pertinence
+            </p>
+            <div className="text-xs text-blue-600 space-y-1">
+              <div>• Statistiques par expéditeur</div>
+              <div>• Taux d'ouverture</div>
+              <div>• Suggestions de désabonnement</div>
+            </div>
+            <Button 
+              onClick={() => onSelectScanType('sender-analysis')}
               className="w-full bg-blue-500 hover:bg-blue-600 text-white"
             >
-              Analyser les expéditeurs
+              <FolderOpen className="mr-2 h-4 w-4" />
+              Analyser
             </Button>
           </CardContent>
         </Card>
 
         {/* Tri Intelligent */}
-        <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+        <Card className="border-2 border-purple-200 bg-purple-50 hover:border-purple-300 transition-all duration-300 transform hover:scale-105">
           <CardHeader className="text-center">
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl mb-4 group-hover:shadow-xl transition-all duration-300 border border-green-200">
-              <div className="bg-[#38c39d] w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-lg text-green-700">Tri Intelligent</CardTitle>
+            <div className="mx-auto h-16 w-16 bg-purple-500 rounded-full flex items-center justify-center mb-4">
+              <Brain className="h-8 w-8 text-white" />
             </div>
+            <CardTitle className="text-purple-700">Tri Intelligent</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            <p className="text-sm text-green-600 mb-4">
-              Classification automatique des anciens emails par dossier
+            <p className="text-sm text-purple-700">
+              Organisation automatique des emails par dossiers intelligents
             </p>
+            <div className="text-xs text-purple-600 space-y-1">
+              <div>• IA de classification</div>
+              <div>• Dossiers automatiques</div>
+              <div>• Règles personnalisables</div>
+            </div>
             <Button 
               onClick={() => onSelectScanType('smart-sorting')}
-              className="w-full bg-[#38c39d] hover:bg-[#2ea082] text-white"
+              className="w-full bg-purple-500 hover:bg-purple-600 text-white"
             >
-              Organiser mes emails
+              <Brain className="mr-2 h-4 w-4" />
+              Organiser
             </Button>
           </CardContent>
         </Card>

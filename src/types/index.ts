@@ -5,6 +5,15 @@ export interface EmailData {
   from: string;
   date: string;
   size?: number; // en Ko
+  snippet?: string;
+  isUnread?: boolean;
+  daysSinceReceived?: number;
+  classification?: {
+    category: string;
+    confidence: number;
+    suggestedAction: string;
+    reasoning: string;
+  };
 }
 
 export interface ScanResults {
@@ -12,6 +21,14 @@ export interface ScanResults {
   totalSizeMB?: number;
   carbonFootprint: number; // en grammes
   emails: EmailData[];
+  summary?: {
+    oldUnreadEmails: number;
+    promotionalEmails: number;
+    socialEmails: number;
+    notificationEmails: number;
+    spamEmails: number;
+    autoClassifiableEmails: number;
+  };
 }
 
 export interface AuthState {
