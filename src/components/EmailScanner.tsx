@@ -278,7 +278,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                     <div className="p-4 bg-muted rounded-lg text-center">
                       <p className="text-sm text-muted-foreground">Taille totale</p>
                       <p className="text-3xl font-bold text-eco-blue">
-                        {scanState.results.totalSizeMB?.toFixed(2) || '0.00'} Mo
+                        {(scanState.results.totalSizeMB || 0).toFixed(2)} Mo
                       </p>
                     </div>
                     <div className="p-4 bg-muted rounded-lg text-center">
