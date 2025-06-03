@@ -73,12 +73,12 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-gradient-to-br from-[#38c39d] to-[#2d8b61] text-foreground;
   }
 }
 
 .eco-gradient {
-  @apply bg-gradient-to-br from-eco-blue to-eco-green;
+  @apply bg-gradient-to-br from-[#38c39d] to-[#2d8b61];
 }
 
 .eco-color {
@@ -88,4 +88,3 @@
 .text-eco-brand {
   @apply bg-gradient-to-br from-[#38c39d] to-[#38c39d] bg-clip-text text-transparent;
 }
-

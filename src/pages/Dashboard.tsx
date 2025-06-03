@@ -66,7 +66,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#667eea] to-[#764ba2]">
+    <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61]">
       <Header 
         isAuthenticated={!!authState.userEmail}
         userEmail={authState.userEmail}
