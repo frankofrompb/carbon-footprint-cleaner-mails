@@ -42,9 +42,9 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
 
   return (
     <header className="w-full bg-white border-b">
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+      <div className="container mx-auto px-4 h-24 flex items-center justify-between">
         <div className="flex items-center">
-          <LogoWithBubbles className="h-20 w-20" />
+          <LogoWithBubbles className="h-32 w-32" />
         </div>
         
         <div className="flex items-center gap-2">

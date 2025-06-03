@@ -5,7 +5,7 @@ const LogoWithBubbles = ({ className = "" }: { className?: string }) => {
       <img 
         src="/lovable-uploads/7a0e0363-28ec-445e-b85b-ba6b9b6a4315.png" 
         alt="EcoInBox Logo" 
-        className="h-20 w-20 object-contain"
+        className="h-32 w-32 object-contain"
       />
     </div>
   );
