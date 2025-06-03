@@ -12,12 +12,6 @@ import { useNavigate } from "react-router-dom";
 interface EmailGroup {
   sender: string;
   count: number;
-  emails: {
-    id: string;
-    subject: string;
-    date: string;
-    size: number;
-  }[];
   selected: boolean;
 }
 
@@ -33,46 +27,51 @@ const EmailDetails = () => {
       {
         sender: "newsletters@amazon.fr",
         count: 342,
-        emails: [
-          { id: "1", subject: "Offres du jour Amazon", date: "2024-01-15", size: 45000 },
-          { id: "2", subject: "Recommandations pour vous", date: "2024-01-10", size: 38000 },
-          { id: "3", subject: "Ventes flash du weekend", date: "2024-01-05", size: 52000 },
-        ],
         selected: true
       },
       {
         sender: "promo@zalando.fr",
         count: 298,
-        emails: [
-          { id: "4", subject: "Soldes jusqu'à -70%", date: "2024-01-20", size: 42000 },
-          { id: "5", subject: "Nouvelle collection printemps", date: "2024-01-18", size: 48000 },
-        ],
         selected: true
       },
       {
         sender: "info@leboncoin.fr",
         count: 186,
-        emails: [
-          { id: "6", subject: "Vos alertes immobilier", date: "2024-01-22", size: 25000 },
-          { id: "7", subject: "Nouvelles annonces près de chez vous", date: "2024-01-19", size: 31000 },
-        ],
         selected: true
       },
       {
         sender: "newsletter@linkedin.com",
         count: 143,
-        emails: [
-          { id: "8", subject: "Votre résumé hebdomadaire", date: "2024-01-21", size: 35000 },
-          { id: "9", subject: "Nouvelles de votre réseau", date: "2024-01-14", size: 28000 },
-        ],
         selected: true
       },
       {
         sender: "notifications@facebook.com",
         count: 127,
-        emails: [
-          { id: "10", subject: "Vous avez 5 nouvelles notifications", date: "2024-01-23", size: 15000 },
-        ],
+        selected: true
+      },
+      {
+        sender: "updates@spotify.com",
+        count: 95,
+        selected: true
+      },
+      {
+        sender: "promo@booking.com",
+        count: 87,
+        selected: true
+      },
+      {
+        sender: "news@lemonde.fr",
+        count: 76,
+        selected: true
+      },
+      {
+        sender: "offers@groupon.fr",
+        count: 64,
+        selected: true
+      },
+      {
+        sender: "newsletter@medium.com",
+        count: 52,
         selected: true
       }
     ];
@@ -184,55 +183,34 @@ const EmailDetails = () => {
           </CardContent>
         </Card>
 
-        {/* Liste des expéditeurs */}
-        <div className="space-y-4">
-          {emailGroups.map((group) => (
-            <Card key={group.sender} className="bg-white/95 backdrop-blur-md border-0 shadow-lg">
-              <CardHeader>
-                <div className="flex items-center justify-between">
+        {/* Liste simplifiée des expéditeurs */}
+        <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle>Expéditeurs avec emails non ouverts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {emailGroups.map((group) => (
+                <div key={group.sender} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-4">
                     <Checkbox
                       checked={group.selected}
                       onCheckedChange={() => handleGroupToggle(group.sender)}
                     />
-                    <div>
-                      <CardTitle className="text-lg">{group.sender}</CardTitle>
-                      <p className="text-sm text-gray-600">
-                        {group.count} emails • Dernière activité il y a plus de 6 mois
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                      <span className="font-medium text-gray-800">{group.sender}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                    <span className="text-sm font-medium">{group.count}</span>
+                    <span className="text-sm font-bold text-red-500">{group.count}</span>
+                    <span className="text-sm text-gray-600">emails</span>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700 mb-3">Exemples d'emails :</p>
-                  {group.emails.slice(0, 3).map((email) => (
-                    <div key={email.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800 truncate">
-                          {email.subject}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(email.date).toLocaleDateString('fr-FR')} • {(email.size / 1024).toFixed(1)} Ko
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  {group.emails.length > 3 && (
-                    <p className="text-xs text-gray-500 text-center mt-2">
-                      ... et {group.count - 3} autres emails
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Résumé en bas */}
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg mt-8">
