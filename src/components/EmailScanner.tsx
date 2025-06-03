@@ -44,31 +44,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-
-interface Email {
-  id: string;
-  from: string;
-  to: string;
-  subject: string;
-  date: string;
-  size: number;
-  labels: string[];
-  isRead: boolean;
-  snippet: string;
-}
-
-interface ScanResults {
-  emails: Email[];
-  totalSizeMB?: number;
-}
-
-interface ScanState {
-  status: 'idle' | 'scanning' | 'completed' | 'error';
-  results: ScanResults | null;
-  error: string | null;
-  progress: number;
-  intelligentResults?: any;
-}
+import { ScanState, ScanResults, EmailData } from "@/types";
 
 interface EmailScannerProps {
   scanState: ScanState;
@@ -144,7 +120,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     const searchTerm = debouncedSearchQuery.toLowerCase();
     return (
       email.from.toLowerCase().includes(searchTerm) ||
-      email.to.toLowerCase().includes(searchTerm) ||
+      (email.to && email.to.toLowerCase().includes(searchTerm)) ||
       email.subject.toLowerCase().includes(searchTerm)
     );
   }) || [];
@@ -241,7 +217,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                       </TableCell>
                       <TableCell>{email.from}</TableCell>
                       <TableCell>{email.subject}</TableCell>
-                      <TableCell className="text-right">{(email.size / 1024).toFixed(2)} KB</TableCell>
+                      <TableCell className="text-right">{((email.size || 0) / 1024).toFixed(2)} KB</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -303,7 +279,7 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                <Button onClick={handleExport} disabled={scanState.results.emails?.length === 0}>
+                <Button onClick={handleExport} disabled={!scanState.results.emails?.length}>
                   Exporter en CSV
                 </Button>
               </div>

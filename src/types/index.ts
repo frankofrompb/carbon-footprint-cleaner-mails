@@ -3,10 +3,13 @@ export interface EmailData {
   id: string;
   subject: string;
   from: string;
+  to?: string; // Ajouté pour compatibilité
   date: string;
   size?: number; // en Ko
   snippet?: string;
   isUnread?: boolean;
+  isRead?: boolean; // Ajouté pour compatibilité
+  labels?: string[]; // Ajouté pour compatibilité
   daysSinceReceived?: number;
   classification?: {
     category: string;
@@ -18,8 +21,8 @@ export interface EmailData {
 
 export interface ScanResults {
   totalEmails: number;
-  totalSizeMB?: number; // Rendu optionnel pour correspondre à la fonction Edge
-  carbonFootprint: number; // en grammes
+  totalSizeMB?: number;
+  carbonFootprint: number;
   emails: EmailData[];
   summary?: {
     oldUnreadEmails: number;
@@ -41,7 +44,9 @@ export interface AuthState {
 }
 
 export interface ScanState {
-  isScanning: boolean;
+  status: 'idle' | 'scanning' | 'completed' | 'error';
   results: ScanResults | null;
-  error?: string | null;
+  error: string | null;
+  progress: number;
+  intelligentResults?: any;
 }
