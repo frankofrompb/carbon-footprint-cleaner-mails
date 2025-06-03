@@ -3,8 +3,7 @@ import { useState } from "react";
 import ScanTypeSelector from "@/components/ScanTypeSelector";
 import EmailScanner from "@/components/EmailScanner";
 import ModernLandingPage from "@/components/ModernLandingPage";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Dashboard from "@/pages/Dashboard";
 import { useAuth } from "@/hooks/useAuth";
 import { useScanEmails } from "@/hooks/useScanEmails";
 
@@ -31,43 +30,18 @@ const Index = () => {
     logout();
   };
 
+  // Si l'utilisateur est connecté, afficher le dashboard
+  if (authState.userEmail) {
+    return <Dashboard />;
+  }
+
+  // Sinon afficher la landing page
   return (
     <div className="min-h-screen flex flex-col">
-      {!authState.userEmail ? (
-        <ModernLandingPage 
-          onLoginWithGmail={handleLoginWithGmail}
-          isLoading={authState.loading}
-        />
-      ) : (
-        <>
-          <Header 
-            isAuthenticated={!!authState.userEmail}
-            userEmail={authState.userEmail}
-            onLogout={handleLogout}
-          />
-          <main className="flex-1">
-            <div className="container mx-auto py-12">
-              {selectedScanType ? (
-                <EmailScanner
-                  scanState={scanState}
-                  onScan={() => handleScanEmails(selectedScanType)}
-                  onDelete={deleteEmails}
-                  onExport={exportToCsv}
-                  userEmail={authState.userEmail}
-                  scanType={selectedScanType}
-                />
-              ) : (
-                <ScanTypeSelector
-                  onSelectScanType={handleSelectScanType}
-                  userEmail={authState.userEmail}
-                  onScan={() => handleScanEmails()}
-                />
-              )}
-            </div>
-          </main>
-          <Footer />
-        </>
-      )}
+      <ModernLandingPage 
+        onLoginWithGmail={handleLoginWithGmail}
+        isLoading={authState.loading}
+      />
     </div>
   );
 };
