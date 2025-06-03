@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Leaf, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const { authState, logout } = useAuth();
   const { scanEmails, scanState } = useScanEmails();
+  const navigate = useNavigate();
   const [animatedStats, setAnimatedStats] = useState({
     emails: 0,
     space: 0,
@@ -42,6 +44,16 @@ const Dashboard = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Rediriger vers les résultats après un scan réussi
+  useEffect(() => {
+    if (scanState.status === 'completed') {
+      // Attendre un peu pour que l'utilisateur voie le succès
+      setTimeout(() => {
+        navigate('/scan-results');
+      }, 2000);
+    }
+  }, [scanState.status, navigate]);
 
   const handleStartScan = () => {
     scanEmails('intelligent-scan');
