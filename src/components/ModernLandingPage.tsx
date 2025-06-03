@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -92,10 +91,10 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
       <section className="py-16 text-center text-white">
         <div className="container mx-auto px-4">
           <h1 className="text-5xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent leading-tight">
-            Nettoyez votre boîte mail,<br />sauvez la planète
+            L'intelligence qui trie vos mails,<br />l'éthique qui les nettoie.
           </h1>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Réduisez votre empreinte carbone numérique en optimisant intelligemment votre boîte mail. Supprimez, classez et organisez vos emails automatiquement.
+            Supprimez l'inutile, classez l'essentiel et reprenez le contrôle de votre boîte mail.
           </p>
           
           <div className="flex flex-wrap justify-center gap-12 my-12">
