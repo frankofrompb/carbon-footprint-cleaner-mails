@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useScanEmails } from "@/hooks/useScanEmails";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,13 +27,14 @@ interface EmailGroup {
 interface SenderStats {
   sender: string;
   emailCount: number;
-  openRate: number;
   domain: string;
 }
 
 const ScanResults = () => {
   const { authState, logout } = useAuth();
+  const { scanState, scanEmails } = useScanEmails();
   const navigate = useNavigate();
+  
   const [animatedStats, setAnimatedStats] = useState({
     totalEmails: 0,
     totalSpace: 0,
@@ -51,156 +54,125 @@ const ScanResults = () => {
   const [senderActions, setSenderActions] = useState<Record<string, string>>({});
   const itemsPerPage = 50;
 
-  // Animation des statistiques au chargement
+  // Effectuer le scan automatiquement au chargement
   useEffect(() => {
-    const targets = {
-      totalEmails: 12847,
-      totalSpace: 3.2,
-      suggestedActions: 8542,
-      co2Saveable: 89.3,
-      unreadEmails: 3247,
-      categorizeEmails: 4856, // Augmenté pour refléter tous les emails avec multiples émetteurs
-      organizeEmails: 2439
-    };
-    const duration = 2000;
-    const steps = 60;
-    const stepTime = duration / steps;
+    if (authState.userEmail && !scanState.results && scanState.status === 'idle') {
+      console.log("🔄 Démarrage automatique du scan complet...");
+      // Scanner d'abord les emails non lus
+      scanEmails();
+    }
+  }, [authState.userEmail, scanState.status, scanState.results, scanEmails]);
 
-    let step = 0;
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      
-      setAnimatedStats({
-        totalEmails: Math.floor(targets.totalEmails * progress),
-        totalSpace: parseFloat((targets.totalSpace * progress).toFixed(1)),
-        suggestedActions: Math.floor(targets.suggestedActions * progress),
-        co2Saveable: parseFloat((targets.co2Saveable * progress).toFixed(1)),
-        unreadEmails: Math.floor(targets.unreadEmails * progress),
-        categorizeEmails: Math.floor(targets.categorizeEmails * progress),
-        organizeEmails: Math.floor(targets.organizeEmails * progress)
-      });
+  // Effectuer le scan de tous les emails pour la catégorisation
+  useEffect(() => {
+    if (authState.userEmail && scanState.results && !scanState.allEmailsResults) {
+      console.log("🔄 Démarrage du scan pour catégorisation...");
+      // Scanner tous les emails pour la catégorisation
+      scanEmails('sender-analysis');
+    }
+  }, [authState.userEmail, scanState.results, scanState.allEmailsResults, scanEmails]);
 
-      if (step >= steps) {
-        clearInterval(timer);
-        setAnimatedStats(targets);
+  // Animation des statistiques basée sur les vrais résultats
+  useEffect(() => {
+    if (scanState.results) {
+      const targets = {
+        totalEmails: scanState.allEmailsResults?.totalEmails || scanState.results.totalEmails,
+        totalSpace: scanState.allEmailsResults?.totalSizeMB || scanState.results.totalSizeMB || 0,
+        suggestedActions: Math.floor((scanState.results.totalEmails * 0.65)),
+        co2Saveable: (scanState.results.carbonFootprint || 0) / 1000, // Conversion en kg
+        unreadEmails: scanState.results.totalEmails,
+        categorizeEmails: 0, // Sera calculé depuis les vrais emails
+        organizeEmails: Math.floor((scanState.results.totalEmails * 0.19))
+      };
+
+      // Si on a les résultats de tous les emails, calculer les emails à catégoriser
+      if (scanState.allEmailsResults) {
+        const emailsBySender = scanState.allEmailsResults.emails.reduce((acc, email) => {
+          const senderKey = email.from.toLowerCase();
+          acc[senderKey] = (acc[senderKey] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+        
+        const sendersWithMultipleEmails = Object.values(emailsBySender).filter(count => count > 1);
+        targets.categorizeEmails = sendersWithMultipleEmails.reduce((sum, count) => sum + count, 0);
       }
-    }, stepTime);
 
-    return () => clearInterval(timer);
-  }, []);
+      const duration = 2000;
+      const steps = 60;
+      const stepTime = duration / steps;
 
-  // Données simulées d'emails groupés par expéditeur pour la section "non ouverts"
+      let step = 0;
+      const timer = setInterval(() => {
+        step++;
+        const progress = step / steps;
+        
+        setAnimatedStats({
+          totalEmails: Math.floor(targets.totalEmails * progress),
+          totalSpace: parseFloat((targets.totalSpace * progress).toFixed(1)),
+          suggestedActions: Math.floor(targets.suggestedActions * progress),
+          co2Saveable: parseFloat((targets.co2Saveable * progress).toFixed(1)),
+          unreadEmails: Math.floor(targets.unreadEmails * progress),
+          categorizeEmails: Math.floor(targets.categorizeEmails * progress),
+          organizeEmails: Math.floor(targets.organizeEmails * progress)
+        });
+
+        if (step >= steps) {
+          clearInterval(timer);
+          setAnimatedStats(targets);
+        }
+      }, stepTime);
+
+      return () => clearInterval(timer);
+    }
+  }, [scanState.results, scanState.allEmailsResults]);
+
+  // Générer les groupes d'emails depuis les vrais résultats
   useEffect(() => {
-    const mockEmailGroups: EmailGroup[] = [
-      { sender: "newsletters@amazon.fr", count: 342, selected: true },
-      { sender: "promo@zalando.fr", count: 298, selected: true },
-      { sender: "info@leboncoin.fr", count: 186, selected: true },
-      { sender: "newsletter@linkedin.com", count: 143, selected: true },
-      { sender: "notifications@facebook.com", count: 127, selected: true },
-      { sender: "updates@spotify.com", count: 95, selected: true },
-      { sender: "promo@booking.com", count: 87, selected: true },
-      { sender: "news@lemonde.fr", count: 76, selected: true },
-      { sender: "offers@groupon.fr", count: 64, selected: true },
-      { sender: "newsletter@medium.com", count: 52, selected: true },
-      { sender: "promo@cdiscount.fr", count: 48, selected: true },
-      { sender: "news@figaro.fr", count: 45, selected: true },
-      { sender: "newsletter@airbnb.fr", count: 41, selected: true },
-      { sender: "updates@twitter.com", count: 38, selected: true },
-      { sender: "promo@darty.fr", count: 35, selected: true },
-      { sender: "news@bfmtv.com", count: 32, selected: true },
-      { sender: "newsletter@uber.com", count: 29, selected: true },
-      { sender: "promo@fnac.fr", count: 26, selected: true },
-      { sender: "updates@instagram.com", count: 23, selected: true },
-      { sender: "newsletter@deliveroo.fr", count: 20, selected: true },
-    ];
-    setEmailGroups(mockEmailGroups);
+    if (scanState.results?.emails) {
+      const emailsBySender = scanState.results.emails.reduce((acc, email) => {
+        const senderKey = email.from.toLowerCase();
+        if (!acc[senderKey]) {
+          acc[senderKey] = {
+            sender: email.from,
+            count: 0
+          };
+        }
+        acc[senderKey].count++;
+        return acc;
+      }, {} as Record<string, { sender: string; count: number }>);
 
-    // Données simulées pour la catégorisation - TOUS LES EMAILS avec plus d'un email par émetteur
-    const mockAllSenderStats: SenderStats[] = [
-      // E-commerce & Shopping
-      { sender: "newsletters@amazon.fr", emailCount: 542, openRate: 12.5, domain: "amazon.fr" },
-      { sender: "promo@zalando.fr", emailCount: 498, openRate: 8.3, domain: "zalando.fr" },
-      { sender: "offers@cdiscount.fr", emailCount: 348, openRate: 9.1, domain: "cdiscount.fr" },
-      { sender: "promo@darty.fr", emailCount: 235, openRate: 11.2, domain: "darty.fr" },
-      { sender: "promo@fnac.fr", emailCount: 186, openRate: 14.6, domain: "fnac.fr" },
-      { sender: "offers@groupon.fr", emailCount: 164, openRate: 6.8, domain: "groupon.fr" },
-      { sender: "newsletter@vinted.fr", emailCount: 127, openRate: 22.4, domain: "vinted.fr" },
-      { sender: "promo@leclerc.fr", emailCount: 98, openRate: 13.7, domain: "leclerc.fr" },
+      const groups: EmailGroup[] = Object.values(emailsBySender)
+        .sort((a, b) => b.count - a.count)
+        .map(group => ({ ...group, selected: true }));
+
+      setEmailGroups(groups);
+    }
+  }, [scanState.results]);
+
+  // Générer les statistiques des expéditeurs depuis les vrais résultats
+  useEffect(() => {
+    if (scanState.allEmailsResults?.emails) {
+      const emailsBySender = scanState.allEmailsResults.emails.reduce((acc, email) => {
+        const senderKey = email.from.toLowerCase();
+        if (!acc[senderKey]) {
+          acc[senderKey] = {
+            sender: email.from,
+            emailCount: 0,
+            domain: email.from.includes('@') ? email.from.split('@')[1] : 'unknown'
+          };
+        }
+        acc[senderKey].emailCount++;
+        return acc;
+      }, {} as Record<string, SenderStats>);
+
+      // Filtrer pour ne garder que ceux avec plus d'un email et trier par nombre décroissant
+      const filteredStats = Object.values(emailsBySender)
+        .filter(sender => sender.emailCount > 1)
+        .sort((a, b) => b.emailCount - a.emailCount);
       
-      // Réseaux sociaux & Communication
-      { sender: "notifications@facebook.com", emailCount: 427, openRate: 23.1, domain: "facebook.com" },
-      { sender: "newsletter@linkedin.com", emailCount: 343, openRate: 45.2, domain: "linkedin.com" },
-      { sender: "updates@twitter.com", emailCount: 238, openRate: 19.4, domain: "twitter.com" },
-      { sender: "updates@instagram.com", emailCount: 223, openRate: 61.2, domain: "instagram.com" },
-      { sender: "notifications@youtube.com", emailCount: 189, openRate: 28.7, domain: "youtube.com" },
-      { sender: "updates@pinterest.fr", emailCount: 156, openRate: 34.6, domain: "pinterest.fr" },
-      { sender: "notifications@tiktok.com", emailCount: 134, openRate: 52.3, domain: "tiktok.com" },
-      
-      // Services & Applications
-      { sender: "updates@spotify.com", emailCount: 295, openRate: 67.4, domain: "spotify.com" },
-      { sender: "newsletter@uber.com", emailCount: 229, openRate: 52.1, domain: "uber.com" },
-      { sender: "newsletter@deliveroo.fr", emailCount: 220, openRate: 38.5, domain: "deliveroo.fr" },
-      { sender: "promo@booking.com", emailCount: 187, openRate: 18.9, domain: "booking.com" },
-      { sender: "newsletter@airbnb.fr", emailCount: 141, openRate: 41.5, domain: "airbnb.fr" },
-      { sender: "updates@netflix.com", emailCount: 98, openRate: 45.8, domain: "netflix.com" },
-      { sender: "newsletter@blablacar.fr", emailCount: 87, openRate: 29.3, domain: "blablacar.fr" },
-      
-      // Actualités & Médias
-      { sender: "news@lemonde.fr", emailCount: 276, openRate: 34.2, domain: "lemonde.fr" },
-      { sender: "news@figaro.fr", emailCount: 245, openRate: 28.7, domain: "figaro.fr" },
-      { sender: "news@bfmtv.com", emailCount: 232, openRate: 33.8, domain: "bfmtv.com" },
-      { sender: "newsletter@20minutes.fr", emailCount: 198, openRate: 25.4, domain: "20minutes.fr" },
-      { sender: "info@franceinfo.fr", emailCount: 167, openRate: 31.2, domain: "franceinfo.fr" },
-      { sender: "newsletter@lequipe.fr", emailCount: 143, openRate: 42.7, domain: "lequipe.fr" },
-      { sender: "news@liberation.fr", emailCount: 129, openRate: 37.8, domain: "liberation.fr" },
-      
-      // Petites annonces & Services locaux
-      { sender: "info@leboncoin.fr", emailCount: 386, openRate: 15.7, domain: "leboncoin.fr" },
-      { sender: "alerts@seloger.com", emailCount: 234, openRate: 27.9, domain: "seloger.com" },
-      { sender: "newsletter@pap.fr", emailCount: 156, openRate: 21.3, domain: "pap.fr" },
-      { sender: "info@logic-immo.com", emailCount: 143, openRate: 18.6, domain: "logic-immo.com" },
-      
-      // Tech & Professionnels
-      { sender: "newsletter@medium.com", emailCount: 252, openRate: 72.3, domain: "medium.com" },
-      { sender: "updates@github.com", emailCount: 198, openRate: 56.8, domain: "github.com" },
-      { sender: "newsletter@stackoverflow.com", emailCount: 167, openRate: 43.2, domain: "stackoverflow.com" },
-      { sender: "updates@slack.com", emailCount: 134, openRate: 38.9, domain: "slack.com" },
-      
-      // Banques & Services financiers
-      { sender: "info@banquepopulaire.fr", emailCount: 198, openRate: 65.4, domain: "banquepopulaire.fr" },
-      { sender: "alerts@creditagricole.fr", emailCount: 176, openRate: 58.7, domain: "creditagricole.fr" },
-      { sender: "info@bnpparibas.net", emailCount: 165, openRate: 62.3, domain: "bnpparibas.net" },
-      { sender: "newsletter@revolut.com", emailCount: 143, openRate: 44.6, domain: "revolut.com" },
-      
-      // Santé & Bien-être
-      { sender: "newsletter@doctolib.fr", emailCount: 187, openRate: 76.2, domain: "doctolib.fr" },
-      { sender: "info@ameli.fr", emailCount: 145, openRate: 82.4, domain: "ameli.fr" },
-      { sender: "newsletter@yuka.io", emailCount: 123, openRate: 54.7, domain: "yuka.io" },
-      
-      // Gaming & Divertissement
-      { sender: "newsletter@steam.com", emailCount: 234, openRate: 48.6, domain: "steam.com" },
-      { sender: "updates@epicgames.com", emailCount: 189, openRate: 41.3, domain: "epicgames.com" },
-      { sender: "newsletter@twitch.tv", emailCount: 156, openRate: 39.7, domain: "twitch.tv" },
-      
-      // Divers
-      { sender: "newsletter@allocine.fr", emailCount: 167, openRate: 32.1, domain: "allocine.fr" },
-      { sender: "info@pole-emploi.fr", emailCount: 145, openRate: 68.9, domain: "pole-emploi.fr" },
-      { sender: "newsletter@marmiton.org", emailCount: 134, openRate: 41.8, domain: "marmiton.org" },
-      { sender: "promo@sephora.fr", emailCount: 123, openRate: 26.4, domain: "sephora.fr" },
-      { sender: "newsletter@ouest-france.fr", emailCount: 112, openRate: 29.6, domain: "ouest-france.fr" },
-      { sender: "info@impots.gouv.fr", emailCount: 98, openRate: 89.2, domain: "impots.gouv.fr" },
-      { sender: "newsletter@tf1.fr", emailCount: 87, openRate: 22.8, domain: "tf1.fr" },
-      { sender: "promo@laposte.fr", emailCount: 76, openRate: 31.4, domain: "laposte.fr" },
-      { sender: "newsletter@carrefour.fr", emailCount: 65, openRate: 15.2, domain: "carrefour.fr" },
-      { sender: "info@caf.fr", emailCount: 54, openRate: 75.6, domain: "caf.fr" },
-    ];
-    
-    // Filtrer pour ne garder que ceux avec plus d'un email et trier par nombre décroissant
-    const filteredStats = mockAllSenderStats.filter(sender => sender.emailCount > 1);
-    filteredStats.sort((a, b) => b.emailCount - a.emailCount);
-    setSenderStats(filteredStats);
-  }, []);
+      setSenderStats(filteredStats);
+    }
+  }, [scanState.allEmailsResults]);
 
   const handleUnreadEmails = () => {
     setShowUnreadEmails(true);
@@ -258,6 +230,50 @@ const ScanResults = () => {
     console.log("Organisation des emails...");
   };
 
+  // Afficher l'état de chargement
+  if (scanState.status === 'scanning') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61] flex items-center justify-center">
+        <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 border-4 border-[#38c39d] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Scan en cours...</h2>
+            <p className="text-gray-600">Analyse de votre boîte mail Gmail</p>
+            <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+              <div 
+                className="bg-[#38c39d] h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${scanState.progress}%` }}
+              ></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Afficher l'erreur si il y en a une
+  if (scanState.status === 'error') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61] flex items-center justify-center">
+        <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg">
+          <CardContent className="p-8 text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Erreur lors du scan</h2>
+            <p className="text-gray-600 mb-4">{scanState.error}</p>
+            <Button onClick={() => navigate('/')} className="bg-[#38c39d] hover:bg-[#2d8b61]">
+              Retour à l'accueil
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Si pas de résultats, rediriger vers l'accueil
+  if (!scanState.results) {
+    navigate('/');
+    return null;
+  }
+
   // Pagination des emails non lus
   const totalPages = Math.ceil(emailGroups.length / itemsPerPage);
   const paginatedEmails = emailGroups.slice(
@@ -274,12 +290,6 @@ const ScanResults = () => {
 
   const selectedCount = emailGroups.filter(group => group.selected).reduce((sum, group) => sum + group.count, 0);
   const totalEmails = emailGroups.reduce((sum, group) => sum + group.count, 0);
-
-  const getOpenRateColor = (rate: number) => {
-    if (rate >= 50) return "text-green-600";
-    if (rate >= 20) return "text-orange-600";
-    return "text-red-600";
-  };
 
   const getActionButtonStyle = (sender: string, action: string) => {
     const isSelected = senderActions[sender] === action;
@@ -329,7 +339,7 @@ const ScanResults = () => {
                 <div className="text-gray-600 text-sm mt-2">Emails analysés</div>
               </div>
               <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-                <span className="text-3xl font-bold text-gray-800 block">{animatedStats.totalSpace} GB</span>
+                <span className="text-3xl font-bold text-gray-800 block">{animatedStats.totalSpace} MB</span>
                 <div className="text-gray-600 text-sm mt-2">Espace total</div>
               </div>
               <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
@@ -364,22 +374,7 @@ const ScanResults = () => {
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-[#4CAF50] to-[#45a049] text-white px-4 py-2 rounded-full font-semibold">
-                  -32.1 kg CO₂
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">2,104</span>
-                  <div className="text-gray-600 text-sm mt-1">Newsletters</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">896</span>
-                  <div className="text-gray-600 text-sm mt-1">Promotions</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">247</span>
-                  <div className="text-gray-600 text-sm mt-1">Notifications</div>
+                  -{(scanState.results.carbonFootprint / 1000).toFixed(1)} kg CO₂
                 </div>
               </div>
               
@@ -485,7 +480,7 @@ const ScanResults = () => {
             </Card>
           )}
 
-          {/* Section 2: Emails à catégoriser - MODIFIÉE */}
+          {/* Section 2: Emails à catégoriser */}
           <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
             <CardContent className="p-8">
               <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
@@ -503,22 +498,7 @@ const ScanResults = () => {
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-[#4CAF50] to-[#45a049] text-white px-4 py-2 rounded-full font-semibold">
-                  -28.7 kg CO₂
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">2,523</span>
-                  <div className="text-gray-600 text-sm mt-1">E-commerce</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">1,487</span>
-                  <div className="text-gray-600 text-sm mt-1">Réseaux sociaux</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">846</span>
-                  <div className="text-gray-600 text-sm mt-1">Actualités</div>
+                  -{((scanState.allEmailsResults?.carbonFootprint || 0) / 1000 * 0.6).toFixed(1)} kg CO₂
                 </div>
               </div>
               
@@ -559,151 +539,153 @@ const ScanResults = () => {
               {categoryOptionsVisible && (
                 <div className="mt-6 p-6 bg-gray-50 rounded-xl animate-fade-in">
                   <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-lg font-bold text-gray-800">Tous les emails classés par émetteur</h4>
+                    <h4 className="text-lg font-bold text-gray-800">Tous vos emails classés par émetteur</h4>
                     <p className="text-sm text-gray-600">
                       {senderStats.length} émetteurs trouvés avec plus d'un email (trié par nombre d'emails décroissant)
                     </p>
                   </div>
                   
-                  {/* En-têtes du tableau */}
-                  <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700 mb-4">
-                    <div className="col-span-4">Émetteur</div>
-                    <div className="col-span-2 text-center">Nb emails</div>
-                    <div className="col-span-2 text-center">Taux ouverture</div>
-                    <div className="col-span-4 text-center">Actions</div>
-                  </div>
-                  
-                  {/* Liste des émetteurs */}
-                  <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
-                    {paginatedSenders.map((sender) => (
-                      <div key={sender.sender} className="grid grid-cols-12 gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                        <div className="col-span-4">
-                          <div className="flex items-center gap-3">
-                            <Mail className="h-4 w-4 text-gray-400" />
-                            <div>
-                              <div className="font-medium text-gray-800 text-sm truncate">{sender.sender}</div>
-                              <div className="text-xs text-gray-500">{sender.domain}</div>
+                  {scanState.allEmailsResults ? (
+                    <>
+                      {/* En-têtes du tableau */}
+                      <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700 mb-4">
+                        <div className="col-span-5">Émetteur</div>
+                        <div className="col-span-2 text-center">Nb emails</div>
+                        <div className="col-span-5 text-center">Actions</div>
+                      </div>
+                      
+                      {/* Liste des émetteurs */}
+                      <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                        {paginatedSenders.map((sender) => (
+                          <div key={sender.sender} className="grid grid-cols-12 gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                            <div className="col-span-5">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-gray-400" />
+                                <div>
+                                  <div className="font-medium text-gray-800 text-sm truncate">{sender.sender}</div>
+                                  <div className="text-xs text-gray-500">{sender.domain}</div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="col-span-2 text-center">
+                              <span className="font-bold text-gray-800">{sender.emailCount}</span>
+                            </div>
+                            
+                            <div className="col-span-5">
+                              <div className="flex gap-2 justify-center flex-wrap">
+                                <button
+                                  onClick={() => handleSenderAction(sender.sender, "keep")}
+                                  className={getActionButtonStyle(sender.sender, "keep")}
+                                  title="Conserver"
+                                >
+                                  <Archive className="h-3 w-3 mr-1 inline" />
+                                  Conserver
+                                </button>
+                                <button
+                                  onClick={() => handleSenderAction(sender.sender, "unsubscribe")}
+                                  className={getActionButtonStyle(sender.sender, "unsubscribe")}
+                                  title="Désabonner & supprimer"
+                                >
+                                  <UserMinus className="h-3 w-3 mr-1 inline" />
+                                  Désabonner
+                                </button>
+                                <button
+                                  onClick={() => handleSenderAction(sender.sender, "delete")}
+                                  className={getActionButtonStyle(sender.sender, "delete")}
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1 inline" />
+                                  Supprimer
+                                </button>
+                                <button
+                                  onClick={() => handleSenderAction(sender.sender, "spam")}
+                                  className={getActionButtonStyle(sender.sender, "spam")}
+                                  title="Spam et supprimer"
+                                >
+                                  <Shield className="h-3 w-3 mr-1 inline" />
+                                  Spam
+                                </button>
+                              </div>
                             </div>
                           </div>
+                        ))}
+                      </div>
+
+                      {/* Pagination pour la catégorisation */}
+                      {totalCategorizationPages > 1 && (
+                        <div className="flex justify-center mb-4">
+                          <Pagination>
+                            <PaginationContent>
+                              <PaginationPrevious
+                                onClick={() => setCategorizationPage(Math.max(1, categorizationPage - 1))}
+                                className={categorizationPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                              {Array.from({ length: Math.min(5, totalCategorizationPages) }, (_, i) => {
+                                const page = i + 1;
+                                return (
+                                  <PaginationItem key={page}>
+                                    <PaginationLink
+                                      onClick={() => setCategorizationPage(page)}
+                                      isActive={page === categorizationPage}
+                                      className="cursor-pointer"
+                                    >
+                                      {page}
+                                    </PaginationLink>
+                                  </PaginationItem>
+                                );
+                              })}
+                              <PaginationNext
+                                onClick={() => setCategorizationPage(Math.min(totalCategorizationPages, categorizationPage + 1))}
+                                className={categorizationPage === totalCategorizationPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationContent>
+                          </Pagination>
                         </div>
-                        
-                        <div className="col-span-2 text-center">
-                          <span className="font-bold text-gray-800">{sender.emailCount}</span>
-                        </div>
-                        
-                        <div className="col-span-2 text-center">
-                          <span className={`font-semibold ${getOpenRateColor(sender.openRate)}`}>
-                            {sender.openRate}%
-                          </span>
-                        </div>
-                        
-                        <div className="col-span-4">
-                          <div className="flex gap-2 justify-center flex-wrap">
-                            <button
-                              onClick={() => handleSenderAction(sender.sender, "keep")}
-                              className={getActionButtonStyle(sender.sender, "keep")}
-                              title="Conserver"
-                            >
-                              <Archive className="h-3 w-3 mr-1 inline" />
-                              Conserver
-                            </button>
-                            <button
-                              onClick={() => handleSenderAction(sender.sender, "unsubscribe")}
-                              className={getActionButtonStyle(sender.sender, "unsubscribe")}
-                              title="Désabonner & supprimer"
-                            >
-                              <UserMinus className="h-3 w-3 mr-1 inline" />
-                              Désabonner
-                            </button>
-                            <button
-                              onClick={() => handleSenderAction(sender.sender, "delete")}
-                              className={getActionButtonStyle(sender.sender, "delete")}
-                              title="Supprimer"
-                            >
-                              <Trash2 className="h-3 w-3 mr-1 inline" />
-                              Supprimer
-                            </button>
-                            <button
-                              onClick={() => handleSenderAction(sender.sender, "spam")}
-                              className={getActionButtonStyle(sender.sender, "spam")}
-                              title="Spam et supprimer"
-                            >
-                              <Shield className="h-3 w-3 mr-1 inline" />
-                              Spam
-                            </button>
+                      )}
+
+                      {/* Résumé des actions sélectionnées */}
+                      {Object.keys(senderActions).length > 0 && (
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <h5 className="font-semibold text-blue-800 mb-2">Actions sélectionnées :</h5>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div className="text-center">
+                              <span className="block font-bold text-green-600">
+                                {Object.values(senderActions).filter(action => action === "keep").length}
+                              </span>
+                              <span className="text-green-700">À conserver</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="block font-bold text-orange-600">
+                                {Object.values(senderActions).filter(action => action === "unsubscribe").length}
+                              </span>
+                              <span className="text-orange-700">Désabonnements</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="block font-bold text-red-600">
+                                {Object.values(senderActions).filter(action => action === "delete").length}
+                              </span>
+                              <span className="text-red-700">Suppressions</span>
+                            </div>
+                            <div className="text-center">
+                              <span className="block font-bold text-purple-600">
+                                {Object.values(senderActions).filter(action => action === "spam").length}
+                              </span>
+                              <span className="text-purple-700">Spam</span>
+                            </div>
+                          </div>
+                          <div className="mt-4 text-center">
+                            <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+                              Appliquer les actions sélectionnées
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Pagination pour la catégorisation */}
-                  {totalCategorizationPages > 1 && (
-                    <div className="flex justify-center mb-4">
-                      <Pagination>
-                        <PaginationContent>
-                          <PaginationPrevious
-                            onClick={() => setCategorizationPage(Math.max(1, categorizationPage - 1))}
-                            className={categorizationPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                          {Array.from({ length: Math.min(5, totalCategorizationPages) }, (_, i) => {
-                            const page = i + 1;
-                            return (
-                              <PaginationItem key={page}>
-                                <PaginationLink
-                                  onClick={() => setCategorizationPage(page)}
-                                  isActive={page === categorizationPage}
-                                  className="cursor-pointer"
-                                >
-                                  {page}
-                                </PaginationLink>
-                              </PaginationItem>
-                            );
-                          })}
-                          <PaginationNext
-                            onClick={() => setCategorizationPage(Math.min(totalCategorizationPages, categorizationPage + 1))}
-                            className={categorizationPage === totalCategorizationPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationContent>
-                      </Pagination>
-                    </div>
-                  )}
-
-                  {/* Résumé des actions sélectionnées */}
-                  {Object.keys(senderActions).length > 0 && (
-                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <h5 className="font-semibold text-blue-800 mb-2">Actions sélectionnées :</h5>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div className="text-center">
-                          <span className="block font-bold text-green-600">
-                            {Object.values(senderActions).filter(action => action === "keep").length}
-                          </span>
-                          <span className="text-green-700">À conserver</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="block font-bold text-orange-600">
-                            {Object.values(senderActions).filter(action => action === "unsubscribe").length}
-                          </span>
-                          <span className="text-orange-700">Désabonnements</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="block font-bold text-red-600">
-                            {Object.values(senderActions).filter(action => action === "delete").length}
-                          </span>
-                          <span className="text-red-700">Suppressions</span>
-                        </div>
-                        <div className="text-center">
-                          <span className="block font-bold text-purple-600">
-                            {Object.values(senderActions).filter(action => action === "spam").length}
-                          </span>
-                          <span className="text-purple-700">Spam</span>
-                        </div>
-                      </div>
-                      <div className="mt-4 text-center">
-                        <Button className="bg-blue-500 hover:bg-blue-600 text-white">
-                          Appliquer les actions sélectionnées
-                        </Button>
-                      </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-4 border-[#4ECDC4] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-gray-600">Chargement de tous vos emails pour la catégorisation...</p>
                     </div>
                   )}
                 </div>
@@ -729,22 +711,7 @@ const ScanResults = () => {
                   </div>
                 </div>
                 <div className="bg-gradient-to-br from-[#4CAF50] to-[#45a049] text-white px-4 py-2 rounded-full font-semibold">
-                  -18.4 kg CO₂
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">1,206</span>
-                  <div className="text-gray-600 text-sm mt-1">Factures/Reçus</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">743</span>
-                  <div className="text-gray-600 text-sm mt-1">Réseaux sociaux</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">490</span>
-                  <div className="text-gray-600 text-sm mt-1">Voyages/Réservations</div>
+                  -{((scanState.results.carbonFootprint || 0) / 1000 * 0.2).toFixed(1)} kg CO₂
                 </div>
               </div>
               
@@ -769,7 +736,7 @@ const ScanResults = () => {
               ></div>
             </div>
             <div className="text-lg text-gray-600">
-              En appliquant toutes ces actions, vous économiserez <strong>79.2 kg de CO₂</strong> et libérerez <strong>2.1 GB d'espace</strong>
+              En appliquant toutes ces actions, vous économiserez <strong>{((scanState.results.carbonFootprint || 0) / 1000).toFixed(1)} kg de CO₂</strong> et libérerez <strong>{(scanState.results.totalSizeMB || 0).toFixed(1)} MB d'espace</strong>
             </div>
           </CardContent>
         </Card>

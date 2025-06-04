@@ -9,6 +9,7 @@ interface ScanState {
   error: string | null;
   progress: number;
   intelligentResults?: any;
+  allEmailsResults?: ScanResults | null; // Nouveau: pour stocker les résultats de tous les emails
 }
 
 export const useScanEmails = () => {
@@ -86,12 +87,20 @@ export const useScanEmails = () => {
 
       console.log("Scan results:", data);
 
-      setScanState({
+      // Stocker les résultats selon le type de scan
+      const newState: ScanState = {
         status: 'completed',
         results: data,
         error: null,
         progress: 100,
-      });
+      };
+
+      // Si c'est un scan pour la catégorisation (sender-analysis), on stocke aussi les résultats
+      if (scanType === 'sender-analysis' || scanType === 'smart-sorting') {
+        newState.allEmailsResults = data;
+      }
+
+      setScanState(newState);
 
       if (scanType === 'intelligent-scan') {
         toast({
