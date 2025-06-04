@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { CheckCircle2, Mail, Tag, FolderOpen, Trash2, Shield, Unsubscribe, Archive } from "lucide-react";
+import { CheckCircle2, Mail, Tag, FolderOpen, Trash2, Shield, UserMinus, Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Pagination,
@@ -529,7 +528,7 @@ const ScanResults = () => {
                               className={getActionButtonStyle(sender.sender, "unsubscribe")}
                               title="Désabonner & supprimer"
                             >
-                              <Unsubscribe className="h-3 w-3 mr-1 inline" />
+                              <UserMinus className="h-3 w-3 mr-1 inline" />
                               Désabonner
                             </button>
                             <button
