@@ -529,6 +529,33 @@ const ScanResults = () => {
                 📝 Commencer la Catégorisation
               </Button>
               
+              {/* Explication des icônes */}
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 className="text-sm font-semibold text-blue-800 mb-3">📋 Explication des actions :</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Archive className="h-4 w-4 text-green-600" />
+                    <span className="font-medium text-green-700">Conserver :</span>
+                    <span className="text-gray-600">Ne rien changer</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <UserMinus className="h-4 w-4 text-orange-600" />
+                    <span className="font-medium text-orange-700">Désabonner :</span>
+                    <span className="text-gray-600">Désabonne et supprime les emails</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                    <span className="font-medium text-red-700">Supprimer :</span>
+                    <span className="text-gray-600">Uniquement supprimer</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-purple-600" />
+                    <span className="font-medium text-purple-700">Spam :</span>
+                    <span className="text-gray-600">Signale le spam et supprime les emails</span>
+                  </div>
+                </div>
+              </div>
+              
               {categoryOptionsVisible && (
                 <div className="mt-6 p-6 bg-gray-50 rounded-xl animate-fade-in">
                   <div className="flex items-center justify-between mb-6">
