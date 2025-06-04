@@ -9,7 +9,7 @@ interface ScanState {
   error: string | null;
   progress: number;
   intelligentResults?: any;
-  allEmailsResults?: ScanResults | null; // Nouveau: pour stocker les résultats de tous les emails
+  allEmailsResults?: ScanResults | null;
 }
 
 export const useScanEmails = () => {
@@ -30,7 +30,6 @@ export const useScanEmails = () => {
     });
 
     try {
-      // Récupérer le token d'accès depuis le localStorage
       const storedAuth = localStorage.getItem("emailCleanerAuth");
       if (!storedAuth) {
         throw new Error("Aucun token d'accès trouvé. Veuillez vous reconnecter.");
@@ -41,16 +40,13 @@ export const useScanEmails = () => {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
 
-      // Choisir la fonction appropriée selon le type de scan
-      const functionName = scanType === 'intelligent-scan' 
-        ? 'intelligent-email-scan'
-        : (scanType === 'sender-analysis' || scanType === 'smart-sorting') 
+      // Pour la catégorisation (sender-analysis), on utilise toujours scan-all-gmail
+      // Pour les autres types, on utilise scan-gmail (emails non lus)
+      const functionName = (scanType === 'sender-analysis' || scanType === 'smart-sorting') 
         ? 'scan-all-gmail' 
         : 'scan-gmail';
       
-      const description = scanType === 'intelligent-scan'
-        ? "Scan intelligent en cours : détection des emails non lus +6 mois, classification automatique..."
-        : scanType === 'sender-analysis' 
+      const description = scanType === 'sender-analysis' 
         ? "Analyse de tous vos emails en cours..." 
         : scanType === 'smart-sorting'
         ? "Récupération des emails pour tri intelligent..."
@@ -62,11 +58,8 @@ export const useScanEmails = () => {
       });
 
       console.log(`Calling ${functionName} function...`);
-
-      // Simuler progression
       setScanState(prev => ({ ...prev, progress: 25 }));
 
-      // Appeler la fonction Edge appropriée
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           accessToken: parsedAuth.accessToken
@@ -87,7 +80,6 @@ export const useScanEmails = () => {
 
       console.log("Scan results:", data);
 
-      // Stocker les résultats selon le type de scan
       const newState: ScanState = {
         status: 'completed',
         results: data,
@@ -95,25 +87,17 @@ export const useScanEmails = () => {
         progress: 100,
       };
 
-      // Si c'est un scan pour la catégorisation (sender-analysis), on stocke aussi les résultats
       if (scanType === 'sender-analysis' || scanType === 'smart-sorting') {
         newState.allEmailsResults = data;
       }
 
       setScanState(newState);
 
-      if (scanType === 'intelligent-scan') {
-        toast({
-          title: "Scan intelligent terminé",
-          description: `${data.summary?.oldUnreadEmails || 0} emails non lus +6 mois, ${data.summary?.promotionalEmails || 0} promotionnels, ${data.summary?.autoClassifiableEmails || 0} auto-classifiables détectés`,
-        });
-      } else {
-        const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
-        toast({
-          title: "Scan terminé",
-          description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
-        });
-      }
+      const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
+      toast({
+        title: "Scan terminé",
+        description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
+      });
     } catch (error) {
       console.error("Erreur lors du scan des emails", error);
       setScanState({
@@ -135,7 +119,6 @@ export const useScanEmails = () => {
     if (!scanState.results) return;
 
     try {
-      // Récupérer le token d'accès
       const storedAuth = localStorage.getItem("emailCleanerAuth");
       if (!storedAuth) {
         throw new Error("Aucun token d'accès trouvé. Veuillez vous reconnecter.");
@@ -164,7 +147,6 @@ export const useScanEmails = () => {
 
       console.log("Calling Gmail delete function...");
 
-      // Appeler la fonction Edge pour supprimer les emails
       const { data, error } = await supabase.functions.invoke('delete-gmail-emails', {
         body: {
           accessToken: parsedAuth.accessToken,
@@ -184,15 +166,13 @@ export const useScanEmails = () => {
 
       console.log("Delete results:", data);
 
-      // Calculer l'empreinte carbone économisée
-      const carbonSaved = emailCount * 10; // 10g par email
+      const carbonSaved = emailCount * 10;
 
       toast({
         title: "Suppression terminée",
         description: `${data.deletedCount || emailCount} emails supprimés avec succès de votre boîte Gmail ! Vous avez économisé ${carbonSaved}g de CO₂!`,
       });
 
-      // Réinitialiser les résultats
       setScanState({
         status: 'idle',
         results: null,
@@ -213,10 +193,9 @@ export const useScanEmails = () => {
     if (!scanState.results?.emails.length) return;
 
     try {
-      // Créer le contenu CSV
       const headers = ["Sujet", "Expéditeur", "Date", "Taille (Ko)"];
       const rows = scanState.results.emails.map(email => [
-        `"${email.subject.replace(/"/g, '""')}"`, // Échapper les guillemets
+        `"${email.subject.replace(/"/g, '""')}"`,
         `"${email.from.replace(/"/g, '""')}"`,
         new Date(email.date).toLocaleDateString(),
         email.size?.toString() || "0"
@@ -227,7 +206,6 @@ export const useScanEmails = () => {
         ...rows.map(row => row.join(","))
       ].join("\n");
 
-      // Créer un blob et un lien de téléchargement
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
