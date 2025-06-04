@@ -2,10 +2,25 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { CheckCircle2, Mail, Tag, FolderOpen } from "lucide-react";
+import { CheckCircle2, Mail, Tag, FolderOpen, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+interface EmailGroup {
+  sender: string;
+  count: number;
+  selected: boolean;
+}
 
 const ScanResults = () => {
   const { authState, logout } = useAuth();
@@ -20,6 +35,11 @@ const ScanResults = () => {
     organizeEmails: 0
   });
   const [categoryOptionsVisible, setCategoryOptionsVisible] = useState(false);
+  const [showUnreadEmails, setShowUnreadEmails] = useState(false);
+  const [emailGroups, setEmailGroups] = useState<EmailGroup[]>([]);
+  const [selectAll, setSelectAll] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   // Animation des statistiques au chargement
   useEffect(() => {
@@ -60,8 +80,76 @@ const ScanResults = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Données simulées d'emails groupés par expéditeur
+  useEffect(() => {
+    const mockEmailGroups: EmailGroup[] = [
+      { sender: "newsletters@amazon.fr", count: 342, selected: true },
+      { sender: "promo@zalando.fr", count: 298, selected: true },
+      { sender: "info@leboncoin.fr", count: 186, selected: true },
+      { sender: "newsletter@linkedin.com", count: 143, selected: true },
+      { sender: "notifications@facebook.com", count: 127, selected: true },
+      { sender: "updates@spotify.com", count: 95, selected: true },
+      { sender: "promo@booking.com", count: 87, selected: true },
+      { sender: "news@lemonde.fr", count: 76, selected: true },
+      { sender: "offers@groupon.fr", count: 64, selected: true },
+      { sender: "newsletter@medium.com", count: 52, selected: true },
+      { sender: "promo@cdiscount.fr", count: 48, selected: true },
+      { sender: "news@figaro.fr", count: 45, selected: true },
+      { sender: "newsletter@airbnb.fr", count: 41, selected: true },
+      { sender: "updates@twitter.com", count: 38, selected: true },
+      { sender: "promo@darty.fr", count: 35, selected: true },
+      { sender: "news@bfmtv.com", count: 32, selected: true },
+      { sender: "newsletter@uber.com", count: 29, selected: true },
+      { sender: "promo@fnac.fr", count: 26, selected: true },
+      { sender: "updates@instagram.com", count: 23, selected: true },
+      { sender: "newsletter@deliveroo.fr", count: 20, selected: true },
+    ];
+    setEmailGroups(mockEmailGroups);
+  }, []);
+
   const handleUnreadEmails = () => {
-    navigate('/email-details');
+    setShowUnreadEmails(true);
+  };
+
+  const handleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    setEmailGroups(groups => 
+      groups.map(group => ({ ...group, selected: newSelectAll }))
+    );
+  };
+
+  const handleSelectNone = () => {
+    setSelectAll(false);
+    setEmailGroups(groups => 
+      groups.map(group => ({ ...group, selected: false }))
+    );
+  };
+
+  const handleGroupToggle = (senderEmail: string) => {
+    setEmailGroups(groups => {
+      const updatedGroups = groups.map(group => 
+        group.sender === senderEmail 
+          ? { ...group, selected: !group.selected }
+          : group
+      );
+      
+      const allSelected = updatedGroups.every(group => group.selected);
+      setSelectAll(allSelected);
+      
+      return updatedGroups;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    const selectedGroups = emailGroups.filter(group => group.selected);
+    const totalEmails = selectedGroups.reduce((sum, group) => sum + group.count, 0);
+    
+    console.log(`Suppression de ${totalEmails} emails de ${selectedGroups.length} expéditeurs`);
+    // Ici, vous ajouteriez la logique de suppression réelle
+    
+    // Retirer les emails sélectionnés de la liste
+    setEmailGroups(groups => groups.filter(group => !group.selected));
   };
 
   const toggleCategoryOptions = () => {
@@ -69,26 +157,18 @@ const ScanResults = () => {
   };
 
   const organizeEmails = () => {
-    // Logique pour organiser les emails
     console.log("Organisation des emails...");
   };
 
-  const getInitials = (email: string) => {
-    const parts = email.split('@')[0].split('.');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return email.substring(0, 2).toUpperCase();
-  };
+  // Pagination des emails
+  const totalPages = Math.ceil(emailGroups.length / itemsPerPage);
+  const paginatedEmails = emailGroups.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  const getUserName = (email: string) => {
-    const parts = email.split('@')[0].split('.');
-    if (parts.length >= 2) {
-      return parts[0].charAt(0).toUpperCase() + parts[0].slice(1) + ' ' + 
-             parts[1].charAt(0).toUpperCase() + parts[1].slice(1);
-    }
-    return email.split('@')[0];
-  };
+  const selectedCount = emailGroups.filter(group => group.selected).reduce((sum, group) => sum + group.count, 0);
+  const totalEmails = emailGroups.reduce((sum, group) => sum + group.count, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61]">
@@ -182,6 +262,99 @@ const ScanResults = () => {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Section détaillée des emails non ouverts */}
+          {showUnreadEmails && (
+            <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <h3 className="text-xl font-bold text-gray-800">Emails non ouverts depuis 6 mois</h3>
+                  <p className="text-gray-600">
+                    {totalEmails.toLocaleString()} emails trouvés, groupés par expéditeur
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                  <div className="flex gap-3">
+                    <Button onClick={handleSelectAll} variant="outline">
+                      Tout sélectionner
+                    </Button>
+                    <Button onClick={handleSelectNone} variant="outline">
+                      Tout désélectionner
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm text-gray-600">
+                      {selectedCount.toLocaleString()} emails sélectionnés
+                    </span>
+                    <Button
+                      onClick={handleDeleteSelected}
+                      disabled={selectedCount === 0}
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer sélection
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Liste des expéditeurs */}
+                <div className="space-y-3 mb-6">
+                  {paginatedEmails.map((group) => (
+                    <div key={group.sender} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={group.selected}
+                          onCheckedChange={() => handleGroupToggle(group.sender)}
+                        />
+                        <div className="flex items-center gap-3">
+                          <Mail className="h-5 w-5 text-gray-400" />
+                          <span className="font-medium text-gray-800">{group.sender}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-red-500">{group.count}</span>
+                        <span className="text-sm text-gray-600">emails</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          const page = i + 1;
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={page === currentPage}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          );
+                        })}
+                        <PaginationNext
+                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Section 2: Emails à catégoriser */}
           <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
