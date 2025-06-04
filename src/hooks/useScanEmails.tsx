@@ -40,17 +40,14 @@ export const useScanEmails = () => {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
 
-      // Pour la catégorisation (sender-analysis), on utilise toujours scan-all-gmail
-      // Pour les autres types, on utilise scan-gmail (emails non lus)
-      const functionName = (scanType === 'sender-analysis' || scanType === 'smart-sorting') 
-        ? 'scan-all-gmail' 
-        : 'scan-gmail';
+      // Utiliser scan-all-gmail pour tous les types de scan pour éviter les erreurs
+      const functionName = 'scan-all-gmail';
       
       const description = scanType === 'sender-analysis' 
         ? "Analyse de tous vos emails en cours..." 
         : scanType === 'smart-sorting'
         ? "Récupération des emails pour tri intelligent..."
-        : "Analyse de votre vraie boîte Gmail en cours...";
+        : "Analyse de votre boîte Gmail en cours...";
 
       toast({
         title: "Scan démarré",
@@ -60,6 +57,7 @@ export const useScanEmails = () => {
       console.log(`Calling ${functionName} function...`);
       setScanState(prev => ({ ...prev, progress: 25 }));
 
+      // Ajouter un timeout plus long pour les gros scans
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           accessToken: parsedAuth.accessToken
@@ -68,13 +66,31 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
+      console.log("Function response:", { data, error });
+
       if (error) {
         console.error("Function error:", error);
+        
+        // Gestion spécifique des erreurs de quota
+        if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+          throw new Error("Limite de quota Gmail atteinte. Veuillez réessayer dans quelques minutes.");
+        }
+        
         throw new Error(`Erreur lors du scan: ${error.message}`);
+      }
+
+      if (!data) {
+        throw new Error("Aucune donnée reçue du scan");
       }
 
       if (data.error) {
         console.error("Gmail API error:", data.error);
+        
+        // Gestion spécifique des erreurs de quota Gmail
+        if (data.error.includes('Quota exceeded') || data.error.includes('rateLimitExceeded')) {
+          throw new Error("Limite de quota Gmail atteinte. Veuillez réessayer dans quelques minutes.");
+        }
+        
         throw new Error(`Erreur Gmail: ${data.error}`);
       }
 
@@ -93,23 +109,32 @@ export const useScanEmails = () => {
 
       setScanState(newState);
 
-      const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
+      const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails";
       toast({
         title: "Scan terminé",
         description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
       });
     } catch (error) {
       console.error("Erreur lors du scan des emails", error);
+      
+      let errorMessage = "Erreur lors du scan des emails";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       setScanState({
         status: 'error',
         results: null,
-        error: error instanceof Error ? error.message : "Erreur lors du scan des emails",
+        error: errorMessage,
         progress: 0,
       });
 
       toast({
         title: "Échec du scan",
-        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la recherche des emails",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -210,7 +235,7 @@ export const useScanEmails = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `emails_non_lus_gmail_${new Date().toISOString().split("T")[0]}.csv`);
+      link.setAttribute("download", `emails_gmail_${new Date().toISOString().split("T")[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
