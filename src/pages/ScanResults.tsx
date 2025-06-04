@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { CheckCircle2, Mail, Tag, FolderOpen, Trash2 } from "lucide-react";
+import { CheckCircle2, Mail, Tag, FolderOpen, Trash2, Shield, Unsubscribe, Archive } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Pagination,
@@ -20,6 +21,13 @@ interface EmailGroup {
   sender: string;
   count: number;
   selected: boolean;
+}
+
+interface SenderStats {
+  sender: string;
+  emailCount: number;
+  openRate: number;
+  domain: string;
 }
 
 const ScanResults = () => {
@@ -39,6 +47,9 @@ const ScanResults = () => {
   const [emailGroups, setEmailGroups] = useState<EmailGroup[]>([]);
   const [selectAll, setSelectAll] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [categorizationPage, setCategorizationPage] = useState(1);
+  const [senderStats, setSenderStats] = useState<SenderStats[]>([]);
+  const [senderActions, setSenderActions] = useState<Record<string, string>>({});
   const itemsPerPage = 50;
 
   // Animation des statistiques au chargement
@@ -105,6 +116,34 @@ const ScanResults = () => {
       { sender: "newsletter@deliveroo.fr", count: 20, selected: true },
     ];
     setEmailGroups(mockEmailGroups);
+
+    // Données simulées pour la catégorisation
+    const mockSenderStats: SenderStats[] = [
+      { sender: "newsletters@amazon.fr", emailCount: 342, openRate: 12.5, domain: "amazon.fr" },
+      { sender: "promo@zalando.fr", emailCount: 298, openRate: 8.3, domain: "zalando.fr" },
+      { sender: "info@leboncoin.fr", emailCount: 186, openRate: 15.7, domain: "leboncoin.fr" },
+      { sender: "newsletter@linkedin.com", emailCount: 143, openRate: 45.2, domain: "linkedin.com" },
+      { sender: "notifications@facebook.com", emailCount: 127, openRate: 23.1, domain: "facebook.com" },
+      { sender: "updates@spotify.com", emailCount: 95, openRate: 67.4, domain: "spotify.com" },
+      { sender: "promo@booking.com", emailCount: 87, openRate: 18.9, domain: "booking.com" },
+      { sender: "news@lemonde.fr", emailCount: 76, openRate: 34.2, domain: "lemonde.fr" },
+      { sender: "offers@groupon.fr", emailCount: 64, openRate: 6.8, domain: "groupon.fr" },
+      { sender: "newsletter@medium.com", emailCount: 52, openRate: 72.3, domain: "medium.com" },
+      { sender: "promo@cdiscount.fr", emailCount: 48, openRate: 9.1, domain: "cdiscount.fr" },
+      { sender: "news@figaro.fr", emailCount: 45, openRate: 28.7, domain: "figaro.fr" },
+      { sender: "newsletter@airbnb.fr", emailCount: 41, openRate: 41.5, domain: "airbnb.fr" },
+      { sender: "updates@twitter.com", emailCount: 38, openRate: 19.4, domain: "twitter.com" },
+      { sender: "promo@darty.fr", emailCount: 35, openRate: 11.2, domain: "darty.fr" },
+      { sender: "news@bfmtv.com", emailCount: 32, openRate: 33.8, domain: "bfmtv.com" },
+      { sender: "newsletter@uber.com", emailCount: 29, openRate: 52.1, domain: "uber.com" },
+      { sender: "promo@fnac.fr", emailCount: 26, openRate: 14.6, domain: "fnac.fr" },
+      { sender: "updates@instagram.com", emailCount: 23, openRate: 61.2, domain: "instagram.com" },
+      { sender: "newsletter@deliveroo.fr", emailCount: 20, openRate: 38.5, domain: "deliveroo.fr" },
+    ];
+    
+    // Trier par nombre d'emails décroissant
+    mockSenderStats.sort((a, b) => b.emailCount - a.emailCount);
+    setSenderStats(mockSenderStats);
   }, []);
 
   const handleUnreadEmails = () => {
@@ -146,9 +185,7 @@ const ScanResults = () => {
     const totalEmails = selectedGroups.reduce((sum, group) => sum + group.count, 0);
     
     console.log(`Suppression de ${totalEmails} emails de ${selectedGroups.length} expéditeurs`);
-    // Ici, vous ajouteriez la logique de suppression réelle
     
-    // Retirer les emails sélectionnés de la liste
     setEmailGroups(groups => groups.filter(group => !group.selected));
   };
 
@@ -156,19 +193,55 @@ const ScanResults = () => {
     setCategoryOptionsVisible(!categoryOptionsVisible);
   };
 
+  const handleSenderAction = (sender: string, action: string) => {
+    setSenderActions(prev => ({ ...prev, [sender]: action }));
+    console.log(`Action "${action}" sélectionnée pour ${sender}`);
+  };
+
   const organizeEmails = () => {
     console.log("Organisation des emails...");
   };
 
-  // Pagination des emails
+  // Pagination des emails non lus
   const totalPages = Math.ceil(emailGroups.length / itemsPerPage);
   const paginatedEmails = emailGroups.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
+  // Pagination pour la catégorisation
+  const totalCategorizationPages = Math.ceil(senderStats.length / itemsPerPage);
+  const paginatedSenders = senderStats.slice(
+    (categorizationPage - 1) * itemsPerPage,
+    categorizationPage * itemsPerPage
+  );
+
   const selectedCount = emailGroups.filter(group => group.selected).reduce((sum, group) => sum + group.count, 0);
   const totalEmails = emailGroups.reduce((sum, group) => sum + group.count, 0);
+
+  const getOpenRateColor = (rate: number) => {
+    if (rate >= 50) return "text-green-600";
+    if (rate >= 20) return "text-orange-600";
+    return "text-red-600";
+  };
+
+  const getActionButtonStyle = (sender: string, action: string) => {
+    const isSelected = senderActions[sender] === action;
+    const baseStyle = "px-3 py-1 text-xs rounded-full font-medium transition-all";
+    
+    switch (action) {
+      case "keep":
+        return `${baseStyle} ${isSelected ? "bg-green-500 text-white" : "bg-green-100 text-green-700 hover:bg-green-200"}`;
+      case "unsubscribe":
+        return `${baseStyle} ${isSelected ? "bg-orange-500 text-white" : "bg-orange-100 text-orange-700 hover:bg-orange-200"}`;
+      case "delete":
+        return `${baseStyle} ${isSelected ? "bg-red-500 text-white" : "bg-red-100 text-red-700 hover:bg-red-200"}`;
+      case "spam":
+        return `${baseStyle} ${isSelected ? "bg-purple-500 text-white" : "bg-purple-100 text-purple-700 hover:bg-purple-200"}`;
+      default:
+        return baseStyle;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61]">
@@ -402,21 +475,154 @@ const ScanResults = () => {
               
               {categoryOptionsVisible && (
                 <div className="mt-6 p-6 bg-gray-50 rounded-xl animate-fade-in">
-                  <p className="mb-4 font-medium">Pour chaque email, choisissez une action :</p>
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <Button className="bg-green-100 text-green-800 hover:bg-green-200 transition-all hover:scale-105">
-                      💾 Conserver
-                    </Button>
-                    <Button className="bg-orange-100 text-orange-800 hover:bg-orange-200 transition-all hover:scale-105">
-                      ✉️ Désabonner
-                    </Button>
-                    <Button className="bg-red-100 text-red-800 hover:bg-red-200 transition-all hover:scale-105">
-                      🗑️ Supprimer
-                    </Button>
-                    <Button className="bg-purple-100 text-purple-800 hover:bg-purple-200 transition-all hover:scale-105">
-                      🚫 Spam
-                    </Button>
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-lg font-bold text-gray-800">Emails classés par émetteur</h4>
+                    <p className="text-sm text-gray-600">
+                      {senderStats.length} émetteurs trouvés (trié par nombre d'emails décroissant)
+                    </p>
                   </div>
+                  
+                  {/* En-têtes du tableau */}
+                  <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700 mb-4">
+                    <div className="col-span-4">Émetteur</div>
+                    <div className="col-span-2 text-center">Nb emails</div>
+                    <div className="col-span-2 text-center">Taux ouverture</div>
+                    <div className="col-span-4 text-center">Actions</div>
+                  </div>
+                  
+                  {/* Liste des émetteurs */}
+                  <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                    {paginatedSenders.map((sender) => (
+                      <div key={sender.sender} className="grid grid-cols-12 gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <div className="col-span-4">
+                          <div className="flex items-center gap-3">
+                            <Mail className="h-4 w-4 text-gray-400" />
+                            <div>
+                              <div className="font-medium text-gray-800 text-sm truncate">{sender.sender}</div>
+                              <div className="text-xs text-gray-500">{sender.domain}</div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="col-span-2 text-center">
+                          <span className="font-bold text-gray-800">{sender.emailCount}</span>
+                        </div>
+                        
+                        <div className="col-span-2 text-center">
+                          <span className={`font-semibold ${getOpenRateColor(sender.openRate)}`}>
+                            {sender.openRate}%
+                          </span>
+                        </div>
+                        
+                        <div className="col-span-4">
+                          <div className="flex gap-2 justify-center flex-wrap">
+                            <button
+                              onClick={() => handleSenderAction(sender.sender, "keep")}
+                              className={getActionButtonStyle(sender.sender, "keep")}
+                              title="Conserver"
+                            >
+                              <Archive className="h-3 w-3 mr-1 inline" />
+                              Conserver
+                            </button>
+                            <button
+                              onClick={() => handleSenderAction(sender.sender, "unsubscribe")}
+                              className={getActionButtonStyle(sender.sender, "unsubscribe")}
+                              title="Désabonner & supprimer"
+                            >
+                              <Unsubscribe className="h-3 w-3 mr-1 inline" />
+                              Désabonner
+                            </button>
+                            <button
+                              onClick={() => handleSenderAction(sender.sender, "delete")}
+                              className={getActionButtonStyle(sender.sender, "delete")}
+                              title="Supprimer"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1 inline" />
+                              Supprimer
+                            </button>
+                            <button
+                              onClick={() => handleSenderAction(sender.sender, "spam")}
+                              className={getActionButtonStyle(sender.sender, "spam")}
+                              title="Spam et supprimer"
+                            >
+                              <Shield className="h-3 w-3 mr-1 inline" />
+                              Spam
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination pour la catégorisation */}
+                  {totalCategorizationPages > 1 && (
+                    <div className="flex justify-center mb-4">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationPrevious
+                            onClick={() => setCategorizationPage(Math.max(1, categorizationPage - 1))}
+                            className={categorizationPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                          {Array.from({ length: Math.min(5, totalCategorizationPages) }, (_, i) => {
+                            const page = i + 1;
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setCategorizationPage(page)}
+                                  isActive={page === categorizationPage}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          })}
+                          <PaginationNext
+                            onClick={() => setCategorizationPage(Math.min(totalCategorizationPages, categorizationPage + 1))}
+                            className={categorizationPage === totalCategorizationPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+
+                  {/* Résumé des actions sélectionnées */}
+                  {Object.keys(senderActions).length > 0 && (
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h5 className="font-semibold text-blue-800 mb-2">Actions sélectionnées :</h5>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="text-center">
+                          <span className="block font-bold text-green-600">
+                            {Object.values(senderActions).filter(action => action === "keep").length}
+                          </span>
+                          <span className="text-green-700">À conserver</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block font-bold text-orange-600">
+                            {Object.values(senderActions).filter(action => action === "unsubscribe").length}
+                          </span>
+                          <span className="text-orange-700">Désabonnements</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block font-bold text-red-600">
+                            {Object.values(senderActions).filter(action => action === "delete").length}
+                          </span>
+                          <span className="text-red-700">Suppressions</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block font-bold text-purple-600">
+                            {Object.values(senderActions).filter(action => action === "spam").length}
+                          </span>
+                          <span className="text-purple-700">Spam</span>
+                        </div>
+                      </div>
+                      <div className="mt-4 text-center">
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+                          Appliquer les actions sélectionnées
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
