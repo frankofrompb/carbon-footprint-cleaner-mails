@@ -34,15 +34,17 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Access token is required');
     }
 
-    console.log('Starting Gmail scan for ALL emails...');
+    console.log('Starting Gmail scan with quota management...');
 
-    // Récupérer tous les emails avec pagination (pas de filtre)
+    // Récupérer les emails avec pagination limitée pour éviter les quotas
     let allMessageIds: string[] = [];
     let nextPageToken: string | undefined;
+    let pageCount = 0;
+    const maxPages = 5; // Limiter à 5 pages pour éviter les quotas
 
-    // Récupérer tous les IDs des emails avec pagination
+    // Récupérer les IDs des emails avec pagination limitée
     do {
-      const searchUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
+      const searchUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
       
       const searchResponse = await fetch(searchUrl, {
         headers: {
@@ -52,7 +54,13 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (!searchResponse.ok) {
-        console.error('Gmail API search error:', await searchResponse.text());
+        const errorText = await searchResponse.text();
+        console.error('Gmail API search error:', errorText);
+        
+        if (searchResponse.status === 403) {
+          throw new Error('Limite de quota Gmail atteinte. Veuillez réessayer dans quelques minutes.');
+        }
+        
         throw new Error('Erreur lors de la recherche des emails');
       }
 
@@ -63,16 +71,16 @@ const handler = async (req: Request): Promise<Response> => {
       }
       
       nextPageToken = searchData.nextPageToken;
+      pageCount++;
       
-      console.log(`Récupéré ${allMessageIds.length} IDs d'emails jusqu'à présent...`);
+      console.log(`Page ${pageCount}: Récupéré ${allMessageIds.length} IDs d'emails...`);
       
-      // Limiter à 5000 emails pour éviter les timeouts
-      if (allMessageIds.length >= 5000) {
-        console.log('Limite de 5000 emails atteinte, arrêt du scan');
-        break;
+      // Pause entre les requêtes pour respecter les limites
+      if (nextPageToken && pageCount < maxPages) {
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
       
-    } while (nextPageToken);
+    } while (nextPageToken && pageCount < maxPages);
 
     const totalEmails = allMessageIds.length;
     console.log(`Found ${totalEmails} emails total`);
@@ -80,16 +88,19 @@ const handler = async (req: Request): Promise<Response> => {
     let allEmails: EmailData[] = [];
 
     if (allMessageIds.length > 0) {
-      // Récupérer les détails des emails par batch pour éviter les timeouts
-      const batchSize = 100;
+      // Récupérer les détails des emails par petits batches avec des pauses
+      const batchSize = 20; // Réduire la taille des batches
       
       for (let i = 0; i < allMessageIds.length; i += batchSize) {
         const batch = allMessageIds.slice(i, i + batchSize);
         console.log(`Fetching details for emails ${i + 1} to ${Math.min(i + batchSize, allMessageIds.length)}...`);
         
-        // Traiter le batch en parallèle avec une limite
-        const batchPromises = batch.map(async (messageId) => {
+        // Traiter le batch avec une limite plus conservative
+        const batchPromises = batch.map(async (messageId, index) => {
           try {
+            // Ajouter un délai progressif pour éviter les pics de requêtes
+            await new Promise(resolve => setTimeout(resolve, index * 50));
+            
             const messageResponse = await fetch(
               `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
               {
@@ -120,6 +131,9 @@ const handler = async (req: Request): Promise<Response> => {
                 date: emailDate.toISOString(),
                 size: sizeInKb,
               };
+            } else if (messageResponse.status === 403) {
+              console.warn('Quota exceeded, stopping batch processing');
+              return null;
             }
           } catch (error) {
             console.error(`Error fetching message ${messageId}:`, error);
@@ -132,9 +146,9 @@ const handler = async (req: Request): Promise<Response> => {
         const validResults = batchResults.filter((email): email is EmailData => email !== null);
         allEmails.push(...validResults);
         
-        // Petite pause entre les batches pour éviter de surcharger l'API
+        // Pause plus longue entre les batches pour respecter les quotas
         if (i + batchSize < allMessageIds.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
     }
