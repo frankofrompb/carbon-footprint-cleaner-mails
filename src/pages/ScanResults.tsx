@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { CheckCircle2, Mail, Tag, FolderOpen, Trash2, Shield, UserMinus, Archive } from "lucide-react";
+import { CheckCircle2, Mail, Tag, FolderOpen, Trash2, Shield, UserMinus, Archive, 
+         Briefcase, CreditCard, ShoppingBag, Plane, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Pagination,
@@ -29,6 +30,23 @@ interface SenderStats {
   domain: string;
 }
 
+interface OrganizationCategory {
+  name: string;
+  icon: React.ReactNode;
+  count: number;
+  description: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+interface OrganizationSender {
+  sender: string;
+  emailCount: number;
+  category: string;
+  selected: boolean;
+  domain: string;
+}
+
 const ScanResults = () => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
@@ -43,13 +61,61 @@ const ScanResults = () => {
   });
   const [categoryOptionsVisible, setCategoryOptionsVisible] = useState(false);
   const [showUnreadEmails, setShowUnreadEmails] = useState(false);
+  const [showOrganizeDetails, setShowOrganizeDetails] = useState(false);
   const [emailGroups, setEmailGroups] = useState<EmailGroup[]>([]);
   const [selectAll, setSelectAll] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [categorizationPage, setCategorizationPage] = useState(1);
+  const [organizationPage, setOrganizationPage] = useState(1);
   const [senderStats, setSenderStats] = useState<SenderStats[]>([]);
   const [senderActions, setSenderActions] = useState<Record<string, string>>({});
+  const [organizationSenders, setOrganizationSenders] = useState<OrganizationSender[]>([]);
+  const [organizationSelectAll, setOrganizationSelectAll] = useState(true);
   const itemsPerPage = 50;
+
+  // Configuration des catégories d'organisation
+  const organizationCategories: OrganizationCategory[] = [
+    {
+      name: "💼 Administratif / Professionnel",
+      icon: <Briefcase className="h-5 w-5" />,
+      count: 487,
+      description: "Contrats, RH, réunions, décisions stratégiques",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200"
+    },
+    {
+      name: "💳 Finance / Banque",
+      icon: <CreditCard className="h-5 w-5" />,
+      count: 623,
+      description: "Factures importantes, prêts, assurances, fiscal",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200"
+    },
+    {
+      name: "🛍️ Achats Importants",
+      icon: <ShoppingBag className="h-5 w-5" />,
+      count: 389,
+      description: "Garanties, SAV, remboursements",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200"
+    },
+    {
+      name: "✈️ Voyages & Justificatifs",
+      icon: <Plane className="h-5 w-5" />,
+      count: 234,
+      description: "Déplacements professionnels, remboursements",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200"
+    },
+    {
+      name: "🔐 Sécurité & Accès",
+      icon: <Lock className="h-5 w-5" />,
+      count: 156,
+      description: "Comptes, confirmations administratives",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200"
+    }
+  ];
 
   // Animation des statistiques au chargement
   useEffect(() => {
@@ -59,8 +125,8 @@ const ScanResults = () => {
       suggestedActions: 8542,
       co2Saveable: 89.3,
       unreadEmails: 3247,
-      categorizeEmails: 4856, // Augmenté pour refléter tous les emails avec multiples émetteurs
-      organizeEmails: 2439
+      categorizeEmails: 4856,
+      organizeEmails: 1889
     };
     const duration = 2000;
     const steps = 60;
@@ -200,6 +266,37 @@ const ScanResults = () => {
     const filteredStats = mockAllSenderStats.filter(sender => sender.emailCount > 1);
     filteredStats.sort((a, b) => b.emailCount - a.emailCount);
     setSenderStats(filteredStats);
+
+    // Données simulées pour l'organisation intelligente
+    const mockOrganizationSenders: OrganizationSender[] = [
+      // Administratif / Professionnel
+      { sender: "rh@entreprise.fr", emailCount: 45, category: "💼 Administratif / Professionnel", selected: true, domain: "entreprise.fr" },
+      { sender: "contrats@avocat.fr", emailCount: 23, category: "💼 Administratif / Professionnel", selected: true, domain: "avocat.fr" },
+      { sender: "direction@company.com", emailCount: 34, category: "💼 Administratif / Professionnel", selected: true, domain: "company.com" },
+      
+      // Finance / Banque
+      { sender: "info@banquepopulaire.fr", emailCount: 87, category: "💳 Finance / Banque", selected: true, domain: "banquepopulaire.fr" },
+      { sender: "factures@edf.fr", emailCount: 56, category: "💳 Finance / Banque", selected: true, domain: "edf.fr" },
+      { sender: "assurance@axa.fr", emailCount: 43, category: "💳 Finance / Banque", selected: true, domain: "axa.fr" },
+      { sender: "impots@dgfip.gouv.fr", emailCount: 12, category: "💳 Finance / Banque", selected: true, domain: "dgfip.gouv.fr" },
+      
+      // Achats Importants
+      { sender: "commandes@apple.com", emailCount: 34, category: "🛍️ Achats Importants", selected: true, domain: "apple.com" },
+      { sender: "sav@samsung.fr", emailCount: 23, category: "🛍️ Achats Importants", selected: true, domain: "samsung.fr" },
+      { sender: "garantie@darty.fr", emailCount: 45, category: "🛍️ Achats Importants", selected: true, domain: "darty.fr" },
+      
+      // Voyages & Justificatifs
+      { sender: "reservations@airfrance.fr", emailCount: 28, category: "✈️ Voyages & Justificatifs", selected: true, domain: "airfrance.fr" },
+      { sender: "hotels@booking.com", emailCount: 34, category: "✈️ Voyages & Justificatifs", selected: true, domain: "booking.com" },
+      { sender: "sncf@voyages-sncf.com", emailCount: 21, category: "✈️ Voyages & Justificatifs", selected: true, domain: "voyages-sncf.com" },
+      
+      // Sécurité & Accès
+      { sender: "securite@banque.fr", emailCount: 15, category: "🔐 Sécurité & Accès", selected: true, domain: "banque.fr" },
+      { sender: "verification@google.com", emailCount: 23, category: "🔐 Sécurité & Accès", selected: true, domain: "google.com" },
+      { sender: "comptes@microsoft.com", emailCount: 18, category: "🔐 Sécurité & Accès", selected: true, domain: "microsoft.com" },
+    ];
+    
+    setOrganizationSenders(mockOrganizationSenders);
   }, []);
 
   const handleUnreadEmails = () => {
@@ -255,7 +352,38 @@ const ScanResults = () => {
   };
 
   const organizeEmails = () => {
-    console.log("Organisation des emails...");
+    setShowOrganizeDetails(true);
+  };
+
+  // Nouvelles fonctions pour l'organisation
+  const handleOrganizationSelectAll = () => {
+    const newSelectAll = !organizationSelectAll;
+    setOrganizationSelectAll(newSelectAll);
+    setOrganizationSenders(senders => 
+      senders.map(sender => ({ ...sender, selected: newSelectAll }))
+    );
+  };
+
+  const handleOrganizationSenderToggle = (senderEmail: string) => {
+    setOrganizationSenders(senders => {
+      const updatedSenders = senders.map(sender => 
+        sender.sender === senderEmail 
+          ? { ...sender, selected: !sender.selected }
+          : sender
+      );
+      
+      const allSelected = updatedSenders.every(sender => sender.selected);
+      setOrganizationSelectAll(allSelected);
+      
+      return updatedSenders;
+    });
+  };
+
+  const applyOrganization = () => {
+    const selectedSenders = organizationSenders.filter(sender => sender.selected);
+    const totalEmails = selectedSenders.reduce((sum, sender) => sum + sender.emailCount, 0);
+    
+    console.log(`Organisation de ${totalEmails} emails de ${selectedSenders.length} expéditeurs`);
   };
 
   // Pagination des emails non lus
@@ -272,8 +400,16 @@ const ScanResults = () => {
     categorizationPage * itemsPerPage
   );
 
+  // Pagination pour l'organisation
+  const totalOrganizationPages = Math.ceil(organizationSenders.length / itemsPerPage);
+  const paginatedOrganizationSenders = organizationSenders.slice(
+    (organizationPage - 1) * itemsPerPage,
+    organizationPage * itemsPerPage
+  );
+
   const selectedCount = emailGroups.filter(group => group.selected).reduce((sum, group) => sum + group.count, 0);
   const totalEmails = emailGroups.reduce((sum, group) => sum + group.count, 0);
+  const selectedOrganizationCount = organizationSenders.filter(sender => sender.selected).reduce((sum, sender) => sum + sender.emailCount, 0);
 
   const getOpenRateColor = (rate: number) => {
     if (rate >= 50) return "text-green-600";
@@ -297,6 +433,11 @@ const ScanResults = () => {
       default:
         return baseStyle;
     }
+  };
+
+  const getCategoryColor = (category: string) => {
+    const categoryObj = organizationCategories.find(cat => cat.name === category);
+    return categoryObj ? { bgColor: categoryObj.bgColor, borderColor: categoryObj.borderColor } : { bgColor: "bg-gray-50", borderColor: "border-gray-200" };
   };
 
   return (
@@ -485,7 +626,7 @@ const ScanResults = () => {
             </Card>
           )}
 
-          {/* Section 2: Emails à catégoriser - MODIFIÉE */}
+          {/* Section 2: Emails à catégoriser */}
           <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
             <CardContent className="p-8">
               <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
@@ -706,19 +847,18 @@ const ScanResults = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">1,206</span>
-                  <div className="text-gray-600 text-sm mt-1">Factures/Reçus</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">743</span>
-                  <div className="text-gray-600 text-sm mt-1">Réseaux sociaux</div>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <span className="text-xl font-bold text-gray-800 block">490</span>
-                  <div className="text-gray-600 text-sm mt-1">Voyages/Réservations</div>
-                </div>
+              {/* Grille des 5 catégories */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {organizationCategories.map((category, index) => (
+                  <div key={index} className={`p-4 rounded-xl border-2 ${category.bgColor} ${category.borderColor}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      {category.icon}
+                      <span className="font-semibold text-gray-800">{category.name}</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-800 mb-1">{category.count.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">{category.description}</div>
+                  </div>
+                ))}
               </div>
               
               <Button 
@@ -727,6 +867,118 @@ const ScanResults = () => {
               >
                 📂 Organiser Automatiquement
               </Button>
+              
+              {/* Vue détaillée par émetteur */}
+              {showOrganizeDetails && (
+                <div className="mt-6 p-6 bg-gray-50 rounded-xl animate-fade-in">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-lg font-bold text-gray-800">Détail par émetteur</h4>
+                    <p className="text-sm text-gray-600">
+                      {organizationSenders.length} émetteurs trouvés
+                    </p>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div className="flex gap-3">
+                      <Button onClick={handleOrganizationSelectAll} variant="outline">
+                        {organizationSelectAll ? "Tout désélectionner" : "Tout sélectionner"}
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-gray-600">
+                        {selectedOrganizationCount.toLocaleString()} emails sélectionnés
+                      </span>
+                      <Button
+                        onClick={applyOrganization}
+                        disabled={selectedOrganizationCount === 0}
+                        className="bg-green-500 hover:bg-green-600 text-white"
+                      >
+                        <FolderOpen className="h-4 w-4 mr-2" />
+                        Organiser sélection
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* En-têtes du tableau */}
+                  <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 rounded-lg font-semibold text-sm text-gray-700 mb-4">
+                    <div className="col-span-1"></div>
+                    <div className="col-span-4">Émetteur</div>
+                    <div className="col-span-2 text-center">Nb emails</div>
+                    <div className="col-span-5">Catégorie</div>
+                  </div>
+                  
+                  {/* Liste des émetteurs */}
+                  <div className="space-y-3 mb-6 max-h-96 overflow-y-auto">
+                    {paginatedOrganizationSenders.map((sender) => {
+                      const colors = getCategoryColor(sender.category);
+                      return (
+                        <div key={sender.sender} className={`grid grid-cols-12 gap-4 p-4 ${colors.bgColor} rounded-lg border ${colors.borderColor} hover:shadow-md transition-all`}>
+                          <div className="col-span-1 flex items-center">
+                            <Checkbox
+                              checked={sender.selected}
+                              onCheckedChange={() => handleOrganizationSenderToggle(sender.sender)}
+                            />
+                          </div>
+                          
+                          <div className="col-span-4">
+                            <div className="flex items-center gap-3">
+                              <Mail className="h-4 w-4 text-gray-400" />
+                              <div>
+                                <div className="font-medium text-gray-800 text-sm truncate">{sender.sender}</div>
+                                <div className="text-xs text-gray-500">{sender.domain}</div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="col-span-2 text-center flex items-center justify-center">
+                            <span className="font-bold text-gray-800">{sender.emailCount}</span>
+                          </div>
+                          
+                          <div className="col-span-5 flex items-center">
+                            <div className="flex items-center gap-2">
+                              {organizationCategories.find(cat => cat.name === sender.category)?.icon}
+                              <span className="text-sm font-medium text-gray-700">{sender.category}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination pour l'organisation */}
+                  {totalOrganizationPages > 1 && (
+                    <div className="flex justify-center">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationPrevious
+                            onClick={() => setOrganizationPage(Math.max(1, organizationPage - 1))}
+                            className={organizationPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                          {Array.from({ length: Math.min(5, totalOrganizationPages) }, (_, i) => {
+                            const page = i + 1;
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setOrganizationPage(page)}
+                                  isActive={page === organizationPage}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          })}
+                          <PaginationNext
+                            onClick={() => setOrganizationPage(Math.min(totalOrganizationPages, organizationPage + 1))}
+                            className={organizationPage === totalOrganizationPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
