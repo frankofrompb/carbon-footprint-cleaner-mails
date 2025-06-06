@@ -110,23 +110,34 @@ async function classifyEmailBatch(emails: any[], openAIApiKey: string): Promise<
     `Subject: ${email.subject || 'Sans sujet'}\nFrom: ${email.from || 'Expéditeur inconnu'}\nSnippet: ${email.snippet || ''}`
   ).join('\n---\n');
 
-  const prompt = `Analyse ces emails et classe chacun dans une catégorie. Retourne un array JSON avec les classifications pour chaque email dans le même ordre.
+  const prompt = `Analyse ces emails et classe chacun dans une catégorie selon leur importance pour l'archivage personnel et professionnel. Retourne un array JSON avec les classifications pour chaque email dans le même ordre.
 
 Catégories disponibles:
-- "order_confirmation" (confirmations de commande, reçus, confirmations d'achat)
-- "newsletter" (newsletters, emails marketing, promotions)
-- "invoice" (factures, facturation, notifications de paiement)
+- "administratif_professionnel" (contrats signés, bulletins de salaire, documents RH, comptes rendus de réunion importants, échanges liés à des décisions stratégiques, emails d'entreprise importants)
+- "finance_banque" (reçus de paiements importants, factures d'achat de biens durables, documents de prêts/assurances/fiscaux, notifications de transactions sensibles, relevés bancaires)
+- "achats_important" (factures utiles pour garantie ou SAV, détails d'achats pour remboursements ou notes de frais, reçus d'achats importants)
+- "voyages_justificatifs" (justificatifs de déplacement professionnel, documents pour remboursement voyage, confirmations de réservation importantes)
+- "securite_acces" (emails de création de comptes importants, confirmations liées à des démarches officielles/administratives, codes de vérification pour services importants)
+- "newsletters" (newsletters marketing, promotions, emails publicitaires non essentiels)
 - "social" (notifications des réseaux sociaux, commentaires, likes)
-- "travel" (confirmations de réservation, itinéraires de voyage, billets)
-- "bank" (relevés bancaires, notifications de compte, alertes de paiement)
-- "work" (emails professionnels, invitations à des réunions, communications de travail)
-- "support" (support client, help desk, assistance technique)
-- "other" (tout le reste)
+- "notification_service" (notifications automatiques de services, alertes système non critiques)
+- "other" (tout le reste qui n'a pas d'importance pour l'archivage)
+
+IMPORTANT: Privilégie les catégories d'archivage (administratif_professionnel, finance_banque, achats_important, voyages_justificatifs, securite_acces) uniquement pour les emails vraiment importants à conserver.
 
 Pour chaque email, fournis:
 - category: une des catégories ci-dessus
 - confidence: nombre entre 0 et 1
-- suggestedFolder: nom français pour le dossier (ex: "Confirmations de commande", "Newsletters", etc.)
+- suggestedFolder: nom français pour le dossier selon la catégorie:
+  * "💼 Administratif / Professionnel" pour administratif_professionnel
+  * "💳 Finance / Banque" pour finance_banque  
+  * "🛍️ Achats Importants" pour achats_important
+  * "✈️ Voyages & Justificatifs" pour voyages_justificatifs
+  * "🔐 Sécurité & Accès" pour securite_acces
+  * "📧 Newsletters" pour newsletters
+  * "👥 Réseaux Sociaux" pour social
+  * "🔔 Notifications" pour notification_service
+  * "📁 Autres" pour other
 
 Emails à analyser:
 ${emailTexts}`;
@@ -145,7 +156,7 @@ ${emailTexts}`;
         messages: [
           {
             role: 'system',
-            content: 'Tu es un expert en classification d\'emails. Réponds toujours avec un array JSON valide correspondant exactement au nombre d\'emails en entrée.'
+            content: 'Tu es un expert en classification d\'emails pour l\'archivage personnel et professionnel. Tu identifies les emails vraiment importants à conserver vs ceux qui peuvent être archivés ou supprimés. Réponds toujours avec un array JSON valide correspondant exactement au nombre d\'emails en entrée.'
           },
           {
             role: 'user',
@@ -190,7 +201,7 @@ ${emailTexts}`;
       classification: classifications[index] || {
         category: 'other',
         confidence: 0.5,
-        suggestedFolder: 'Autres'
+        suggestedFolder: '📁 Autres'
       }
     }));
   } catch (error) {
@@ -203,7 +214,7 @@ function groupEmailsByCategory(classifiedEmails: ClassifiedEmail[]): Record<stri
   const groups: Record<string, ClassifiedEmail[]> = {};
   
   classifiedEmails.forEach(email => {
-    const folder = email.classification.suggestedFolder || 'Autres';
+    const folder = email.classification.suggestedFolder || '📁 Autres';
     if (!groups[folder]) {
       groups[folder] = [];
     }

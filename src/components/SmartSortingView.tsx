@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { ScanState } from "@/types";
 import { formatNumber } from "@/lib/utils";
-import { Brain, FolderPlus, Check, Edit3, Loader2 } from "lucide-react";
+import { 
+  Brain, 
+  FolderPlus, 
+  Check, 
+  Edit3, 
+  Loader2, 
+  Briefcase, 
+  CreditCard, 
+  ShoppingBag, 
+  Plane, 
+  Shield, 
+  Mail, 
+  Users, 
+  Bell, 
+  FolderOpen 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,6 +43,35 @@ interface CategorizedEmails {
     };
   }>;
 }
+
+// Configuration des icônes pour chaque type de dossier
+const getFolderIcon = (folderName: string) => {
+  if (folderName.includes("Administratif") || folderName.includes("💼")) {
+    return <Briefcase className="h-4 w-4" />;
+  }
+  if (folderName.includes("Finance") || folderName.includes("💳")) {
+    return <CreditCard className="h-4 w-4" />;
+  }
+  if (folderName.includes("Achats") || folderName.includes("🛍️")) {
+    return <ShoppingBag className="h-4 w-4" />;
+  }
+  if (folderName.includes("Voyages") || folderName.includes("✈️")) {
+    return <Plane className="h-4 w-4" />;
+  }
+  if (folderName.includes("Sécurité") || folderName.includes("🔐")) {
+    return <Shield className="h-4 w-4" />;
+  }
+  if (folderName.includes("Newsletters") || folderName.includes("📧")) {
+    return <Mail className="h-4 w-4" />;
+  }
+  if (folderName.includes("Réseaux") || folderName.includes("👥")) {
+    return <Users className="h-4 w-4" />;
+  }
+  if (folderName.includes("Notifications") || folderName.includes("🔔")) {
+    return <Bell className="h-4 w-4" />;
+  }
+  return <FolderOpen className="h-4 w-4" />;
+};
 
 const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
   const { toast } = useToast();
@@ -64,8 +107,8 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
       const parsedAuth = JSON.parse(storedAuth);
 
       toast({
-        title: "🧠 Tri intelligent en cours",
-        description: "Classification des emails par IA...",
+        title: "🧠 Classification intelligente en cours",
+        description: "Analyse des emails par IA pour organisation automatique...",
       });
 
       // Simulation du progrès
@@ -93,7 +136,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
 
       toast({
         title: "✅ Classification terminée",
-        description: `${data.totalProcessed} emails classifiés en ${Object.keys(data.categorizedEmails).length} catégories`,
+        description: `${data.totalProcessed} emails classifiés en ${Object.keys(data.categorizedEmails).length} catégories pour archivage intelligent`,
       });
     } catch (error) {
       console.error("Erreur lors du tri intelligent:", error);
@@ -187,8 +230,8 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
       }
 
       toast({
-        title: "🎉 Tri intelligent terminé",
-        description: `${data.totalProcessed} emails organisés avec succès dans leurs dossiers !`,
+        title: "🎉 Organisation intelligente terminée",
+        description: `${data.totalProcessed} emails organisés avec succès dans leurs dossiers d'archivage !`,
       });
 
       // Réinitialiser l'état
@@ -210,7 +253,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
     return (
       <div className="text-center py-8">
         <Brain className="h-16 w-16 mx-auto text-green-500 mb-4" />
-        <h3 className="text-xl font-bold text-green-600">Aucun email à trier</h3>
+        <h3 className="text-xl font-bold text-green-600">Aucun email à organiser</h3>
         <p className="text-muted-foreground mt-2">
           Veuillez d'abord effectuer un scan de vos emails
         </p>
@@ -221,9 +264,9 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
   return (
     <div className="space-y-6">
       <div className="text-center mb-6">
-        <h3 className="text-2xl font-bold mb-2">Tri Intelligent</h3>
+        <h3 className="text-2xl font-bold mb-2">Organisation Intelligente</h3>
         <p className="text-muted-foreground mb-4">
-          Classification automatique de vos emails par catégories
+          Classification automatique par IA pour archivage personnel et professionnel
         </p>
       </div>
 
@@ -232,7 +275,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5" />
-              Configuration du tri
+              Configuration de l'organisation
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -251,14 +294,44 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                {formatNumber(scanState.results.emails.length)} emails seront analysés
+                {formatNumber(scanState.results.emails.length)} emails seront analysés et organisés selon leur importance
               </p>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="font-medium text-blue-900 mb-2">Catégories d'organisation :</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-800">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Administratif / Professionnel
+                </div>
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Finance / Banque
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  Achats Importants
+                </div>
+                <div className="flex items-center gap-2">
+                  <Plane className="h-4 w-4" />
+                  Voyages & Justificatifs
+                </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Sécurité & Accès
+                </div>
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4" />
+                  Autres catégories...
+                </div>
+              </div>
             </div>
 
             {isProcessing && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Classification en cours...</span>
+                  <span className="text-sm font-medium">Classification par IA en cours...</span>
                   <span className="text-sm text-muted-foreground">{processingProgress}%</span>
                 </div>
                 <Progress value={processingProgress} className="h-2" />
@@ -278,7 +351,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
               ) : (
                 <>
                   <Brain className="h-4 w-4 mr-2" />
-                  Commencer le tri intelligent
+                  Commencer l'organisation intelligente
                 </>
               )}
             </Button>
@@ -291,7 +364,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
               <CardTitle className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <FolderPlus className="h-5 w-5" />
-                  Dossiers proposés
+                  Dossiers d'organisation proposés
                 </span>
                 <span className="text-sm font-normal text-muted-foreground">
                   {selectedFolders.size} sur {Object.keys(categorizedEmails).length} sélectionnés
@@ -300,7 +373,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Vérifiez et modifiez les noms de dossiers si nécessaire, puis confirmez la sélection :
+                Vérifiez et modifiez les noms de dossiers si nécessaire, puis confirmez l'organisation :
               </p>
 
               <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -326,6 +399,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
                         </div>
                       ) : (
                         <div className="flex items-center space-x-2">
+                          {getFolderIcon(folderName)}
                           <span className="font-medium">{folderName}</span>
                           <Button
                             size="sm"
@@ -358,7 +432,7 @@ const SmartSortingView = ({ scanState }: SmartSortingViewProps) => {
                   ) : (
                     <>
                       <FolderPlus className="h-4 w-4 mr-2" />
-                      Appliquer le tri ({Array.from(selectedFolders).reduce((sum, folder) => 
+                      Appliquer l'organisation ({Array.from(selectedFolders).reduce((sum, folder) => 
                         sum + (categorizedEmails[folder]?.length || 0), 0)} emails)
                     </>
                   )}
