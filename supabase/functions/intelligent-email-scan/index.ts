@@ -53,7 +53,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Démarrage du scan intelligent des emails...');
 
-    // Récupérer TOUS les emails avec pagination
+    // Limiter à 5000 emails maximum pour éviter les timeouts
+    const MAX_EMAILS = 5000;
     let allMessageIds: string[] = [];
     let nextPageToken: string | undefined;
 
@@ -82,13 +83,20 @@ const handler = async (req: Request): Promise<Response> => {
       
       console.log(`Récupéré ${allMessageIds.length} IDs d'emails jusqu'à présent...`);
       
+      // Arrêter à 5000 emails max
+      if (allMessageIds.length >= MAX_EMAILS) {
+        allMessageIds = allMessageIds.slice(0, MAX_EMAILS);
+        console.log(`Limite de ${MAX_EMAILS} emails atteinte, arrêt du scan`);
+        break;
+      }
+      
     } while (nextPageToken);
 
     console.log(`Analyse de ${allMessageIds.length} emails...`);
 
-    // Traiter tous les emails par batches
+    // Traiter les emails par plus petits batches (25 au lieu de 50)
     const allEmails: EmailData[] = [];
-    const batchSize = 50;
+    const batchSize = 25;
     const totalBatches = Math.ceil(allMessageIds.length / batchSize);
 
     for (let i = 0; i < allMessageIds.length; i += batchSize) {
@@ -100,7 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
       const batchPromises = batch.map(async (messageId) => {
         try {
           const messageResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
             {
               headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -117,22 +125,29 @@ const handler = async (req: Request): Promise<Response> => {
             const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
             const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
             
-            // Récupérer le snippet
+            // Récupérer le snippet via une requête séparée plus légère
             const snippet = messageData.snippet || '';
             
             // Vérifier si l'email est non lu
             const isUnread = messageData.labelIds?.includes('UNREAD') || false;
             
-            // Calculer les jours depuis réception
+            // Calculer les jours depuis réception avec une gestion d'erreur améliorée
             let emailDate: Date;
+            let daysSinceReceived: number;
+            
             try {
               emailDate = dateHeader ? new Date(dateHeader) : new Date();
+              // Vérifier si la date est valide
+              if (isNaN(emailDate.getTime())) {
+                console.warn(`Date invalide pour l'email ${messageId}: ${dateHeader}`);
+                emailDate = new Date();
+              }
+              daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
             } catch (error) {
-              console.error(`Erreur lors du traitement de l'email ${messageId}:`, error);
+              console.error(`Erreur lors du traitement de la date pour l'email ${messageId}:`, error);
               emailDate = new Date();
+              daysSinceReceived = 0;
             }
-            
-            const daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
             
             // Classification de l'email
             const classification = classifyEmail(subject, from, snippet, isUnread, daysSinceReceived);
@@ -160,6 +175,11 @@ const handler = async (req: Request): Promise<Response> => {
       const batchResults = await Promise.all(batchPromises);
       const validResults = batchResults.filter((email): email is EmailData => email !== null);
       allEmails.push(...validResults);
+      
+      // Pause plus longue entre les batches pour réduire la charge CPU
+      if (i + batchSize < allMessageIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
     }
 
     // Analyser les expéditeurs pour identifier ceux avec >1 email
