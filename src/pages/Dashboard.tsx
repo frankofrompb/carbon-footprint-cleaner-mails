@@ -8,7 +8,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Leaf, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
 
 const Dashboard = () => {
   const { authState, logout } = useAuth();
@@ -51,6 +50,10 @@ const Dashboard = () => {
   useEffect(() => {
     if (scanState.status === 'completed' && scanState.results) {
       console.log('Scan completed, redirecting to results...', scanState.results);
+      
+      // Stocker les résultats dans le localStorage pour les récupérer sur la page suivante
+      localStorage.setItem('scanResults', JSON.stringify(scanState.results));
+      
       // Attendre un peu pour que l'utilisateur voie le succès
       const timer = setTimeout(() => {
         navigate('/scan-results');
