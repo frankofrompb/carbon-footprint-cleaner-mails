@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +47,7 @@ interface ScanResults {
     notificationEmails: number;
     spamEmails: number;
     autoClassifiableEmails: number;
+    duplicateSenderEmails: number;
   };
 }
 
@@ -92,6 +92,13 @@ const categoryConfig = {
     color: "destructive",
     bgColor: "bg-red-50",
     borderColor: "border-red-200"
+  },
+  duplicate_sender: {
+    icon: <Users className="h-4 w-4" />,
+    label: "Expéditeurs multiples",
+    color: "default",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200"
   },
   order_confirmation: {
     icon: <ShoppingCart className="h-4 w-4" />,
@@ -183,9 +190,9 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
               <div className="text-2xl font-bold text-blue-600">{formatNumber(results.summary.socialEmails)}</div>
               <div className="text-sm text-blue-700">Réseaux sociaux</div>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-              <div className="text-2xl font-bold text-green-600">{formatNumber(results.summary.autoClassifiableEmails)}</div>
-              <div className="text-sm text-green-700">Auto-classifiables</div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="text-2xl font-bold text-purple-600">{formatNumber(results.summary.duplicateSenderEmails)}</div>
+              <div className="text-sm text-purple-700">Expéditeurs multiples</div>
             </div>
           </div>
         </CardContent>

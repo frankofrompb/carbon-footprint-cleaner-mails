@@ -1,4 +1,3 @@
-
 export interface EmailData {
   id: string;
   subject: string;
@@ -31,6 +30,7 @@ export interface ScanResults {
     notificationEmails: number;
     spamEmails: number;
     autoClassifiableEmails: number;
+    duplicateSenderEmails: number; // Nouvelle catégorie ajoutée
   };
 }
 

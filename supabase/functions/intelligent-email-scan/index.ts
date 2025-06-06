@@ -1,5 +1,4 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -36,24 +35,25 @@ interface ScanResults {
     notificationEmails: number;
     spamEmails: number;
     autoClassifiableEmails: number;
+    duplicateSenderEmails: number;
   };
 }
 
-serve(async (req) => {
+const handler = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { accessToken } = await req.json();
-
+    
     if (!accessToken) {
-      throw new Error('Token d\'accès manquant');
+      throw new Error('Access token is required');
     }
 
     console.log('Démarrage du scan intelligent des emails...');
 
-    // Récupérer tous les emails avec pagination
+    // Récupérer TOUS les emails avec pagination
     let allMessageIds: string[] = [];
     let nextPageToken: string | undefined;
 
@@ -68,6 +68,7 @@ serve(async (req) => {
       });
 
       if (!searchResponse.ok) {
+        console.error('Gmail API search error:', await searchResponse.text());
         throw new Error('Erreur lors de la recherche des emails');
       }
 
@@ -79,23 +80,22 @@ serve(async (req) => {
       
       nextPageToken = searchData.nextPageToken;
       
-      // Limiter à 2000 emails pour éviter les timeouts
-      if (allMessageIds.length >= 2000) {
-        break;
-      }
+      console.log(`Récupéré ${allMessageIds.length} IDs d'emails jusqu'à présent...`);
       
     } while (nextPageToken);
 
     console.log(`Analyse de ${allMessageIds.length} emails...`);
 
+    // Traiter tous les emails par batches
     const allEmails: EmailData[] = [];
     const batchSize = 50;
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const totalBatches = Math.ceil(allMessageIds.length / batchSize);
 
     for (let i = 0; i < allMessageIds.length; i += batchSize) {
       const batch = allMessageIds.slice(i, i + batchSize);
-      console.log(`Traitement du lot ${Math.floor(i / batchSize) + 1}/${Math.ceil(allMessageIds.length / batchSize)}`);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      
+      console.log(`Traitement du lot ${batchNumber}/${totalBatches}`);
       
       const batchPromises = batch.map(async (messageId) => {
         try {
@@ -117,17 +117,27 @@ serve(async (req) => {
             const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
             const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
             
-            const emailDate = dateHeader ? new Date(dateHeader) : new Date();
-            const daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            const isUnread = messageData.labelIds?.includes('UNREAD') || false;
-            const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
-            
-            // Extraire le snippet/contenu pour classification
+            // Récupérer le snippet
             const snippet = messageData.snippet || '';
             
-            // Classification intelligente
+            // Vérifier si l'email est non lu
+            const isUnread = messageData.labelIds?.includes('UNREAD') || false;
+            
+            // Calculer les jours depuis réception
+            let emailDate: Date;
+            try {
+              emailDate = dateHeader ? new Date(dateHeader) : new Date();
+            } catch (error) {
+              console.error(`Erreur lors du traitement de l'email ${messageId}:`, error);
+              emailDate = new Date();
+            }
+            
+            const daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            // Classification de l'email
             const classification = classifyEmail(subject, from, snippet, isUnread, daysSinceReceived);
+            
+            const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
 
             return {
               id: messageId,
@@ -150,23 +160,43 @@ serve(async (req) => {
       const batchResults = await Promise.all(batchPromises);
       const validResults = batchResults.filter((email): email is EmailData => email !== null);
       allEmails.push(...validResults);
-      
-      // Pause entre les lots
-      if (i + batchSize < allMessageIds.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
     }
+
+    // Analyser les expéditeurs pour identifier ceux avec >1 email
+    const senderCounts = new Map<string, number>();
+    allEmails.forEach(email => {
+      const sender = email.from.toLowerCase();
+      senderCounts.set(sender, (senderCounts.get(sender) || 0) + 1);
+    });
+
+    // Reclassifier les emails selon les expéditeurs multiples
+    allEmails.forEach(email => {
+      const sender = email.from.toLowerCase();
+      const count = senderCounts.get(sender) || 0;
+      
+      // Si l'expéditeur a plus d'1 email et que l'email n'est pas déjà dans une catégorie prioritaire
+      if (count > 1 && email.classification.category === 'other') {
+        email.classification = {
+          category: 'duplicate_sender',
+          confidence: 0.9,
+          suggestedAction: 'group',
+          reasoning: `Expéditeur avec ${count} emails`
+        };
+      }
+    });
+
+    // Trier par date (plus récents en premier)
+    allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     // Calculer les statistiques
     const summary = {
-      oldUnreadEmails: allEmails.filter(e => e.isUnread && e.daysSinceReceived > 180).length,
+      oldUnreadEmails: allEmails.filter(e => e.classification.category === 'old_unread').length,
       promotionalEmails: allEmails.filter(e => e.classification.category === 'promotional').length,
       socialEmails: allEmails.filter(e => e.classification.category === 'social').length,
       notificationEmails: allEmails.filter(e => e.classification.category === 'notification').length,
       spamEmails: allEmails.filter(e => e.classification.category === 'spam').length,
-      autoClassifiableEmails: allEmails.filter(e => 
-        ['order_confirmation', 'travel', 'invoice', 'newsletter'].includes(e.classification.category)
-      ).length,
+      autoClassifiableEmails: allEmails.filter(e => e.classification.category !== 'other' && e.classification.category !== 'duplicate_sender').length,
+      duplicateSenderEmails: allEmails.filter(e => e.classification.category === 'duplicate_sender').length,
     };
 
     const totalSize = allEmails.reduce((sum, email) => sum + (email.size || 0), 0);
@@ -177,7 +207,7 @@ serve(async (req) => {
       totalEmails: allEmails.length,
       totalSizeMB,
       carbonFootprint,
-      emails: allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      emails: allEmails,
       summary,
     };
 
@@ -188,11 +218,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Erreur dans le scan intelligent:', error);
+    console.error('Error in intelligent email scan function:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
-        details: 'Vérifiez les logs de la fonction pour plus d\'informations'
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        details: 'Check the function logs for more information'
       }),
       {
         status: 500,
@@ -200,115 +230,74 @@ serve(async (req) => {
       }
     );
   }
-});
+};
 
 function classifyEmail(subject: string, from: string, snippet: string, isUnread: boolean, daysSinceReceived: number) {
   const subjectLower = subject.toLowerCase();
   const fromLower = from.toLowerCase();
   const snippetLower = snippet.toLowerCase();
   
-  // Règles de classification basées sur des mots-clés et patterns
-  
-  // Emails non lus depuis plus de 6 mois
+  // 1. Emails non lus anciens (>6 mois)
   if (isUnread && daysSinceReceived > 180) {
     return {
       category: 'old_unread',
       confidence: 0.95,
       suggestedAction: 'delete',
-      reasoning: 'Email non lu depuis plus de 6 mois'
+      reasoning: `Email non lu depuis ${daysSinceReceived} jours`
     };
   }
   
-  // Confirmations de commande
-  if (subjectLower.includes('commande') || subjectLower.includes('confirmation') || 
-      subjectLower.includes('reçu') || subjectLower.includes('facture') || 
-      subjectLower.includes('order') || subjectLower.includes('receipt')) {
-    return {
-      category: 'order_confirmation',
-      confidence: 0.85,
-      suggestedAction: 'organize',
-      reasoning: 'Confirmation de commande détectée'
-    };
-  }
-  
-  // Emails de voyage
-  if (subjectLower.includes('vol') || subjectLower.includes('réservation') || 
-      subjectLower.includes('hôtel') || subjectLower.includes('booking') || 
-      subjectLower.includes('flight') || subjectLower.includes('travel')) {
-    return {
-      category: 'travel',
-      confidence: 0.85,
-      suggestedAction: 'organize',
-      reasoning: 'Email de voyage détecté'
-    };
-  }
-  
-  // Promotions et marketing
-  if (subjectLower.includes('promotion') || subjectLower.includes('offre') || 
-      subjectLower.includes('soldes') || subjectLower.includes('réduction') || 
-      subjectLower.includes('discount') || subjectLower.includes('sale') ||
-      snippetLower.includes('unsubscribe') || snippetLower.includes('désabonner')) {
+  // 2. Emails promotionnels
+  const promoKeywords = ['unsubscribe', 'promotion', 'sale', 'discount', 'offer', 'deal', 'marketing', 'promo', 'newsletter'];
+  if (promoKeywords.some(keyword => subjectLower.includes(keyword) || fromLower.includes(keyword) || snippetLower.includes(keyword))) {
     return {
       category: 'promotional',
-      confidence: 0.80,
-      suggestedAction: 'unsubscribe_or_delete',
-      reasoning: 'Email promotionnel détecté'
+      confidence: 0.8,
+      suggestedAction: 'archive',
+      reasoning: 'Contenu promotionnel détecté'
     };
   }
   
-  // Réseaux sociaux
-  if (fromLower.includes('facebook') || fromLower.includes('twitter') || 
-      fromLower.includes('linkedin') || fromLower.includes('instagram') || 
-      fromLower.includes('notification') || fromLower.includes('@facebook') ||
-      subjectLower.includes('a aimé') || subjectLower.includes('notification')) {
+  // 3. Réseaux sociaux
+  const socialSenders = ['facebook', 'twitter', 'linkedin', 'instagram', 'tiktok', 'youtube'];
+  if (socialSenders.some(social => fromLower.includes(social))) {
     return {
       category: 'social',
-      confidence: 0.85,
-      suggestedAction: 'organize_or_delete',
+      confidence: 0.9,
+      suggestedAction: 'archive',
       reasoning: 'Notification de réseau social'
     };
   }
   
-  // Newsletters
-  if (subjectLower.includes('newsletter') || subjectLower.includes('bulletin') || 
-      fromLower.includes('newsletter') || fromLower.includes('no-reply') ||
-      fromLower.includes('noreply')) {
-    return {
-      category: 'newsletter',
-      confidence: 0.80,
-      suggestedAction: 'organize',
-      reasoning: 'Newsletter détectée'
-    };
-  }
-  
-  // Spam potentiel
-  if (subjectLower.includes('urgent') || subjectLower.includes('félicitations') || 
-      subjectLower.includes('gratuit') || subjectLower.includes('gagné') || 
-      subjectLower.includes('winner') || subjectLower.includes('congratulations')) {
-    return {
-      category: 'spam',
-      confidence: 0.75,
-      suggestedAction: 'delete',
-      reasoning: 'Contenu suspect de spam'
-    };
-  }
-  
-  // Notifications système
-  if (fromLower.includes('notification') || fromLower.includes('alert') || 
-      subjectLower.includes('rappel') || subjectLower.includes('reminder')) {
+  // 4. Notifications
+  const notificationKeywords = ['notification', 'alert', 'reminder', 'update'];
+  if (notificationKeywords.some(keyword => subjectLower.includes(keyword))) {
     return {
       category: 'notification',
-      confidence: 0.70,
-      suggestedAction: 'organize',
-      reasoning: 'Notification système'
+      confidence: 0.7,
+      suggestedAction: 'archive',
+      reasoning: 'Email de notification'
     };
   }
   
-  // Par défaut
+  // 5. Spam potentiel
+  const spamKeywords = ['urgent', 'winner', 'lottery', 'click here', 'free money'];
+  if (spamKeywords.some(keyword => subjectLower.includes(keyword) || snippetLower.includes(keyword))) {
+    return {
+      category: 'spam',
+      confidence: 0.8,
+      suggestedAction: 'delete',
+      reasoning: 'Contenu suspect détecté'
+    };
+  }
+  
+  // 6. Autres catégories par défaut
   return {
     category: 'other',
-    confidence: 0.50,
+    confidence: 0.5,
     suggestedAction: 'review',
-    reasoning: 'Classification automatique non déterminée'
+    reasoning: 'Classification manuelle requise'
   };
 }
+
+serve(handler);
