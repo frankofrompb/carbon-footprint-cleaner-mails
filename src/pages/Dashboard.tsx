@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useScanEmails } from "@/hooks/useScanEmails";
@@ -46,7 +45,7 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Rediriger vers les résultats après un scan réussi - corrigé
+  // Rediriger vers les résultats après un scan réussi
   useEffect(() => {
     if (scanState.status === 'completed' && scanState.results) {
       console.log('Scan completed, redirecting to results...', scanState.results);
