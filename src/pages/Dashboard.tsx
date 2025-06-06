@@ -47,23 +47,15 @@ const Dashboard = () => {
 
   // Rediriger vers les résultats après un scan réussi
   useEffect(() => {
-    if (scanState.status === 'completed' && scanState.results) {
-      console.log('Scan completed, redirecting to results...', scanState.results);
-      
-      // Stocker les résultats dans le localStorage pour les récupérer sur la page suivante
-      localStorage.setItem('scanResults', JSON.stringify(scanState.results));
-      
+    if (scanState.status === 'completed') {
       // Attendre un peu pour que l'utilisateur voie le succès
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         navigate('/scan-results');
-      }, 1500);
-      
-      return () => clearTimeout(timer);
+      }, 2000);
     }
-  }, [scanState.status, scanState.results, navigate]);
+  }, [scanState.status, navigate]);
 
   const handleStartScan = () => {
-    console.log('Starting intelligent scan...');
     scanEmails('intelligent-scan');
   };
 
@@ -83,38 +75,6 @@ const Dashboard = () => {
     }
     return email.split('@')[0];
   };
-
-  // Afficher l'état de scan en cours
-  if (scanState.status === 'scanning') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61]">
-        <Header 
-          isAuthenticated={!!authState.userEmail}
-          userEmail={authState.userEmail}
-          onLogout={logout}
-        />
-        
-        <div className="container mx-auto px-5 py-8 max-w-6xl">
-          <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg">
-            <CardContent className="p-8 text-center">
-              <div className="w-16 h-16 border-4 border-[#38c39d] border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">Scan Intelligent en Cours...</h2>
-              <p className="text-xl text-gray-600 mb-6">Analyse de votre boîte mail Gmail</p>
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-                <div 
-                  className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] h-3 rounded-full transition-all duration-500" 
-                  style={{ width: `${scanState.progress}%` }}
-                ></div>
-              </div>
-              <p className="text-lg text-gray-600">{scanState.progress}% terminé</p>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61]">

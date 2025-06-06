@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { ScanResults, EmailData } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,7 +9,6 @@ interface ScanState {
   error: string | null;
   progress: number;
   intelligentResults?: any;
-  allEmailsResults?: ScanResults | null;
 }
 
 export const useScanEmails = () => {
@@ -30,6 +29,7 @@ export const useScanEmails = () => {
     });
 
     try {
+      // Récupérer le token d'accès depuis le localStorage
       const storedAuth = localStorage.getItem("emailCleanerAuth");
       if (!storedAuth) {
         throw new Error("Aucun token d'accès trouvé. Veuillez vous reconnecter.");
@@ -40,14 +40,20 @@ export const useScanEmails = () => {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
 
-      // Utiliser scan-all-gmail pour tous les types de scan pour éviter les erreurs
-      const functionName = 'scan-all-gmail';
+      // Choisir la fonction appropriée selon le type de scan
+      const functionName = scanType === 'intelligent-scan' 
+        ? 'intelligent-email-scan'
+        : (scanType === 'sender-analysis' || scanType === 'smart-sorting') 
+        ? 'scan-all-gmail' 
+        : 'scan-gmail';
       
-      const description = scanType === 'sender-analysis' 
+      const description = scanType === 'intelligent-scan'
+        ? "Scan intelligent en cours : détection des emails non lus +6 mois, classification automatique..."
+        : scanType === 'sender-analysis' 
         ? "Analyse de tous vos emails en cours..." 
         : scanType === 'smart-sorting'
         ? "Récupération des emails pour tri intelligent..."
-        : "Analyse de votre boîte Gmail en cours...";
+        : "Analyse de votre vraie boîte Gmail en cours...";
 
       toast({
         title: "Scan démarré",
@@ -55,9 +61,11 @@ export const useScanEmails = () => {
       });
 
       console.log(`Calling ${functionName} function...`);
+
+      // Simuler progression
       setScanState(prev => ({ ...prev, progress: 25 }));
 
-      // Ajouter un timeout plus long pour les gros scans
+      // Appeler la fonction Edge appropriée
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           accessToken: parsedAuth.accessToken
@@ -66,75 +74,49 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
-      console.log("Function response:", { data, error });
-
       if (error) {
         console.error("Function error:", error);
-        
-        // Gestion spécifique des erreurs de quota
-        if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-          throw new Error("Limite de quota Gmail atteinte. Veuillez réessayer dans quelques minutes.");
-        }
-        
         throw new Error(`Erreur lors du scan: ${error.message}`);
-      }
-
-      if (!data) {
-        throw new Error("Aucune donnée reçue du scan");
       }
 
       if (data.error) {
         console.error("Gmail API error:", data.error);
-        
-        // Gestion spécifique des erreurs de quota Gmail
-        if (data.error.includes('Quota exceeded') || data.error.includes('rateLimitExceeded')) {
-          throw new Error("Limite de quota Gmail atteinte. Veuillez réessayer dans quelques minutes.");
-        }
-        
         throw new Error(`Erreur Gmail: ${data.error}`);
       }
 
       console.log("Scan results:", data);
 
-      const newState: ScanState = {
+      setScanState({
         status: 'completed',
         results: data,
         error: null,
         progress: 100,
-      };
-
-      if (scanType === 'sender-analysis' || scanType === 'smart-sorting') {
-        newState.allEmailsResults = data;
-      }
-
-      setScanState(newState);
-
-      const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails";
-      toast({
-        title: "Scan terminé",
-        description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
       });
+
+      if (scanType === 'intelligent-scan') {
+        toast({
+          title: "Scan intelligent terminé",
+          description: `${data.summary?.oldUnreadEmails || 0} emails non lus +6 mois, ${data.summary?.promotionalEmails || 0} promotionnels, ${data.summary?.autoClassifiableEmails || 0} auto-classifiables détectés`,
+        });
+      } else {
+        const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
+        toast({
+          title: "Scan terminé",
+          description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
+        });
+      }
     } catch (error) {
       console.error("Erreur lors du scan des emails", error);
-      
-      let errorMessage = "Erreur lors du scan des emails";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'string') {
-        errorMessage = error;
-      }
-      
       setScanState({
         status: 'error',
         results: null,
-        error: errorMessage,
+        error: error instanceof Error ? error.message : "Erreur lors du scan des emails",
         progress: 0,
       });
 
       toast({
         title: "Échec du scan",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la recherche des emails",
         variant: "destructive",
       });
     }
@@ -144,6 +126,7 @@ export const useScanEmails = () => {
     if (!scanState.results) return;
 
     try {
+      // Récupérer le token d'accès
       const storedAuth = localStorage.getItem("emailCleanerAuth");
       if (!storedAuth) {
         throw new Error("Aucun token d'accès trouvé. Veuillez vous reconnecter.");
@@ -172,6 +155,7 @@ export const useScanEmails = () => {
 
       console.log("Calling Gmail delete function...");
 
+      // Appeler la fonction Edge pour supprimer les emails
       const { data, error } = await supabase.functions.invoke('delete-gmail-emails', {
         body: {
           accessToken: parsedAuth.accessToken,
@@ -191,13 +175,15 @@ export const useScanEmails = () => {
 
       console.log("Delete results:", data);
 
-      const carbonSaved = emailCount * 10;
+      // Calculer l'empreinte carbone économisée
+      const carbonSaved = emailCount * 10; // 10g par email
 
       toast({
         title: "Suppression terminée",
         description: `${data.deletedCount || emailCount} emails supprimés avec succès de votre boîte Gmail ! Vous avez économisé ${carbonSaved}g de CO₂!`,
       });
 
+      // Réinitialiser les résultats
       setScanState({
         status: 'idle',
         results: null,
@@ -218,9 +204,10 @@ export const useScanEmails = () => {
     if (!scanState.results?.emails.length) return;
 
     try {
+      // Créer le contenu CSV
       const headers = ["Sujet", "Expéditeur", "Date", "Taille (Ko)"];
       const rows = scanState.results.emails.map(email => [
-        `"${email.subject.replace(/"/g, '""')}"`,
+        `"${email.subject.replace(/"/g, '""')}"`, // Échapper les guillemets
         `"${email.from.replace(/"/g, '""')}"`,
         new Date(email.date).toLocaleDateString(),
         email.size?.toString() || "0"
@@ -231,11 +218,12 @@ export const useScanEmails = () => {
         ...rows.map(row => row.join(","))
       ].join("\n");
 
+      // Créer un blob et un lien de téléchargement
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `emails_gmail_${new Date().toISOString().split("T")[0]}.csv`);
+      link.setAttribute("download", `emails_non_lus_gmail_${new Date().toISOString().split("T")[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
