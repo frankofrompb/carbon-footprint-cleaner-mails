@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useScanEmails } from "@/hooks/useScanEmails";
@@ -5,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Leaf, Search } from "lucide-react";
+import { Leaf, Search, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
@@ -56,6 +57,7 @@ const Dashboard = () => {
   }, [scanState.status, navigate]);
 
   const handleStartScan = () => {
+    console.log('🚀 Démarrage du scan intelligent réel...');
     scanEmails('intelligent-scan');
   };
 
@@ -122,17 +124,27 @@ const Dashboard = () => {
                   <div className="w-15 h-15 bg-gradient-to-br from-[#FF6B6B] to-[#FF8E8E] rounded-2xl flex items-center justify-center text-white text-3xl">
                     <Search />
                   </div>
-                  <h2 className="text-2xl font-semibold text-gray-800">Commencer le Scan</h2>
+                  <h2 className="text-2xl font-semibold text-gray-800">Scan Intelligent Réel</h2>
+                </div>
+
+                {/* Alerte pour le scan réel */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <strong>Scan de votre vraie boîte Gmail</strong><br />
+                    Ce scan va analyser tous vos emails réels pour détecter les catégories d'optimisation. 
+                    Temps estimé : 2-5 minutes selon la taille de votre boîte.
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-6">
                   <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
                     <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.emails.toLocaleString()}</span>
-                    <div className="text-gray-600 text-xs mt-1">Emails détectés</div>
+                    <div className="text-gray-600 text-xs mt-1">Emails estimés</div>
                   </div>
                   <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
                     <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.space} GB</span>
-                    <div className="text-gray-600 text-xs mt-1">Espace utilisé</div>
+                    <div className="text-gray-600 text-xs mt-1">Espace estimé</div>
                   </div>
                   <div className="text-center p-4 bg-[#38c39d]/10 rounded-xl border border-[#38c39d]/20">
                     <span className="text-2xl font-bold text-[#38c39d] block">{animatedStats.co2} kg</span>
@@ -141,14 +153,14 @@ const Dashboard = () => {
                 </div>
 
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Le scan va permettre de :</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Le scan intelligent va :</h3>
                   <div className="space-y-3">
                     {[
-                      "Identifier les emails volumineux et inutiles",
-                      "Détecter les newsletters non lues depuis 6 mois",
-                      "Trouver les doublons et spams archivés",
-                      "Calculer l'impact carbone de chaque catégorie",
-                      "Proposer un nettoyage intelligent et sécurisé"
+                      "Analyser TOUS vos emails Gmail (peut prendre quelques minutes)",
+                      "Détecter les emails non lus depuis +6 mois",
+                      "Classifier automatiquement promotions, réseaux sociaux, notifications",
+                      "Identifier les expéditeurs avec emails multiples",
+                      "Calculer l'impact carbone réel de votre boîte"
                     ].map((feature, index) => (
                       <div key={index} className="flex items-center gap-3 p-3 bg-[#38c39d]/5 rounded-lg">
                         <div className="w-5 h-5 bg-[#38c39d] rounded-full flex items-center justify-center text-white text-xs">✓</div>
@@ -163,8 +175,30 @@ const Dashboard = () => {
                   disabled={scanState.status === 'scanning'}
                   className="w-full bg-gradient-to-r from-[#FF6B6B] to-[#FF8E8E] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-lg py-4 rounded-2xl"
                 >
-                  {scanState.status === 'scanning' ? '⏳ Scan en cours...' : '🚀 Lancer le Scan Intelligent'}
+                  {scanState.status === 'scanning' ? '⏳ Scan en cours...' : '🚀 Lancer le Scan Intelligent RÉEL'}
                 </Button>
+
+                {scanState.status === 'scanning' && (
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="text-sm text-yellow-800 mb-2">
+                      <strong>Scan en cours...</strong> Progression : {scanState.progress}%
+                    </div>
+                    <div className="w-full bg-yellow-200 rounded-full h-2">
+                      <div 
+                        className="bg-yellow-600 h-2 rounded-full transition-all duration-300" 
+                        style={{width: `${scanState.progress}%`}}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {scanState.status === 'error' && (
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="text-sm text-red-800">
+                      <strong>Erreur :</strong> {scanState.error}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
