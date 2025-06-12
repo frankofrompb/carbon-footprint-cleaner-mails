@@ -15,7 +15,16 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
   const [email, setEmail] = useState("");
 
   const handleStartCleaning = () => {
-    console.log("🚀 Démarrage du nettoyage pour l'email:", email);
+    console.log("🚀 DÉMARRAGE du processus de connexion Gmail");
+    console.log("📧 Email saisi:", email);
+    
+    // Vérifier si Google Identity Services est disponible
+    if (typeof window !== 'undefined' && window.google) {
+      console.log("✅ Google Identity Services détecté");
+    } else {
+      console.error("❌ Google Identity Services non disponible");
+    }
+    
     // Déclencher l'authentification Gmail
     onLoginWithGmail();
   };
@@ -45,18 +54,25 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                 <div className="bg-white rounded-full px-4 py-2 flex items-center shadow-sm">
                   <Input
                     type="email"
-                    placeholder="Email"
+                    placeholder="Votre email Gmail"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400 flex-1"
                   />
                   <Button 
                     onClick={handleStartCleaning}
-                    disabled={isLoading || !email.trim()}
-                    className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-4 py-1 rounded-full text-sm disabled:opacity-50"
+                    disabled={isLoading}
+                    className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-6 py-2 rounded-full text-sm disabled:opacity-50"
                   >
-                    {isLoading ? "Connexion..." : "Commencez le nettoyage"}
+                    {isLoading ? "Connexion en cours..." : "Se connecter avec Gmail"}
                   </Button>
+                </div>
+                
+                {/* Message d'aide */}
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">
+                    Cliquez sur "Se connecter avec Gmail" pour accéder au scan intelligent
+                  </p>
                 </div>
               </div>
               

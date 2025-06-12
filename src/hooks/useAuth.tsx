@@ -1,266 +1,211 @@
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { AuthState } from "@/types";
 
-// Client ID Gmail pour l'accès à l'API
-const GMAIL_CLIENT_ID = "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com";
-
-// Périmètres étendus pour Gmail avec permissions de suppression
-const GMAIL_SCOPES = [
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/gmail.modify",
-  "https://mail.google.com/",
-  "https://www.googleapis.com/auth/userinfo.email",
-  "https://www.googleapis.com/auth/userinfo.profile"
-].join(" ");
-
-// Déclaration globale pour Google Identity Services
-declare global {
-  interface Window {
-    google: any;
-  }
+interface AuthState {
+  userEmail: string | null;
+  loading: boolean;
 }
 
 export const useAuth = () => {
   const { toast } = useToast();
   const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    provider: null,
     userEmail: null,
-    accessToken: null,
     loading: false,
-    error: null,
   });
 
-  // Vérifier l'état de l'authentification au chargement
   useEffect(() => {
     console.log("🔍 Vérification de l'authentification stockée...");
+    
+    // Vérifier si l'utilisateur est déjà connecté
     const storedAuth = localStorage.getItem("emailCleanerAuth");
     if (storedAuth) {
       try {
         const parsedAuth = JSON.parse(storedAuth);
-        console.log("📱 Données d'auth trouvées:", { ...parsedAuth, accessToken: "***" });
+        console.log("📱 Auth trouvée:", { email: parsedAuth.userEmail, hasToken: !!parsedAuth.accessToken });
         
-        // Vérifier si le token est encore valide
-        if (parsedAuth.accessToken && parsedAuth.expiryTime > Date.now()) {
-          console.log("✅ Token encore valide");
+        if (parsedAuth.userEmail && parsedAuth.accessToken) {
           setAuthState({
-            isAuthenticated: true,
-            provider: parsedAuth.provider,
             userEmail: parsedAuth.userEmail,
-            accessToken: parsedAuth.accessToken,
             loading: false,
-            error: null,
           });
+          console.log("✅ Utilisateur déjà connecté:", parsedAuth.userEmail);
         } else {
-          console.log("⏰ Token expiré, nettoyage...");
+          console.log("⚠️ Auth incomplète, nettoyage...");
           localStorage.removeItem("emailCleanerAuth");
         }
       } catch (error) {
-        console.error("❌ Erreur lors de la lecture des données d'authentification", error);
+        console.error("❌ Erreur lors du parsing de l'auth:", error);
         localStorage.removeItem("emailCleanerAuth");
       }
     } else {
       console.log("📱 Aucune donnée d'auth stockée");
     }
+
+    // Charger le script Google Identity Services
+    loadGoogleIdentityServices();
   }, []);
 
-  // Charger la nouvelle Google Identity Services API
-  useEffect(() => {
-    const loadGoogleIdentityServices = () => {
-      console.log("📦 Chargement de Google Identity Services...");
-      
-      // Charger le script Google Identity Services
-      const script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.onload = () => {
-        console.log("✅ Google Identity Services chargé");
-        
-        // Initialiser Google Identity Services
-        if (window.google?.accounts?.oauth2) {
-          console.log("🔐 Google OAuth2 disponible");
-        }
-      };
-      script.onerror = () => {
-        console.error("❌ Erreur de chargement de Google Identity Services");
-      };
-      document.head.appendChild(script);
-    };
-
-    if (!window.google?.accounts) {
-      loadGoogleIdentityServices();
-    }
-  }, []);
-
-  // Se connecter avec Gmail
-  const loginWithGmail = useCallback(() => {
-    console.log("🚀 Démarrage de la connexion Gmail...");
-    setAuthState((prev) => ({ ...prev, loading: true, error: null }));
+  const loadGoogleIdentityServices = () => {
+    console.log("📦 Chargement de Google Identity Services...");
     
-    if (!window.google?.accounts?.oauth2) {
-      console.error("❌ Google Identity Services non chargé");
-      setAuthState((prev) => ({
-        ...prev,
-        loading: false,
-        error: "Google Identity Services non disponible. Veuillez rafraîchir la page."
-      }));
-      toast({
-        title: "Erreur de connexion",
-        description: "Google Identity Services non disponible. Veuillez rafraîchir la page.",
-        variant: "destructive",
-      });
+    if (document.getElementById("google-identity-script")) {
+      console.log("✅ Script déjà chargé");
       return;
     }
 
-    console.log("🔐 Demande de connexion à Google avec scopes étendus...");
+    const script = document.createElement("script");
+    script.id = "google-identity-script";
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = () => {
+      console.log("✅ Google Identity Services chargé");
+      initializeGoogleAuth();
+    };
+    
+    script.onerror = () => {
+      console.error("❌ Erreur lors du chargement de Google Identity Services");
+    };
+    
+    document.head.appendChild(script);
+  };
 
-    try {
-      // Créer un client OAuth2 avec la nouvelle API et les scopes étendus
-      const client = window.google.accounts.oauth2.initTokenClient({
-        client_id: GMAIL_CLIENT_ID,
-        scope: GMAIL_SCOPES,
-        callback: (response: any) => {
-          console.log("✅ Réponse OAuth2 reçue:", { ...response, access_token: "***" });
-          
-          if (response.access_token) {
-            // Récupérer les informations utilisateur
-            fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-              headers: {
-                'Authorization': `Bearer ${response.access_token}`
-              }
-            })
-            .then(res => res.json())
-            .then(userInfo => {
-              console.log("📋 Informations utilisateur reçues:", {
-                email: userInfo.email,
-                name: userInfo.name
-              });
-              
-              const authData = {
-                provider: "gmail" as const,
-                userEmail: userInfo.email,
-                accessToken: response.access_token,
-                expiryTime: Date.now() + (response.expires_in * 1000),
-              };
-              
-              localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
-              
-              setAuthState({
-                isAuthenticated: true,
-                provider: "gmail",
-                userEmail: userInfo.email,
-                accessToken: response.access_token,
-                loading: false,
-                error: null,
-              });
-              
-              toast({
-                title: "Authentification réussie",
-                description: `Connecté avec ${userInfo.email} - Permissions de suppression accordées`,
-              });
-            })
-            .catch(error => {
-              console.error("❌ Erreur lors de la récupération des infos utilisateur:", error);
-              setAuthState((prev) => ({
-                ...prev,
-                loading: false,
-                error: "Impossible de récupérer les informations utilisateur.",
-              }));
-              
-              toast({
-                title: "Erreur d'authentification",
-                description: "Impossible de récupérer les informations utilisateur.",
-                variant: "destructive",
-              });
-            });
-          } else if (response.error) {
-            console.error("❌ Erreur OAuth2:", response.error);
-            
-            let errorMessage = "Échec de l'authentification. Veuillez réessayer.";
-            if (response.error === 'popup_closed_by_user') {
-              errorMessage = "Connexion annulée par l'utilisateur.";
-            } else if (response.error === 'access_denied') {
-              errorMessage = "Accès refusé. Veuillez autoriser l'application à accéder à Gmail.";
-            }
-            
-            setAuthState((prev) => ({
-              ...prev,
-              loading: false,
-              error: errorMessage,
-            }));
-            
-            toast({
-              title: "Échec de l'authentification",
-              description: errorMessage,
-              variant: "destructive",
-            });
-          }
+  const initializeGoogleAuth = () => {
+    if (typeof window !== 'undefined' && window.google) {
+      console.log("🔐 Google OAuth2 disponible");
+      
+      window.google.accounts.oauth2.initTokenClient({
+        client_id: "1082053717769-lfgcgj7e5vfnlfq7r6qv4rj0m8d3k5l0.apps.googleusercontent.com",
+        scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
+        callback: handleGoogleAuthSuccess,
+      });
+    } else {
+      console.error("❌ Google Identity Services non disponible");
+    }
+  };
+
+  const handleGoogleAuthSuccess = (response: any) => {
+    console.log("🎉 Réponse d'authentification Google reçue:", {
+      hasAccessToken: !!response.access_token,
+      tokenLength: response.access_token?.length
+    });
+
+    if (response.access_token) {
+      setAuthState({ userEmail: null, loading: true });
+      
+      // Récupérer les informations du profil utilisateur
+      fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: {
+          Authorization: `Bearer ${response.access_token}`,
         },
-        error_callback: (error: any) => {
-          console.error("❌ Erreur callback OAuth2:", error);
-          setAuthState((prev) => ({
-            ...prev,
+      })
+        .then((res) => {
+          console.log("📊 Réponse profil utilisateur:", res.status);
+          return res.json();
+        })
+        .then((userInfo) => {
+          console.log("👤 Informations utilisateur récupérées:", {
+            email: userInfo.email,
+            name: userInfo.name
+          });
+          
+          // Sauvegarder les données d'authentification
+          const authData = {
+            userEmail: userInfo.email,
+            accessToken: response.access_token,
+            userInfo: userInfo,
+          };
+          
+          localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
+          
+          setAuthState({
+            userEmail: userInfo.email,
             loading: false,
-            error: "Erreur lors de l'authentification.",
-          }));
+          });
+
+          toast({
+            title: "Connexion réussie !",
+            description: `Connecté en tant que ${userInfo.email}`,
+          });
+
+          console.log("✅ Authentification terminée avec succès");
+        })
+        .catch((error) => {
+          console.error("❌ Erreur lors de la récupération du profil:", error);
+          setAuthState({ userEmail: null, loading: false });
           
           toast({
-            title: "Erreur d'authentification",
-            description: "Erreur lors de l'authentification.",
+            title: "Erreur de connexion",
+            description: "Impossible de récupérer les informations du profil",
             variant: "destructive",
           });
-        }
-      });
-
-      // Demander le token
-      client.requestAccessToken();
-      
-    } catch (error) {
-      console.error("❌ Erreur lors de l'initialisation OAuth2:", error);
-      setAuthState((prev) => ({
-        ...prev,
-        loading: false,
-        error: "Erreur lors de l'initialisation de l'authentification.",
-      }));
+        });
+    } else {
+      console.error("❌ Aucun token d'accès reçu");
+      setAuthState({ userEmail: null, loading: false });
       
       toast({
         title: "Erreur d'authentification",
-        description: "Erreur lors de l'initialisation de l'authentification.",
+        description: "Aucun token d'accès reçu de Google",
         variant: "destructive",
       });
     }
-  }, [toast]);
+  };
 
-  // Se déconnecter
-  const logout = useCallback(() => {
-    console.log("🚪 Déconnexion...");
+  const loginWithGmail = () => {
+    console.log("🚀 Début du processus d'authentification Gmail...");
     
-    // Révoquer le token si possible
-    if (authState.accessToken && window.google?.accounts?.oauth2) {
+    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
+      console.log("🔑 Déclenchement du popup d'authentification Google");
+      
+      setAuthState(prev => ({ ...prev, loading: true }));
+      
       try {
-        window.google.accounts.oauth2.revoke(authState.accessToken, () => {
-          console.log("✅ Token révoqué");
-        });
+        // Déclencher le popup d'authentification
+        window.google.accounts.oauth2.initTokenClient({
+          client_id: "1082053717769-lfgcgj7e5vfnlfq7r6qv4rj0m8d3k5l0.apps.googleusercontent.com",
+          scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
+          callback: handleGoogleAuthSuccess,
+        }).requestAccessToken();
+        
+        console.log("📱 Popup d'authentification demandé");
       } catch (error) {
-        console.warn("⚠️ Erreur lors de la révocation du token:", error);
+        console.error("❌ Erreur lors du déclenchement de l'auth:", error);
+        setAuthState(prev => ({ ...prev, loading: false }));
+        
+        toast({
+          title: "Erreur de connexion",
+          description: "Impossible de démarrer l'authentification Google",
+          variant: "destructive",
+        });
       }
+    } else {
+      console.error("❌ Google OAuth2 non disponible");
+      
+      toast({
+        title: "Service indisponible",
+        description: "Les services d'authentification Google ne sont pas encore chargés. Veuillez réessayer dans quelques secondes.",
+        variant: "destructive",
+      });
     }
+  };
+
+  const logout = () => {
+    console.log("👋 Déconnexion de l'utilisateur");
     
     localStorage.removeItem("emailCleanerAuth");
     setAuthState({
-      isAuthenticated: false,
-      provider: null,
       userEmail: null,
-      accessToken: null,
       loading: false,
-      error: null,
     });
+
     toast({
       title: "Déconnexion réussie",
-      description: "Vous êtes maintenant déconnecté",
+      description: "Vous avez été déconnecté avec succès",
     });
-  }, [toast, authState.accessToken]);
+  };
 
   return {
     authState,
