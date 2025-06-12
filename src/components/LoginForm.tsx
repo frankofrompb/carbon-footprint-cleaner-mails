@@ -19,10 +19,10 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
     console.log("📧 Email saisi:", email);
     
     // Vérifier si Google Identity Services est disponible
-    if (typeof window !== 'undefined' && window.google) {
+    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
       console.log("✅ Google Identity Services détecté");
     } else {
-      console.error("❌ Google Identity Services non disponible");
+      console.warn("⚠️ Google Identity Services non encore disponible, tentative de connexion...");
     }
     
     // Déclencher l'authentification Gmail
@@ -58,20 +58,28 @@ const LoginForm = ({ onLoginWithGmail, isLoading }: LoginFormProps) => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-gray-600 placeholder:text-gray-400 flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleStartCleaning();
+                      }
+                    }}
                   />
                   <Button 
                     onClick={handleStartCleaning}
                     disabled={isLoading}
                     className="ml-2 bg-[#6366f1] hover:bg-[#5855eb] text-white px-6 py-2 rounded-full text-sm disabled:opacity-50"
                   >
-                    {isLoading ? "Connexion en cours..." : "Se connecter avec Gmail"}
+                    {isLoading ? "Connexion..." : "Se connecter avec Gmail"}
                   </Button>
                 </div>
                 
                 {/* Message d'aide */}
                 <div className="text-center">
                   <p className="text-xs text-gray-500">
-                    Cliquez sur "Se connecter avec Gmail" pour accéder au scan intelligent
+                    {isLoading 
+                      ? "Connexion en cours, veuillez patienter..." 
+                      : "Cliquez sur \"Se connecter avec Gmail\" pour accéder au scan intelligent"
+                    }
                   </p>
                 </div>
               </div>

@@ -13,6 +13,7 @@ export const useAuth = () => {
     userEmail: null,
     loading: false,
   });
+  const [googleClient, setGoogleClient] = useState<any>(null);
 
   useEffect(() => {
     console.log("🔍 Vérification de l'authentification stockée...");
@@ -49,8 +50,15 @@ export const useAuth = () => {
   const loadGoogleIdentityServices = () => {
     console.log("📦 Chargement de Google Identity Services...");
     
+    // Vérifier si déjà chargé
+    if (window.google?.accounts?.oauth2) {
+      console.log("✅ Google Identity Services déjà disponible");
+      initializeGoogleAuth();
+      return;
+    }
+
     if (document.getElementById("google-identity-script")) {
-      console.log("✅ Script déjà chargé");
+      console.log("📦 Script déjà en cours de chargement...");
       return;
     }
 
@@ -61,39 +69,86 @@ export const useAuth = () => {
     script.defer = true;
     
     script.onload = () => {
-      console.log("✅ Google Identity Services chargé");
-      initializeGoogleAuth();
+      console.log("✅ Google Identity Services chargé avec succès");
+      // Attendre un peu que tout soit initialisé
+      setTimeout(() => {
+        initializeGoogleAuth();
+      }, 100);
     };
     
     script.onerror = () => {
       console.error("❌ Erreur lors du chargement de Google Identity Services");
+      toast({
+        title: "Erreur de chargement",
+        description: "Impossible de charger les services Google. Vérifiez votre connexion internet.",
+        variant: "destructive",
+      });
     };
     
     document.head.appendChild(script);
   };
 
   const initializeGoogleAuth = () => {
-    if (typeof window !== 'undefined' && window.google) {
-      console.log("🔐 Google OAuth2 disponible");
+    console.log("🔐 Initialisation de Google OAuth2...");
+    
+    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
+      console.log("✅ Google OAuth2 disponible, création du client...");
       
-      window.google.accounts.oauth2.initTokenClient({
-        client_id: "1082053717769-lfgcgj7e5vfnlfq7r6qv4rj0m8d3k5l0.apps.googleusercontent.com",
-        scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
-        callback: handleGoogleAuthSuccess,
-      });
+      try {
+        const client = window.google.accounts.oauth2.initTokenClient({
+          client_id: "1082053717769-lfgcgj7e5vfnlfq7r6qv4rj0m8d3k5l0.apps.googleusercontent.com",
+          scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
+          callback: handleGoogleAuthSuccess,
+        });
+        
+        setGoogleClient(client);
+        console.log("✅ Client Google OAuth2 initialisé avec succès");
+      } catch (error) {
+        console.error("❌ Erreur lors de l'initialisation du client OAuth2:", error);
+        toast({
+          title: "Erreur d'initialisation",
+          description: "Impossible d'initialiser l'authentification Google",
+          variant: "destructive",
+        });
+      }
     } else {
-      console.error("❌ Google Identity Services non disponible");
+      console.error("❌ Google Identity Services non disponible après chargement");
+      toast({
+        title: "Service indisponible",
+        description: "Les services Google ne sont pas disponibles",
+        variant: "destructive",
+      });
     }
   };
 
   const handleGoogleAuthSuccess = (response: any) => {
-    console.log("🎉 Réponse d'authentification Google reçue:", {
+    console.log("🎉 Réponse d'authentification Google:", {
       hasAccessToken: !!response.access_token,
-      tokenLength: response.access_token?.length
+      tokenLength: response.access_token?.length,
+      error: response.error
     });
 
+    if (response.error) {
+      console.error("❌ Erreur dans la réponse Google:", response.error);
+      setAuthState(prev => ({ ...prev, loading: false }));
+      
+      if (response.error === 'popup_closed_by_user') {
+        toast({
+          title: "Connexion annulée",
+          description: "La fenêtre de connexion a été fermée",
+        });
+      } else {
+        toast({
+          title: "Erreur d'authentification",
+          description: `Erreur Google: ${response.error}`,
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
     if (response.access_token) {
-      setAuthState({ userEmail: null, loading: true });
+      console.log("🔑 Token d'accès reçu, récupération du profil...");
       
       // Récupérer les informations du profil utilisateur
       fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
@@ -103,6 +158,9 @@ export const useAuth = () => {
       })
         .then((res) => {
           console.log("📊 Réponse profil utilisateur:", res.status);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+          }
           return res.json();
         })
         .then((userInfo) => {
@@ -116,6 +174,7 @@ export const useAuth = () => {
             userEmail: userInfo.email,
             accessToken: response.access_token,
             userInfo: userInfo,
+            timestamp: Date.now()
           };
           
           localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
@@ -157,36 +216,34 @@ export const useAuth = () => {
   const loginWithGmail = () => {
     console.log("🚀 Début du processus d'authentification Gmail...");
     
-    if (typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
+    if (!googleClient) {
+      console.error("❌ Client Google non initialisé");
+      toast({
+        title: "Service non prêt",
+        description: "Les services d'authentification ne sont pas encore prêts. Veuillez réessayer dans quelques secondes.",
+        variant: "destructive",
+      });
+      
+      // Réessayer d'initialiser
+      setTimeout(() => {
+        initializeGoogleAuth();
+      }, 1000);
+      return;
+    }
+    
+    setAuthState(prev => ({ ...prev, loading: true }));
+    
+    try {
       console.log("🔑 Déclenchement du popup d'authentification Google");
-      
-      setAuthState(prev => ({ ...prev, loading: true }));
-      
-      try {
-        // Déclencher le popup d'authentification
-        window.google.accounts.oauth2.initTokenClient({
-          client_id: "1082053717769-lfgcgj7e5vfnlfq7r6qv4rj0m8d3k5l0.apps.googleusercontent.com",
-          scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
-          callback: handleGoogleAuthSuccess,
-        }).requestAccessToken();
-        
-        console.log("📱 Popup d'authentification demandé");
-      } catch (error) {
-        console.error("❌ Erreur lors du déclenchement de l'auth:", error);
-        setAuthState(prev => ({ ...prev, loading: false }));
-        
-        toast({
-          title: "Erreur de connexion",
-          description: "Impossible de démarrer l'authentification Google",
-          variant: "destructive",
-        });
-      }
-    } else {
-      console.error("❌ Google OAuth2 non disponible");
+      googleClient.requestAccessToken();
+      console.log("📱 Popup d'authentification demandé");
+    } catch (error) {
+      console.error("❌ Erreur lors du déclenchement de l'auth:", error);
+      setAuthState(prev => ({ ...prev, loading: false }));
       
       toast({
-        title: "Service indisponible",
-        description: "Les services d'authentification Google ne sont pas encore chargés. Veuillez réessayer dans quelques secondes.",
+        title: "Erreur de connexion",
+        description: "Impossible de démarrer l'authentification Google",
         variant: "destructive",
       });
     }
