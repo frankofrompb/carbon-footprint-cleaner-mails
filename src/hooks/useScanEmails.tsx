@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ScanResults, EmailData } from "@/types";
@@ -78,7 +77,9 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
-      console.log('📊 Réponse de la fonction:', { data, error });
+      console.log('📊 DONNÉES BRUTES REÇUES:', data);
+      console.log('📊 TYPE DE data:', typeof data);
+      console.log('📊 CLÉS DE data:', data ? Object.keys(data) : 'data est null');
 
       if (error) {
         console.error("Function error:", error);
@@ -91,10 +92,24 @@ export const useScanEmails = () => {
       }
 
       console.log("✅ Résultats du scan reçus:", data);
+      console.log("📧 Nombre d'emails dans data.emails:", data.emails?.length || 0);
+      console.log("📊 Summary dans data:", data.summary);
+
+      const processedResults = {
+        ...data,
+        // S'assurer que les données sont dans le bon format
+        totalEmails: data.totalEmails || 0,
+        emails: data.emails || [],
+        summary: data.summary || {},
+        carbonFootprint: data.carbonFootprint || 0,
+        totalSizeMB: data.totalSizeMB || 0
+      };
+
+      console.log("🔄 Résultats traités:", processedResults);
 
       setScanState({
         status: 'completed',
-        results: data,
+        results: processedResults,
         error: null,
         progress: 100,
       });
