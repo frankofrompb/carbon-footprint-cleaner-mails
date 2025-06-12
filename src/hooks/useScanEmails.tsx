@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { ScanResults, EmailData } from "@/types";
+import { ScanResults } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { useScanResultsHandler } from "./useScanResultsHandler";
 
 interface ScanState {
   status: 'idle' | 'scanning' | 'completed' | 'error';
@@ -12,6 +13,7 @@ interface ScanState {
 
 export const useScanEmails = () => {
   const { toast } = useToast();
+  const { processRawScanData, validateScanResults } = useScanResultsHandler();
   const [scanState, setScanState] = useState<ScanState>({
     status: 'idle',
     results: null,
@@ -77,35 +79,39 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
-      console.log('📊 DONNÉES BRUTES REÇUES:', data);
-      console.log('📊 TYPE DE data:', typeof data);
-      console.log('📊 CLÉS DE data:', data ? Object.keys(data) : 'data est null');
+      console.log('📊 DONNÉES BRUTES REÇUES DE LA FONCTION:', {
+        data: data,
+        dataType: typeof data,
+        dataKeys: data ? Object.keys(data) : 'pas de clés',
+        error: error,
+        totalEmails: data?.totalEmails,
+        emailsCount: data?.emails?.length
+      });
 
       if (error) {
         console.error("Function error:", error);
         throw new Error(`Erreur lors du scan: ${error.message}`);
       }
 
-      if (data.error) {
+      if (data?.error) {
         console.error("Gmail API error:", data.error);
         throw new Error(`Erreur Gmail: ${data.error}`);
       }
 
-      console.log("✅ Résultats du scan reçus:", data);
-      console.log("📧 Nombre d'emails dans data.emails:", data.emails?.length || 0);
-      console.log("📊 Summary dans data:", data.summary);
+      // Traiter les résultats avec le handler dédié
+      const processedResults = processRawScanData(data);
+      
+      // Valider les résultats
+      if (!validateScanResults(processedResults)) {
+        throw new Error("Les données reçues sont invalides");
+      }
 
-      const processedResults = {
-        ...data,
-        // S'assurer que les données sont dans le bon format
-        totalEmails: data.totalEmails || 0,
-        emails: data.emails || [],
-        summary: data.summary || {},
-        carbonFootprint: data.carbonFootprint || 0,
-        totalSizeMB: data.totalSizeMB || 0
-      };
-
-      console.log("🔄 Résultats traités:", processedResults);
+      console.log("✅ RÉSULTATS FINAUX TRAITÉS:", {
+        totalEmails: processedResults.totalEmails,
+        emailsCount: processedResults.emails.length,
+        carbonFootprint: processedResults.carbonFootprint,
+        hasSummary: !!processedResults.summary
+      });
 
       setScanState({
         status: 'completed',
@@ -117,13 +123,13 @@ export const useScanEmails = () => {
       if (scanType === 'intelligent-scan') {
         toast({
           title: "Scan intelligent terminé",
-          description: `${data.totalEmails} emails trouvés : ${data.summary?.oldUnreadEmails || 0} non lus +6 mois, ${data.summary?.promotionalEmails || 0} promotionnels, ${data.summary?.autoClassifiableEmails || 0} auto-classifiables`,
+          description: `${processedResults.totalEmails} emails trouvés : ${processedResults.summary?.oldUnreadEmails || 0} non lus +6 mois, ${processedResults.summary?.promotionalEmails || 0} promotionnels`,
         });
       } else {
         const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
         toast({
           title: "Scan terminé",
-          description: `${data.totalEmails} ${emailText} trouvés dans votre boîte Gmail, ${data.carbonFootprint}g de CO₂`,
+          description: `${processedResults.totalEmails} ${emailText} trouvés dans votre boîte Gmail`,
         });
       }
     } catch (error) {
@@ -141,13 +147,12 @@ export const useScanEmails = () => {
         variant: "destructive",
       });
     }
-  }, [toast]);
+  }, [toast, processRawScanData, validateScanResults]);
 
   const deleteEmails = useCallback(async (emailIds: string[]) => {
     if (!scanState.results) return;
 
     try {
-      // Récupérer le token d'accès
       const storedAuth = localStorage.getItem("emailCleanerAuth");
       if (!storedAuth) {
         throw new Error("Aucun token d'accès trouvé. Veuillez vous reconnecter.");
@@ -176,7 +181,6 @@ export const useScanEmails = () => {
 
       console.log("Calling Gmail delete function...");
 
-      // Appeler la fonction Edge pour supprimer les emails
       const { data, error } = await supabase.functions.invoke('delete-gmail-emails', {
         body: {
           accessToken: parsedAuth.accessToken,
@@ -196,15 +200,13 @@ export const useScanEmails = () => {
 
       console.log("Delete results:", data);
 
-      // Calculer l'empreinte carbone économisée
-      const carbonSaved = emailCount * 10; // 10g par email
+      const carbonSaved = emailCount * 10;
 
       toast({
         title: "Suppression terminée",
         description: `${data.deletedCount || emailCount} emails supprimés avec succès de votre boîte Gmail ! Vous avez économisé ${carbonSaved}g de CO₂!`,
       });
 
-      // Réinitialiser les résultats
       setScanState({
         status: 'idle',
         results: null,
@@ -225,10 +227,9 @@ export const useScanEmails = () => {
     if (!scanState.results?.emails.length) return;
 
     try {
-      // Créer le contenu CSV
       const headers = ["Sujet", "Expéditeur", "Date", "Taille (Ko)", "Classification", "Action suggérée"];
       const rows = scanState.results.emails.map(email => [
-        `"${email.subject.replace(/"/g, '""')}"`, // Échapper les guillemets
+        `"${email.subject.replace(/"/g, '""')}"`,
         `"${email.from.replace(/"/g, '""')}"`,
         new Date(email.date).toLocaleDateString(),
         email.size?.toString() || "0",
@@ -241,7 +242,6 @@ export const useScanEmails = () => {
         ...rows.map(row => row.join(","))
       ].join("\n");
 
-      // Créer un blob et un lien de téléchargement
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
