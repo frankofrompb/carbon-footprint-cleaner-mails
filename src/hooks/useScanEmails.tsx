@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ScanResults, EmailData } from "@/types";
@@ -8,7 +9,6 @@ interface ScanState {
   results: ScanResults | null;
   error: string | null;
   progress: number;
-  intelligentResults?: any;
 }
 
 export const useScanEmails = () => {
@@ -21,6 +21,8 @@ export const useScanEmails = () => {
   });
 
   const scanEmails = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan') => {
+    console.log('🚀 useScanEmails - Démarrage du scan:', scanType);
+    
     setScanState({
       status: 'scanning',
       results: null,
@@ -39,6 +41,8 @@ export const useScanEmails = () => {
       if (!parsedAuth.accessToken) {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
+
+      console.log('🔑 Token récupéré, longueur:', parsedAuth.accessToken.length);
 
       // Choisir la fonction appropriée selon le type de scan
       const functionName = scanType === 'intelligent-scan' 
@@ -60,7 +64,7 @@ export const useScanEmails = () => {
         description: description,
       });
 
-      console.log(`Calling ${functionName} function...`);
+      console.log(`📡 Appel de la fonction ${functionName}...`);
 
       // Simuler progression
       setScanState(prev => ({ ...prev, progress: 25 }));
@@ -74,6 +78,8 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
+      console.log('📊 Réponse de la fonction:', { data, error });
+
       if (error) {
         console.error("Function error:", error);
         throw new Error(`Erreur lors du scan: ${error.message}`);
@@ -84,7 +90,7 @@ export const useScanEmails = () => {
         throw new Error(`Erreur Gmail: ${data.error}`);
       }
 
-      console.log("Scan results:", data);
+      console.log("✅ Résultats du scan reçus:", data);
 
       setScanState({
         status: 'completed',
@@ -96,7 +102,7 @@ export const useScanEmails = () => {
       if (scanType === 'intelligent-scan') {
         toast({
           title: "Scan intelligent terminé",
-          description: `${data.summary?.oldUnreadEmails || 0} emails non lus +6 mois, ${data.summary?.promotionalEmails || 0} promotionnels, ${data.summary?.autoClassifiableEmails || 0} auto-classifiables détectés`,
+          description: `${data.totalEmails} emails trouvés : ${data.summary?.oldUnreadEmails || 0} non lus +6 mois, ${data.summary?.promotionalEmails || 0} promotionnels, ${data.summary?.autoClassifiableEmails || 0} auto-classifiables`,
         });
       } else {
         const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
@@ -106,7 +112,7 @@ export const useScanEmails = () => {
         });
       }
     } catch (error) {
-      console.error("Erreur lors du scan des emails", error);
+      console.error("❌ Erreur lors du scan des emails", error);
       setScanState({
         status: 'error',
         results: null,
@@ -205,12 +211,14 @@ export const useScanEmails = () => {
 
     try {
       // Créer le contenu CSV
-      const headers = ["Sujet", "Expéditeur", "Date", "Taille (Ko)"];
+      const headers = ["Sujet", "Expéditeur", "Date", "Taille (Ko)", "Classification", "Action suggérée"];
       const rows = scanState.results.emails.map(email => [
         `"${email.subject.replace(/"/g, '""')}"`, // Échapper les guillemets
         `"${email.from.replace(/"/g, '""')}"`,
         new Date(email.date).toLocaleDateString(),
-        email.size?.toString() || "0"
+        email.size?.toString() || "0",
+        email.classification?.category || "other",
+        email.classification?.suggestedAction || "review"
       ]);
 
       const csvContent = [
@@ -223,14 +231,14 @@ export const useScanEmails = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `emails_non_lus_gmail_${new Date().toISOString().split("T")[0]}.csv`);
+      link.setAttribute("download", `scan_intelligent_gmail_${new Date().toISOString().split("T")[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       toast({
         title: "Export réussi",
-        description: "Le fichier CSV de vos emails Gmail a été téléchargé avec succès",
+        description: "Le fichier CSV de votre scan intelligent a été téléchargé avec succès",
       });
     } catch (error) {
       console.error("Erreur lors de l'export des emails", error);
