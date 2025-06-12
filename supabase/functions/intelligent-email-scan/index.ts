@@ -51,7 +51,32 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Access token is required');
     }
 
-    console.log('Démarrage du scan intelligent des emails...');
+    console.log('🔍 DÉMARRAGE DU SCAN INTELLIGENT - VÉRIFICATION DE L\'AUTHENTIFICATION');
+    console.log('📧 Token reçu (premiers caractères):', accessToken.substring(0, 20) + '...');
+
+    // ÉTAPE 1: Vérifier l'authentification en récupérant le profil utilisateur
+    console.log('🔐 Vérification du profil utilisateur Gmail...');
+    const profileResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!profileResponse.ok) {
+      const errorText = await profileResponse.text();
+      console.error('❌ ERREUR D\'AUTHENTIFICATION:', errorText);
+      throw new Error(`Erreur d'authentification Gmail: ${profileText}`);
+    }
+
+    const profileData = await profileResponse.json();
+    console.log('✅ PROFIL UTILISATEUR RÉCUPÉRÉ:');
+    console.log('📧 Email:', profileData.emailAddress);
+    console.log('📊 Total emails dans la boîte:', profileData.messagesTotal);
+    console.log('📂 Total threads:', profileData.threadsTotal);
+
+    // ÉTAPE 2: Commencer le scan des emails
+    console.log('🚀 Démarrage du scan intelligent pour:', profileData.emailAddress);
 
     // Limiter à 5000 emails maximum pour éviter les timeouts
     const MAX_EMAILS = 5000;
@@ -61,6 +86,8 @@ const handler = async (req: Request): Promise<Response> => {
     do {
       const searchUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
       
+      console.log('📡 Requête vers Gmail API:', searchUrl.replace(accessToken, '[TOKEN_MASQUÉ]'));
+      
       const searchResponse = await fetch(searchUrl, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -69,7 +96,8 @@ const handler = async (req: Request): Promise<Response> => {
       });
 
       if (!searchResponse.ok) {
-        console.error('Gmail API search error:', await searchResponse.text());
+        const errorText = await searchResponse.text();
+        console.error('❌ Erreur Gmail API search:', errorText);
         throw new Error('Erreur lors de la recherche des emails');
       }
 
@@ -77,22 +105,23 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (searchData.messages) {
         allMessageIds.push(...searchData.messages.map((msg: any) => msg.id));
+        console.log(`📨 Récupéré ${searchData.messages.length} nouveaux IDs d'emails`);
       }
       
       nextPageToken = searchData.nextPageToken;
       
-      console.log(`Récupéré ${allMessageIds.length} IDs d'emails jusqu'à présent...`);
+      console.log(`📊 Total IDs récupérés: ${allMessageIds.length}`);
       
       // Arrêter à 5000 emails max
       if (allMessageIds.length >= MAX_EMAILS) {
         allMessageIds = allMessageIds.slice(0, MAX_EMAILS);
-        console.log(`Limite de ${MAX_EMAILS} emails atteinte, arrêt du scan`);
+        console.log(`⚠️ Limite de ${MAX_EMAILS} emails atteinte, arrêt du scan`);
         break;
       }
       
     } while (nextPageToken);
 
-    console.log(`Analyse de ${allMessageIds.length} emails...`);
+    console.log(`🎯 SCAN CONFIGURÉ POUR ${allMessageIds.length} emails de ${profileData.emailAddress}`);
 
     // Traiter les emails par plus petits batches (25 au lieu de 50)
     const allEmails: EmailData[] = [];
@@ -103,7 +132,7 @@ const handler = async (req: Request): Promise<Response> => {
       const batch = allMessageIds.slice(i, i + batchSize);
       const batchNumber = Math.floor(i / batchSize) + 1;
       
-      console.log(`Traitement du lot ${batchNumber}/${totalBatches}`);
+      console.log(`🔄 Traitement du lot ${batchNumber}/${totalBatches} (emails ${i + 1} à ${Math.min(i + batchSize, allMessageIds.length)})`);
       
       const batchPromises = batch.map(async (messageId) => {
         try {
@@ -125,6 +154,14 @@ const handler = async (req: Request): Promise<Response> => {
             const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
             const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
             
+            // Log des premiers emails pour vérification
+            if (allEmails.length < 3) {
+              console.log(`📧 EMAIL ${allEmails.length + 1}:`);
+              console.log(`   De: ${from}`);
+              console.log(`   Sujet: ${subject}`);
+              console.log(`   Date: ${dateHeader}`);
+            }
+            
             // Récupérer le snippet via une requête séparée plus légère
             const snippet = messageData.snippet || '';
             
@@ -139,12 +176,12 @@ const handler = async (req: Request): Promise<Response> => {
               emailDate = dateHeader ? new Date(dateHeader) : new Date();
               // Vérifier si la date est valide
               if (isNaN(emailDate.getTime())) {
-                console.warn(`Date invalide pour l'email ${messageId}: ${dateHeader}`);
+                console.warn(`⚠️ Date invalide pour l'email ${messageId}: ${dateHeader}`);
                 emailDate = new Date();
               }
               daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
             } catch (error) {
-              console.error(`Erreur lors du traitement de la date pour l'email ${messageId}:`, error);
+              console.error(`❌ Erreur lors du traitement de la date pour l'email ${messageId}:`, error);
               emailDate = new Date();
               daysSinceReceived = 0;
             }
@@ -167,7 +204,7 @@ const handler = async (req: Request): Promise<Response> => {
             };
           }
         } catch (error) {
-          console.error(`Erreur lors du traitement de l'email ${messageId}:`, error);
+          console.error(`❌ Erreur lors du traitement de l'email ${messageId}:`, error);
         }
         return null;
       });
@@ -231,14 +268,16 @@ const handler = async (req: Request): Promise<Response> => {
       summary,
     };
 
-    console.log('Scan intelligent terminé:', summary);
+    console.log(`✅ SCAN TERMINÉ POUR ${profileData.emailAddress}:`);
+    console.log(`   📧 ${results.totalEmails} emails analysés`);
+    console.log(`   📊 Résumé:`, summary);
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in intelligent email scan function:', error);
+    console.error('💥 ERREUR MAJEURE dans le scan intelligent:', error);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
