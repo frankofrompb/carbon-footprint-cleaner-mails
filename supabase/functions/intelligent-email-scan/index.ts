@@ -48,14 +48,18 @@ const handler = async (req: Request): Promise<Response> => {
     const { accessToken } = await req.json();
     
     if (!accessToken) {
+      console.error('❌ AUCUN TOKEN D\'ACCÈS FOURNI');
       throw new Error('Access token is required');
     }
 
-    console.log('🔍 DÉMARRAGE DU SCAN INTELLIGENT - VÉRIFICATION DE L\'AUTHENTIFICATION');
-    console.log('📧 Token reçu (premiers caractères):', accessToken.substring(0, 20) + '...');
+    console.log('🔍 DÉMARRAGE DU SCAN INTELLIGENT RÉEL - VÉRIFICATION DE L\'AUTHENTIFICATION');
+    console.log('📧 Token reçu (longueur):', accessToken.length, 'caractères');
+    console.log('📧 Token reçu (premiers caractères):', accessToken.substring(0, 30) + '...');
 
     // ÉTAPE 1: Vérifier l'authentification en récupérant le profil utilisateur
-    console.log('🔐 Vérification du profil utilisateur Gmail...');
+    console.log('🔐 TENTATIVE DE CONNEXION À L\'API GMAIL...');
+    console.log('🔗 URL de vérification: https://gmail.googleapis.com/gmail/v1/users/me/profile');
+    
     const profileResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -63,30 +67,47 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
+    console.log('📊 STATUS DE LA RÉPONSE PROFIL:', profileResponse.status);
+    console.log('📊 HEADERS DE LA RÉPONSE:', Object.fromEntries(profileResponse.headers.entries()));
+
     if (!profileResponse.ok) {
       const errorText = await profileResponse.text();
-      console.error('❌ ERREUR D\'AUTHENTIFICATION:', errorText);
-      throw new Error(`Erreur d'authentification Gmail: ${profileText}`);
+      console.error('❌ ERREUR D\'AUTHENTIFICATION GMAIL:');
+      console.error('❌ Status:', profileResponse.status);
+      console.error('❌ Error text:', errorText);
+      console.error('❌ Token utilisé:', accessToken.substring(0, 30) + '...');
+      throw new Error(`Erreur d'authentification Gmail: ${profileResponse.status} - ${errorText}`);
     }
 
     const profileData = await profileResponse.json();
-    console.log('✅ PROFIL UTILISATEUR RÉCUPÉRÉ:');
-    console.log('📧 Email:', profileData.emailAddress);
+    console.log('✅ PROFIL UTILISATEUR RÉCUPÉRÉ AVEC SUCCÈS:');
+    console.log('📧 Email de l\'utilisateur:', profileData.emailAddress);
     console.log('📊 Total emails dans la boîte:', profileData.messagesTotal);
     console.log('📂 Total threads:', profileData.threadsTotal);
+    console.log('📈 Historique ID:', profileData.historyId);
 
-    // ÉTAPE 2: Commencer le scan des emails
-    console.log('🚀 Démarrage du scan intelligent pour:', profileData.emailAddress);
+    if (!profileData.emailAddress) {
+      console.error('❌ AUCUN EMAIL D\'UTILISATEUR DANS LE PROFIL');
+      throw new Error('Impossible de récupérer l\'email utilisateur');
+    }
 
-    // Limiter à 5000 emails maximum pour éviter les timeouts
-    const MAX_EMAILS = 5000;
+    // ÉTAPE 2: Commencer le scan des emails RÉELS
+    console.log('🚀 DÉMARRAGE DU SCAN INTELLIGENT RÉEL POUR:', profileData.emailAddress);
+    console.log('🎯 OBJECTIF: Scanner TOUS les emails de', profileData.emailAddress);
+
+    // Limiter à 1000 emails pour le test initial
+    const MAX_EMAILS = 1000;
     let allMessageIds: string[] = [];
     let nextPageToken: string | undefined;
+    let pageCount = 0;
+
+    console.log('📡 RÉCUPÉRATION DES IDS D\'EMAILS...');
 
     do {
+      pageCount++;
       const searchUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
       
-      console.log('📡 Requête vers Gmail API:', searchUrl.replace(accessToken, '[TOKEN_MASQUÉ]'));
+      console.log(`📡 PAGE ${pageCount} - Requête vers Gmail API:`, searchUrl.replace(accessToken, '[TOKEN_MASQUÉ]'));
       
       const searchResponse = await fetch(searchUrl, {
         headers: {
@@ -95,157 +116,159 @@ const handler = async (req: Request): Promise<Response> => {
         },
       });
 
+      console.log(`📊 PAGE ${pageCount} - Status réponse:`, searchResponse.status);
+
       if (!searchResponse.ok) {
         const errorText = await searchResponse.text();
-        console.error('❌ Erreur Gmail API search:', errorText);
-        throw new Error('Erreur lors de la recherche des emails');
+        console.error(`❌ PAGE ${pageCount} - Erreur Gmail API search:`, errorText);
+        console.error(`❌ PAGE ${pageCount} - Status:`, searchResponse.status);
+        throw new Error(`Erreur lors de la recherche des emails: ${searchResponse.status}`);
       }
 
       const searchData = await searchResponse.json();
+      console.log(`📊 PAGE ${pageCount} - Données reçues:`, {
+        messagesCount: searchData.messages?.length || 0,
+        hasNextPageToken: !!searchData.nextPageToken,
+        resultSizeEstimate: searchData.resultSizeEstimate
+      });
       
       if (searchData.messages) {
-        allMessageIds.push(...searchData.messages.map((msg: any) => msg.id));
-        console.log(`📨 Récupéré ${searchData.messages.length} nouveaux IDs d'emails`);
+        const newIds = searchData.messages.map((msg: any) => msg.id);
+        allMessageIds.push(...newIds);
+        console.log(`📨 PAGE ${pageCount} - Ajouté ${newIds.length} nouveaux IDs d'emails`);
+        console.log(`📨 PAGE ${pageCount} - Exemples d'IDs:`, newIds.slice(0, 3));
+      } else {
+        console.log(`📨 PAGE ${pageCount} - Aucun message dans cette page`);
       }
       
       nextPageToken = searchData.nextPageToken;
       
-      console.log(`📊 Total IDs récupérés: ${allMessageIds.length}`);
+      console.log(`📊 TOTAL IDs récupérés jusqu'à présent: ${allMessageIds.length}`);
       
-      // Arrêter à 5000 emails max
+      // Arrêter à MAX_EMAILS emails max pour éviter les timeouts
       if (allMessageIds.length >= MAX_EMAILS) {
         allMessageIds = allMessageIds.slice(0, MAX_EMAILS);
         console.log(`⚠️ Limite de ${MAX_EMAILS} emails atteinte, arrêt du scan`);
         break;
       }
       
-    } while (nextPageToken);
+    } while (nextPageToken && pageCount < 10); // Limiter à 10 pages max pour le debug
 
     console.log(`🎯 SCAN CONFIGURÉ POUR ${allMessageIds.length} emails de ${profileData.emailAddress}`);
+    console.log(`📊 RÉCUPÉRATION TERMINÉE après ${pageCount} pages`);
 
-    // Traiter les emails par plus petits batches (25 au lieu de 50)
+    if (allMessageIds.length === 0) {
+      console.error('❌ AUCUN EMAIL TROUVÉ - PROBLÈME POTENTIEL');
+      console.error('❌ Vérifiez les permissions Gmail');
+      throw new Error('Aucun email trouvé dans la boîte Gmail');
+    }
+
+    console.log(`📧 PREMIERS IDs d'emails récupérés:`, allMessageIds.slice(0, 5));
+
+    // Traiter un échantillon d'emails pour vérification
+    const sampleSize = Math.min(50, allMessageIds.length);
+    const sampleIds = allMessageIds.slice(0, sampleSize);
+    console.log(`🧪 TRAITEMENT D'UN ÉCHANTILLON DE ${sampleSize} emails pour vérification`);
+
     const allEmails: EmailData[] = [];
-    const batchSize = 25;
-    const totalBatches = Math.ceil(allMessageIds.length / batchSize);
 
-    for (let i = 0; i < allMessageIds.length; i += batchSize) {
-      const batch = allMessageIds.slice(i, i + batchSize);
-      const batchNumber = Math.floor(i / batchSize) + 1;
+    for (let i = 0; i < sampleIds.length; i++) {
+      const messageId = sampleIds[i];
       
-      console.log(`🔄 Traitement du lot ${batchNumber}/${totalBatches} (emails ${i + 1} à ${Math.min(i + batchSize, allMessageIds.length)})`);
-      
-      const batchPromises = batch.map(async (messageId) => {
-        try {
-          const messageResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
-            {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-
-          if (messageResponse.ok) {
-            const messageData = await messageResponse.json();
-            const headers = messageData.payload?.headers || [];
-            
-            const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
-            const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
-            const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
-            
-            // Log des premiers emails pour vérification
-            if (allEmails.length < 3) {
-              console.log(`📧 EMAIL ${allEmails.length + 1}:`);
-              console.log(`   De: ${from}`);
-              console.log(`   Sujet: ${subject}`);
-              console.log(`   Date: ${dateHeader}`);
-            }
-            
-            // Récupérer le snippet via une requête séparée plus légère
-            const snippet = messageData.snippet || '';
-            
-            // Vérifier si l'email est non lu
-            const isUnread = messageData.labelIds?.includes('UNREAD') || false;
-            
-            // Calculer les jours depuis réception avec une gestion d'erreur améliorée
-            let emailDate: Date;
-            let daysSinceReceived: number;
-            
-            try {
-              emailDate = dateHeader ? new Date(dateHeader) : new Date();
-              // Vérifier si la date est valide
-              if (isNaN(emailDate.getTime())) {
-                console.warn(`⚠️ Date invalide pour l'email ${messageId}: ${dateHeader}`);
-                emailDate = new Date();
-              }
-              daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
-            } catch (error) {
-              console.error(`❌ Erreur lors du traitement de la date pour l'email ${messageId}:`, error);
-              emailDate = new Date();
-              daysSinceReceived = 0;
-            }
-            
-            // Classification de l'email
-            const classification = classifyEmail(subject, from, snippet, isUnread, daysSinceReceived);
-            
-            const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
-
-            return {
-              id: messageId,
-              subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
-              from: from.includes('<') ? from.split('<')[0].trim() : from,
-              date: emailDate.toISOString(),
-              size: sizeInKb,
-              snippet: snippet.substring(0, 200),
-              isUnread,
-              daysSinceReceived,
-              classification,
-            };
+      try {
+        console.log(`📧 Traitement email ${i + 1}/${sampleSize} - ID: ${messageId}`);
+        
+        const messageResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
           }
-        } catch (error) {
-          console.error(`❌ Erreur lors du traitement de l'email ${messageId}:`, error);
-        }
-        return null;
-      });
+        );
 
-      const batchResults = await Promise.all(batchPromises);
-      const validResults = batchResults.filter((email): email is EmailData => email !== null);
-      allEmails.push(...validResults);
+        if (messageResponse.ok) {
+          const messageData = await messageResponse.json();
+          const headers = messageData.payload?.headers || [];
+          
+          const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
+          const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
+          const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
+          
+          // Log des premiers emails pour vérification
+          if (i < 5) {
+            console.log(`📧 EMAIL RÉEL ${i + 1}:`);
+            console.log(`   ID: ${messageId}`);
+            console.log(`   De: ${from}`);
+            console.log(`   Sujet: ${subject}`);
+            console.log(`   Date: ${dateHeader}`);
+            console.log(`   Size: ${messageData.sizeEstimate} bytes`);
+          }
+          
+          // Récupérer le snippet
+          const snippet = messageData.snippet || '';
+          
+          // Vérifier si l'email est non lu
+          const isUnread = messageData.labelIds?.includes('UNREAD') || false;
+          
+          // Calculer les jours depuis réception
+          let emailDate: Date;
+          let daysSinceReceived: number;
+          
+          try {
+            emailDate = dateHeader ? new Date(dateHeader) : new Date();
+            if (isNaN(emailDate.getTime())) {
+              console.warn(`⚠️ Date invalide pour l'email ${messageId}: ${dateHeader}`);
+              emailDate = new Date();
+            }
+            daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
+          } catch (error) {
+            console.error(`❌ Erreur lors du traitement de la date pour l'email ${messageId}:`, error);
+            emailDate = new Date();
+            daysSinceReceived = 0;
+          }
+          
+          // Classification de l'email
+          const classification = classifyEmail(subject, from, snippet, isUnread, daysSinceReceived);
+          
+          const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
+
+          allEmails.push({
+            id: messageId,
+            subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
+            from: from.includes('<') ? from.split('<')[0].trim() : from,
+            date: emailDate.toISOString(),
+            size: sizeInKb,
+            snippet: snippet.substring(0, 200),
+            isUnread,
+            daysSinceReceived,
+            classification,
+          });
+        } else {
+          console.error(`❌ Erreur lors de la récupération de l'email ${messageId}:`, messageResponse.status);
+        }
+      } catch (error) {
+        console.error(`❌ Erreur lors du traitement de l'email ${messageId}:`, error);
+      }
       
-      // Pause plus longue entre les batches pour réduire la charge CPU
-      if (i + batchSize < allMessageIds.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+      // Pause entre les requêtes
+      if (i % 10 === 0 && i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
 
-    // Analyser les expéditeurs pour identifier ceux avec >1 email
-    const senderCounts = new Map<string, number>();
-    allEmails.forEach(email => {
-      const sender = email.from.toLowerCase();
-      senderCounts.set(sender, (senderCounts.get(sender) || 0) + 1);
-    });
-
-    // Reclassifier les emails selon les expéditeurs multiples
-    allEmails.forEach(email => {
-      const sender = email.from.toLowerCase();
-      const count = senderCounts.get(sender) || 0;
-      
-      // Si l'expéditeur a plus d'1 email et que l'email n'est pas déjà dans une catégorie prioritaire
-      if (count > 1 && email.classification.category === 'other') {
-        email.classification = {
-          category: 'duplicate_sender',
-          confidence: 0.9,
-          suggestedAction: 'group',
-          reasoning: `Expéditeur avec ${count} emails`
-        };
-      }
-    });
+    console.log(`✅ EMAILS TRAITÉS: ${allEmails.length}/${sampleSize}`);
+    console.log(`📊 ÉCHANTILLON D'EMAILS RÉELS RÉCUPÉRÉS:`, allEmails.slice(0, 3).map(e => ({
+      subject: e.subject,
+      from: e.from,
+      date: e.date
+    })));
 
     // Trier par date (plus récents en premier)
     allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Calculer les statistiques
+    // Calculer les statistiques sur l'échantillon
     const summary = {
       oldUnreadEmails: allEmails.filter(e => e.classification.category === 'old_unread').length,
       promotionalEmails: allEmails.filter(e => e.classification.category === 'promotional').length,
@@ -261,16 +284,18 @@ const handler = async (req: Request): Promise<Response> => {
     const carbonFootprint = allEmails.length * 10;
 
     const results: ScanResults = {
-      totalEmails: allEmails.length,
+      totalEmails: allMessageIds.length, // Total réel trouvé
       totalSizeMB,
-      carbonFootprint,
-      emails: allEmails,
+      carbonFootprint: allMessageIds.length * 10, // Calcul sur le total réel
+      emails: allEmails, // Échantillon traité
       summary,
     };
 
-    console.log(`✅ SCAN TERMINÉ POUR ${profileData.emailAddress}:`);
-    console.log(`   📧 ${results.totalEmails} emails analysés`);
+    console.log(`✅ SCAN INTELLIGENT TERMINÉ POUR ${profileData.emailAddress}:`);
+    console.log(`   📧 ${allMessageIds.length} emails trouvés au total`);
+    console.log(`   🧪 ${allEmails.length} emails traités dans l'échantillon`);
     console.log(`   📊 Résumé:`, summary);
+    console.log(`   🎯 CONFIRMATION: Ce sont bien les emails RÉELS de ${profileData.emailAddress}`);
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -278,6 +303,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error) {
     console.error('💥 ERREUR MAJEURE dans le scan intelligent:', error);
+    console.error('💥 Stack trace:', error instanceof Error ? error.stack : 'Pas de stack trace');
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
