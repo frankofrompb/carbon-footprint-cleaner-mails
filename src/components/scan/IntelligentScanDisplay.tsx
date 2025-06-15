@@ -52,33 +52,6 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  console.log('🔥🔥🔥 RENDU COMPONENT - IntelligentScanDisplay reçoit:', {
-    results: results,
-    resultsType: typeof results,
-    resultsKeys: results ? Object.keys(results) : 'pas de results',
-    totalEmails: results?.totalEmails,
-    emailsArray: results?.emails,
-    emailsLength: results?.emails?.length,
-    premierEmailComplet: results?.emails?.[0],
-    userEmail: userEmail
-  });
-
-  // Vérification des emails individuels
-  if (results?.emails && results.emails.length > 0) {
-    console.log('🔥🔥🔥 VÉRIFICATION EMAILS INDIVIDUELS:');
-    results.emails.slice(0, 5).forEach((email, index) => {
-      console.log(`Email ${index + 1}:`, {
-        id: email.id,
-        subject: email.subject,
-        from: email.from,
-        date: email.date,
-        size: email.size,
-        classification: email.classification,
-        objetComplet: email
-      });
-    });
-  }
-
   const handleSelectEmail = (emailId: string) => {
     setSelectedEmails((prevSelected) =>
       prevSelected.includes(emailId)
@@ -110,23 +83,9 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
     );
   }) || [];
 
-  console.log('🔥🔥🔥 EMAILS FILTRÉS POUR AFFICHAGE:', {
-    filteredEmails: filteredEmails,
-    count: filteredEmails.length,
-    searchQuery: debouncedSearchQuery,
-    premiersFiltrés: filteredEmails.slice(0, 3)
-  });
-
   const totalEmails = filteredEmails.length;
   const totalPages = Math.ceil(totalEmails / itemsPerPage);
   const paginatedEmails = filteredEmails.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-
-  console.log('🔥🔥🔥 EMAILS PAGINÉS FINAL:', {
-    paginatedEmails: paginatedEmails,
-    count: paginatedEmails.length,
-    page: page,
-    totalPages: totalPages
-  });
 
   return (
     <div className="space-y-6">
@@ -136,44 +95,6 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
           Connecté à <span className="font-semibold">{userEmail}</span>
         </div>
       </div>
-
-      {/* DEBUG: Afficher les données brutes */}
-      <Card className="bg-red-50 border-red-300">
-        <CardHeader>
-          <CardTitle className="text-sm text-red-700">🔥🔥🔥 DEBUG HYPER DÉTAILLÉ - Component IntelligentScanDisplay</CardTitle>
-        </CardHeader>
-        <CardContent className="text-xs space-y-1">
-          <p><strong>🎯 PROP results reçue:</strong> {results ? 'OUI' : 'NON'}</p>
-          <p><strong>📊 Total emails:</strong> {results?.totalEmails || 'UNDEFINED'}</p>
-          <p><strong>📧 Array emails:</strong> {results?.emails ? `Array[${results.emails.length}]` : 'UNDEFINED'}</p>
-          <p><strong>🔢 Taille array:</strong> {results?.emails?.length || 'UNDEFINED'}</p>
-          
-          {results?.emails && results.emails.length > 0 ? (
-            <div className="mt-2 p-2 bg-white rounded border">
-              <p><strong>🔥 PREMIERS EMAILS REÇUS DANS LE COMPONENT:</strong></p>
-              {results.emails.slice(0, 3).map((email, index) => (
-                <div key={index} className="text-xs mb-1 p-1 bg-gray-50 rounded">
-                  <p><strong>Email #{index + 1}:</strong></p>
-                  <p><strong>ID:</strong> {email.id || 'PAS D\'ID'}</p>
-                  <p><strong>Subject:</strong> {email.subject || 'PAS DE SUBJECT'}</p>
-                  <p><strong>From:</strong> {email.from || 'PAS DE FROM'}</p>
-                  <p><strong>Date:</strong> {email.date || 'PAS DE DATE'}</p>
-                  <p><strong>Type de l'objet:</strong> {typeof email}</p>
-                  <p><strong>Clés de l'objet:</strong> {Object.keys(email).join(', ')}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="mt-2 p-2 bg-red-100 rounded border">
-              <p><strong>❌ AUCUN EMAIL TROUVÉ DANS LE COMPONENT</strong></p>
-              <p>results: {JSON.stringify(results, null, 2)}</p>
-            </div>
-          )}
-          
-          <p><strong>📏 Emails filtrés:</strong> {filteredEmails.length}</p>
-          <p><strong>📄 Emails paginés:</strong> {paginatedEmails.length}</p>
-        </CardContent>
-      </Card>
 
       {/* Statistiques principales */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
