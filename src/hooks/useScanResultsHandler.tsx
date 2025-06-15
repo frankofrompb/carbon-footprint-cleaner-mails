@@ -7,17 +7,30 @@ export const useScanResultsHandler = () => {
   const { toast } = useToast();
 
   const processRawScanData = useCallback((rawData: any): ScanResults => {
-    console.log('🔄 useScanResultsHandler - Traitement des données brutes:', {
-      type: typeof rawData,
-      keys: rawData ? Object.keys(rawData) : 'aucune clé',
-      totalEmails: rawData?.totalEmails,
-      emailsLength: rawData?.emails?.length,
-      summary: rawData?.summary
-    });
+    console.log('🔍 DEBUG useScanResultsHandler - DONNÉES BRUTES REÇUES:');
+    console.log('Type:', typeof rawData);
+    console.log('Null/undefined:', rawData === null || rawData === undefined);
+    console.log('Clés disponibles:', rawData ? Object.keys(rawData) : 'AUCUNE CLÉ');
+    console.log('totalEmails:', rawData?.totalEmails);
+    console.log('emails array:', rawData?.emails);
+    console.log('Premier email si disponible:', rawData?.emails?.[0]);
+    console.log('Longueur du tableau emails:', rawData?.emails?.length);
+    
+    if (rawData?.emails && Array.isArray(rawData.emails)) {
+      console.log('🧪 DÉTAILS DES 3 PREMIERS EMAILS:');
+      rawData.emails.slice(0, 3).forEach((email: any, index: number) => {
+        console.log(`Email ${index + 1}:`, {
+          id: email?.id,
+          subject: email?.subject,
+          from: email?.from,
+          date: email?.date
+        });
+      });
+    }
 
     // S'assurer que nous avons des données valides
     if (!rawData) {
-      console.error('❌ Aucune donnée reçue');
+      console.error('❌ ERREUR: Aucune donnée reçue - retour des données par défaut');
       return {
         totalEmails: 0,
         emails: [],
@@ -52,12 +65,11 @@ export const useScanResultsHandler = () => {
       }
     };
 
-    console.log('✅ useScanResultsHandler - Données traitées:', {
-      totalEmails: processedResults.totalEmails,
-      emailsCount: processedResults.emails.length,
-      summaryKeys: processedResults.summary ? Object.keys(processedResults.summary) : 'pas de summary',
-      carbonFootprint: processedResults.carbonFootprint
-    });
+    console.log('✅ DONNÉES TRAITÉES FINALES:');
+    console.log('totalEmails:', processedResults.totalEmails);
+    console.log('emails count:', processedResults.emails.length);
+    console.log('Premier email traité:', processedResults.emails[0]);
+    console.log('Summary:', processedResults.summary);
 
     return processedResults;
   }, []);
@@ -68,15 +80,15 @@ export const useScanResultsHandler = () => {
                    Array.isArray(results.emails) &&
                    typeof results.carbonFootprint === 'number';
 
-    console.log('🔍 Validation des résultats:', {
-      isValid,
-      totalEmails: results?.totalEmails,
-      hasEmails: Array.isArray(results?.emails),
-      emailsCount: results?.emails?.length,
-      hasSummary: !!results?.summary
-    });
+    console.log('🔍 VALIDATION DES RÉSULTATS:');
+    console.log('isValid:', isValid);
+    console.log('totalEmails type:', typeof results?.totalEmails);
+    console.log('emails is Array:', Array.isArray(results?.emails));
+    console.log('carbonFootprint type:', typeof results?.carbonFootprint);
+    console.log('emails count après validation:', results?.emails?.length);
 
     if (!isValid) {
+      console.error('❌ VALIDATION ÉCHOUÉE - Données invalides');
       toast({
         title: "Erreur de données",
         description: "Les résultats du scan sont invalides",

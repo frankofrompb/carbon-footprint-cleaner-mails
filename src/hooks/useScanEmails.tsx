@@ -22,7 +22,7 @@ export const useScanEmails = () => {
   });
 
   const scanEmails = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan') => {
-    console.log('🚀 useScanEmails - Démarrage du scan:', scanType);
+    console.log('🚀 DEBUG useScanEmails - DÉBUT DU SCAN:', scanType);
     
     setScanState({
       status: 'scanning',
@@ -43,7 +43,7 @@ export const useScanEmails = () => {
         throw new Error("Token d'accès invalide. Veuillez vous reconnecter.");
       }
 
-      console.log('🔑 Token récupéré, longueur:', parsedAuth.accessToken.length);
+      console.log('🔑 DEBUG - Token récupéré, longueur:', parsedAuth.accessToken.length);
 
       // Choisir la fonction appropriée selon le type de scan
       const functionName = scanType === 'intelligent-scan' 
@@ -52,22 +52,13 @@ export const useScanEmails = () => {
         ? 'scan-all-gmail' 
         : 'scan-gmail';
       
-      const description = scanType === 'intelligent-scan'
-        ? "Scan intelligent en cours : détection des emails non lus +6 mois, classification automatique..."
-        : scanType === 'sender-analysis' 
-        ? "Analyse de tous vos emails en cours..." 
-        : scanType === 'smart-sorting'
-        ? "Récupération des emails pour tri intelligent..."
-        : "Analyse de votre vraie boîte Gmail en cours...";
+      console.log(`📡 DEBUG - Appel de la fonction: ${functionName}`);
 
       toast({
         title: "Scan démarré",
-        description: description,
+        description: "Scan intelligent en cours : détection des emails réels...",
       });
 
-      console.log(`📡 Appel de la fonction ${functionName}...`);
-
-      // Simuler progression
       setScanState(prev => ({ ...prev, progress: 25 }));
 
       // Appeler la fonction Edge appropriée
@@ -79,38 +70,58 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
-      console.log('📊 DONNÉES BRUTES REÇUES DE LA FONCTION:', {
-        data: data,
-        dataType: typeof data,
-        dataKeys: data ? Object.keys(data) : 'pas de clés',
-        error: error,
-        totalEmails: data?.totalEmails,
-        emailsCount: data?.emails?.length
-      });
+      console.log('📊 DEBUG - RÉPONSE BRUTE DE LA FONCTION EDGE:');
+      console.log('Data reçue:', data);
+      console.log('Type de data:', typeof data);
+      console.log('Data est null/undefined:', data === null || data === undefined);
+      console.log('Clés de data:', data ? Object.keys(data) : 'AUCUNE CLÉ');
+      console.log('Error:', error);
+      
+      if (data) {
+        console.log('📧 DEBUG - DÉTAILS DES EMAILS DANS LA RÉPONSE:');
+        console.log('totalEmails dans data:', data.totalEmails);
+        console.log('emails array dans data:', data.emails);
+        console.log('Type du tableau emails:', Array.isArray(data.emails) ? 'Array' : typeof data.emails);
+        console.log('Longueur du tableau emails:', data.emails?.length);
+        
+        if (data.emails && Array.isArray(data.emails) && data.emails.length > 0) {
+          console.log('Premier email de la réponse:', data.emails[0]);
+          console.log('Sujet du premier email:', data.emails[0]?.subject);
+          console.log('Expéditeur du premier email:', data.emails[0]?.from);
+        }
+      }
 
       if (error) {
-        console.error("Function error:", error);
+        console.error("❌ DEBUG - Erreur de la fonction:", error);
         throw new Error(`Erreur lors du scan: ${error.message}`);
       }
 
       if (data?.error) {
-        console.error("Gmail API error:", data.error);
+        console.error("❌ DEBUG - Erreur Gmail API:", data.error);
         throw new Error(`Erreur Gmail: ${data.error}`);
       }
 
+      console.log('🔄 DEBUG - AVANT TRAITEMENT DES DONNÉES');
+      
       // Traiter les résultats avec le handler dédié
       const processedResults = processRawScanData(data);
+      
+      console.log('🔄 DEBUG - APRÈS TRAITEMENT DES DONNÉES:');
+      console.log('Résultats traités:', processedResults);
+      console.log('Emails dans les résultats traités:', processedResults.emails);
+      console.log('Nombre d\'emails traités:', processedResults.emails?.length);
       
       // Valider les résultats
       if (!validateScanResults(processedResults)) {
         throw new Error("Les données reçues sont invalides");
       }
 
-      console.log("✅ RÉSULTATS FINAUX TRAITÉS:", {
+      console.log("✅ DEBUG - RÉSULTATS FINAUX VALIDÉS:", {
         totalEmails: processedResults.totalEmails,
         emailsCount: processedResults.emails.length,
         carbonFootprint: processedResults.carbonFootprint,
-        hasSummary: !!processedResults.summary
+        hasSummary: !!processedResults.summary,
+        premierEmailFinal: processedResults.emails[0]
       });
 
       setScanState({
@@ -120,20 +131,12 @@ export const useScanEmails = () => {
         progress: 100,
       });
 
-      if (scanType === 'intelligent-scan') {
-        toast({
-          title: "Scan intelligent terminé",
-          description: `${processedResults.totalEmails} emails trouvés : ${processedResults.summary?.oldUnreadEmails || 0} non lus +6 mois, ${processedResults.summary?.promotionalEmails || 0} promotionnels`,
-        });
-      } else {
-        const emailText = (scanType === 'sender-analysis' || scanType === 'smart-sorting') ? "emails" : "emails non lus";
-        toast({
-          title: "Scan terminé",
-          description: `${processedResults.totalEmails} ${emailText} trouvés dans votre boîte Gmail`,
-        });
-      }
+      toast({
+        title: "Scan intelligent terminé",
+        description: `${processedResults.totalEmails} emails trouvés : ${processedResults.summary?.oldUnreadEmails || 0} non lus +6 mois, ${processedResults.summary?.promotionalEmails || 0} promotionnels`,
+      });
     } catch (error) {
-      console.error("❌ Erreur lors du scan des emails", error);
+      console.error("❌ DEBUG - ERREUR FINALE:", error);
       setScanState({
         status: 'error',
         results: null,
