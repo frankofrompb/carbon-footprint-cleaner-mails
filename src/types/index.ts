@@ -1,3 +1,4 @@
+
 export interface EmailData {
   id: string;
   subject: string;
@@ -20,7 +21,7 @@ export interface EmailData {
 
 export interface ScanResults {
   totalEmails: number;
-  totalSizeMB?: number;
+  totalSizeMB: number; // Rendu obligatoire pour compatibilité avec IntelligentScanResults
   carbonFootprint: number;
   emails: EmailData[];
   summary?: {
