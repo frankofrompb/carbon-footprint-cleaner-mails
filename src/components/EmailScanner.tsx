@@ -52,7 +52,10 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
         <div className="space-y-6">
           {scanType === 'intelligent-scan' ? (
             <IntelligentScanResults
-              results={scanState.results}
+              results={{
+                ...scanState.results,
+                totalSizeMB: scanState.results.totalSizeMB || 0
+              }}
               onDeleteSelected={onDelete}
               onOrganizeSelected={handleOrganizeSelected}
             />
