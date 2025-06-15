@@ -52,12 +52,19 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  console.log('🎯 IntelligentScanDisplay - Données reçues:', {
+  console.log('🔥 DEBUG IntelligentScanDisplay - DONNÉES REÇUES AU RENDU:', {
     totalEmails: results.totalEmails,
     emailsCount: results.emails?.length || 0,
+    premiersEmails: results.emails?.slice(0, 3)?.map(email => ({
+      id: email.id,
+      subject: email.subject,
+      from: email.from,
+      date: email.date
+    })),
     summary: results.summary,
     carbonFootprint: results.carbonFootprint,
-    totalSizeMB: results.totalSizeMB
+    totalSizeMB: results.totalSizeMB,
+    userEmail: userEmail
   });
 
   const handleSelectEmail = (emailId: string) => {
@@ -105,15 +112,30 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
       </div>
 
       {/* DEBUG: Afficher les données brutes */}
-      <Card className="bg-gray-50 border-gray-300">
+      <Card className="bg-red-50 border-red-300">
         <CardHeader>
-          <CardTitle className="text-sm">🔍 DEBUG - Données reçues</CardTitle>
+          <CardTitle className="text-sm text-red-700">🔥 DEBUG FINAL - Données au moment de l'affichage</CardTitle>
         </CardHeader>
         <CardContent className="text-xs space-y-1">
           <p><strong>Total emails trouvés:</strong> {results.totalEmails}</p>
-          <p><strong>Échantillon traité:</strong> {results.emails?.length || 0} emails</p>
-          <p><strong>Empreinte carbone:</strong> {results.carbonFootprint}g</p>
-          <p><strong>Taille totale:</strong> {results.totalSizeMB} MB</p>
+          <p><strong>Échantillon reçu:</strong> {results.emails?.length || 0} emails</p>
+          <p><strong>Emails filtrés pour affichage:</strong> {filteredEmails.length}</p>
+          
+          {results.emails && results.emails.length > 0 && (
+            <div className="mt-2 p-2 bg-white rounded border">
+              <p><strong>PREMIERS EMAILS REÇUS:</strong></p>
+              {results.emails.slice(0, 5).map((email, index) => (
+                <div key={index} className="text-xs mb-1 p-1 bg-gray-50 rounded">
+                  <p><strong>#{index + 1}:</strong></p>
+                  <p><strong>ID:</strong> {email.id}</p>
+                  <p><strong>De:</strong> {email.from}</p>
+                  <p><strong>Sujet:</strong> {email.subject}</p>
+                  <p><strong>Date:</strong> {email.date}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
           <p><strong>Summary disponible:</strong> {results.summary ? 'OUI' : 'NON'}</p>
           {results.summary && (
             <div className="mt-2 p-2 bg-white rounded border">
