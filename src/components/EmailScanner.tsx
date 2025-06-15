@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScanState } from "@/types";
-import IntelligentScanResults from "./IntelligentScanResults";
+import IntelligentScanDisplay from "./scan/IntelligentScanDisplay";
 
 interface EmailScannerProps {
   scanState: ScanState;
@@ -22,11 +22,6 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     totalEmails: scanState.results?.totalEmails,
     emailsCount: scanState.results?.emails?.length
   });
-
-  const handleOrganizeSelected = (emailIds: string[]) => {
-    console.log('🗂️ Organisation demandée pour:', emailIds.length, 'emails');
-    // TODO: Implémenter l'organisation des emails
-  };
 
   return (
     <div className="space-y-6">
@@ -51,33 +46,11 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
       {scanState.status === 'completed' && scanState.results && (
         <div className="space-y-6">
           {scanType === 'intelligent-scan' ? (
-            <IntelligentScanResults
-              results={{
-                ...scanState.results,
-                totalSizeMB: scanState.results.totalSizeMB || 0,
-                summary: scanState.results.summary || {
-                  oldUnreadEmails: 0,
-                  promotionalEmails: 0,
-                  socialEmails: 0,
-                  notificationEmails: 0,
-                  spamEmails: 0,
-                  autoClassifiableEmails: 0,
-                  duplicateSenderEmails: 0
-                },
-                emails: scanState.results.emails.map(email => ({
-                  ...email,
-                  isUnread: email.isUnread ?? (email.isRead === false),
-                  daysSinceReceived: email.daysSinceReceived || 0,
-                  classification: email.classification || {
-                    category: 'other',
-                    confidence: 0,
-                    suggestedAction: 'review',
-                    reasoning: 'Non classifié'
-                  }
-                }))
-              }}
+            <IntelligentScanDisplay
+              results={scanState.results}
+              userEmail={userEmail}
               onDeleteSelected={onDelete}
-              onOrganizeSelected={handleOrganizeSelected}
+              onExport={onExport}
             />
           ) : (
             <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
