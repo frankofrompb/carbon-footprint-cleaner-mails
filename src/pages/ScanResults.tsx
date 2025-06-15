@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ const ScanResults = () => {
     navigate('/dashboard');
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = (emailIds: string[]) => {
     toast({
       title: "Suppression en cours",
       description: "Les emails sélectionnés sont en cours de suppression...",
@@ -140,16 +141,22 @@ const ScanResults = () => {
     });
   };
 
+  const handleOrganizeSelected = (emailIds: string[]) => {
+    toast({
+      title: "Organisation en cours",
+      description: "Les emails sélectionnés sont en cours d'organisation...",
+    });
+  };
+
   // Rendu conditionnel selon le type de scan
   const renderScanTypeContent = () => {
     switch (scanType) {
       case 'intelligent-scan':
         return (
           <IntelligentScanResults 
-            scanState={{ results: scanResults, status: 'completed', error: null, progress: 100 }}
-            onBackToDashboard={handleBackToDashboard}
+            results={scanResults}
             onDeleteSelected={handleDeleteSelected}
-            onExport={handleExport}
+            onOrganizeSelected={handleOrganizeSelected}
           />
         );
       case 'sender-analysis':
@@ -305,7 +312,7 @@ const ScanResults = () => {
               {/* Actions */}
               <div className="flex justify-center mt-8">
                 <Button
-                  onClick={handleDeleteSelected}
+                  onClick={() => handleDeleteSelected([])}
                   className="bg-red-600 hover:bg-red-700 text-white px-8 py-3"
                 >
                   <Trash2 className="mr-2 h-5 w-5" />
