@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScanState } from "@/types";
-import IntelligentScanDisplay from "./scan/IntelligentScanDisplay";
+import IntelligentScanResults from "./IntelligentScanResults";
 
 interface EmailScannerProps {
   scanState: ScanState;
@@ -14,92 +14,76 @@ interface EmailScannerProps {
   scanType?: string;
 }
 
-const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanType }: EmailScannerProps) => {
-  // LOG CRITIQUE : Vérifier si ce composant est affiché
-  console.log('🚨 COMPOSANT EmailScanner RENDU ! scanType:', scanType, 'status:', scanState.status);
-
+const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail }: EmailScannerProps) => {
   console.log('📊 EmailScanner - État du scan:', {
     status: scanState.status,
-    scanType: scanType,
     hasResults: !!scanState.results,
     totalEmails: scanState.results?.totalEmails,
     emailsCount: scanState.results?.emails?.length
   });
 
-  // NOUVEAU DEBUG: Vérifier les données complètes
-  if (scanState.results) {
-    console.log('🔍 EmailScanner - DÉTAILS COMPLETS DES RÉSULTATS:', {
-      totalEmails: scanState.results.totalEmails,
-      emailsArray: scanState.results.emails,
-      firstEmailSubject: scanState.results.emails?.[0]?.subject,
-      firstEmailFrom: scanState.results.emails?.[0]?.from,
-      summary: scanState.results.summary,
-      carbonFootprint: scanState.results.carbonFootprint
-    });
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Analyse de la boite mail</h2>
-      </div>
-
-      {/* LOG VISIBLE DANS L'UI POUR FORCER L'AFFICHAGE */}
-      <div className="p-4 bg-red-100 border border-red-300 rounded-lg">
-        <h3 className="font-bold text-red-800">🚨 COMPOSANT EmailScanner AFFICHÉ</h3>
-        <p><strong>Status:</strong> {scanState.status}</p>
-        <p><strong>ScanType:</strong> {scanType || 'undefined'}</p>
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-bold text-white">
+          Nettoyez votre boîte mail intelligemment
+        </h1>
+        <p className="text-xl text-white/80 max-w-3xl mx-auto">
+          Connecté en tant que <span className="font-semibold">{userEmail}</span>
+        </p>
       </div>
 
       {scanState.status === 'idle' && (
-        <div className="text-center">
-          <p className="text-muted-foreground">Prêt à scanner votre boîte mail.</p>
-          <Button onClick={onScan}>Commencer l'analyse</Button>
+        <div className="text-center space-y-6">
+          <div className="bg-white/10 backdrop-blur-md rounded-lg p-8">
+            <p className="text-white text-lg mb-6">
+              Prêt à scanner votre boîte mail avec notre IA intelligente
+            </p>
+            <Button 
+              onClick={onScan}
+              className="bg-white text-[#38c39d] hover:bg-white/90 text-lg px-8 py-3"
+            >
+              Commencer l'analyse intelligente
+            </Button>
+          </div>
         </div>
       )}
 
       {scanState.status === 'scanning' && (
         <div className="space-y-4">
-          <p className="text-center">Analyse en cours... ({scanState.progress}%)</p>
-          <Progress value={scanState.progress} />
+          <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 text-center">
+            <p className="text-white text-lg mb-4">
+              Analyse intelligente en cours... ({scanState.progress}%)
+            </p>
+            <Progress value={scanState.progress} className="w-full" />
+            <p className="text-white/70 text-sm mt-2">
+              Détection des emails non lus +6 mois, classification automatique...
+            </p>
+          </div>
         </div>
       )}
 
       {scanState.status === 'completed' && scanState.results && (
-        <div className="space-y-6">
-          {/* DEBUG VISIBLE DANS L'UI */}
-          <div className="p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
-            <h3 className="font-bold text-yellow-800">🔍 DEBUG EmailScanner</h3>
-            <p><strong>scanType:</strong> {scanType}</p>
-            <p><strong>Utilise IntelligentScanDisplay:</strong> {scanType === 'intelligent-scan' ? 'OUI' : 'NON'}</p>
-            <p><strong>Nombre d'emails:</strong> {scanState.results.emails?.length || 0}</p>
-            <p><strong>Premier email:</strong> {scanState.results.emails?.[0]?.subject || 'Aucun'}</p>
-          </div>
-
-          {scanType === 'intelligent-scan' ? (
-            <IntelligentScanDisplay
-              results={scanState.results}
-              userEmail={userEmail}
-              onDeleteSelected={onDelete}
-              onExport={onExport}
-            />
-          ) : (
-            <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
-              <p className="text-lg font-semibold text-gray-600">
-                Affichage standard non implémenté pour ce type de scan
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Utilisez le scan intelligent pour voir les résultats détaillés
-              </p>
-            </div>
-          )}
+        <div className="bg-white/95 backdrop-blur-md rounded-lg p-6">
+          <IntelligentScanResults
+            results={scanState.results}
+            onDeleteSelected={onDelete}
+            onOrganizeSelected={onDelete}
+          />
         </div>
       )}
 
       {scanState.status === 'error' && (
-        <div className="text-center text-red-500">
-          <p>Erreur lors de l'analyse : {scanState.error}</p>
-          <Button onClick={onScan} className="mt-4">Réessayer</Button>
+        <div className="bg-white/10 backdrop-blur-md rounded-lg p-8 text-center">
+          <p className="text-red-200 text-lg mb-4">
+            Erreur lors de l'analyse : {scanState.error}
+          </p>
+          <Button 
+            onClick={onScan} 
+            className="bg-white text-[#38c39d] hover:bg-white/90"
+          >
+            Réessayer
+          </Button>
         </div>
       )}
     </div>
