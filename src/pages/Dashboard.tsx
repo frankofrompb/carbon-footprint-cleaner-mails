@@ -97,7 +97,7 @@ const Dashboard = () => {
     exportResults();
   };
 
-  if (!authState.isAuthenticated || !authState.userEmail) {
+  if (!authState.userEmail) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#38c39d] to-[#2d8b61] flex items-center justify-center">
         <div className="text-white text-xl">Redirection vers la connexion...</div>

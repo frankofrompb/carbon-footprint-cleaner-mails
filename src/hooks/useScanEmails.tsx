@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ScanResults } from "@/types";
@@ -21,7 +22,7 @@ export const useScanEmails = () => {
     progress: 0,
   });
 
-  const scanEmails = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan') => {
+  const startScan = useCallback(async (scanType?: 'smart-deletion' | 'sender-analysis' | 'smart-sorting' | 'intelligent-scan') => {
     console.log('🚀 useScanEmails - Démarrage du scan:', scanType);
     
     setScanState({
@@ -149,7 +150,7 @@ export const useScanEmails = () => {
     }
   }, [toast, processRawScanData, validateScanResults]);
 
-  const deleteEmails = useCallback(async (emailIds: string[]) => {
+  const deleteBulkEmails = useCallback(async (emailIds: string[]) => {
     if (!scanState.results) return;
 
     try {
@@ -223,7 +224,7 @@ export const useScanEmails = () => {
     }
   }, [scanState.results, toast]);
 
-  const exportToCsv = useCallback(() => {
+  const exportResults = useCallback(() => {
     if (!scanState.results?.emails.length) return;
 
     try {
@@ -267,8 +268,12 @@ export const useScanEmails = () => {
 
   return {
     scanState,
-    scanEmails,
-    deleteEmails,
-    exportToCsv,
+    startScan,
+    deleteBulkEmails,
+    exportResults,
+    // Aliases pour compatibilité
+    scanEmails: startScan,
+    deleteEmails: deleteBulkEmails,
+    exportToCsv: exportResults,
   };
 };

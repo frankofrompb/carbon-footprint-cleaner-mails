@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ import {
   Zap,
   Target
 } from "lucide-react";
-import { ScanResults as ScanResultsType, Email } from "@/types";
+import { ScanResults as ScanResultsType } from "@/types";
 import Dashboard from "@/components/Dashboard";
 import IntelligentScanResults from "@/components/IntelligentScanResults";
 import SenderAnalysisView from "@/components/SenderAnalysisView";
@@ -147,7 +146,7 @@ const ScanResults = () => {
       case 'intelligent-scan':
         return (
           <IntelligentScanResults 
-            scanResults={scanResults}
+            scanState={{ results: scanResults, status: 'completed', error: null, progress: 100 }}
             onBackToDashboard={handleBackToDashboard}
             onDeleteSelected={handleDeleteSelected}
             onExport={handleExport}
@@ -156,17 +155,13 @@ const ScanResults = () => {
       case 'sender-analysis':
         return (
           <SenderAnalysisView 
-            scanResults={scanResults}
-            onBackToDashboard={handleBackToDashboard}
-            onExport={handleExport}
+            scanState={{ results: scanResults, status: 'completed', error: null, progress: 100 }}
           />
         );
       case 'smart-sorting':
         return (
           <SmartSortingView 
-            scanResults={scanResults}
-            onBackToDashboard={handleBackToDashboard}
-            onExport={handleExport}
+            scanState={{ results: scanResults, status: 'completed', error: null, progress: 100 }}
           />
         );
       default:
