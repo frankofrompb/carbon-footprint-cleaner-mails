@@ -182,6 +182,13 @@ const ScanResults = () => {
     return () => clearInterval(timer);
   }, [realTotalEmails, realCarbonFootprint, realSummary]);
 
+  // Surveiller les changements d'état du scan pour rediriger automatiquement
+  useEffect(() => {
+    if (scanResults?.status === 'completed' && scanResults?.results) {
+      console.log('🔄 Scan completed détecté, redirection automatique...');
+    }
+  }, [scanResults]);
+
   // Générer des données d'emails à partir des VRAIES données du scan
   useEffect(() => {
     if (realEmailsArray.length > 0) {
