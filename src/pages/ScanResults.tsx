@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import IntelligentScanDisplay from "@/components/scan/IntelligentScanDisplay";
+import IntelligentScanResults from "@/components/IntelligentScanResults";
 import { ScanResults as ScanResultsType } from "@/types";
 import { ArrowLeft } from "lucide-react";
 
@@ -57,9 +57,9 @@ const ScanResults = () => {
     // TODO: Implémenter la suppression réelle
   };
 
-  const handleExport = () => {
-    console.log('📊 Export demandé');
-    // TODO: Implémenter l'export réel
+  const handleOrganizeSelected = (emailIds: string[]) => {
+    console.log('📁 Organisation demandée pour:', emailIds.length, 'emails');
+    // TODO: Implémenter l'organisation réelle
   };
 
   const handleBackToDashboard = () => {
@@ -94,11 +94,10 @@ const ScanResults = () => {
           </Button>
         </div>
 
-        <IntelligentScanDisplay
+        <IntelligentScanResults
           results={scanResults}
-          userEmail={userEmail}
           onDeleteSelected={handleDeleteSelected}
-          onExport={handleExport}
+          onOrganizeSelected={handleOrganizeSelected}
         />
       </div>
     </div>
