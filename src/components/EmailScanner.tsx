@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScanState } from "@/types";
-import IntelligentScanDisplay from "./scan/IntelligentScanDisplay";
+import IntelligentScanResults from "./IntelligentScanResults";
 
 interface EmailScannerProps {
   scanState: ScanState;
@@ -22,6 +22,11 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     totalEmails: scanState.results?.totalEmails,
     emailsCount: scanState.results?.emails?.length
   });
+
+  const handleOrganizeSelected = (emailIds: string[]) => {
+    console.log('🗂️ Organisation demandée pour:', emailIds.length, 'emails');
+    // TODO: Implémenter l'organisation des emails
+  };
 
   return (
     <div className="space-y-6">
@@ -46,11 +51,10 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
       {scanState.status === 'completed' && scanState.results && (
         <div className="space-y-6">
           {scanType === 'intelligent-scan' ? (
-            <IntelligentScanDisplay
+            <IntelligentScanResults
               results={scanState.results}
-              userEmail={userEmail}
               onDeleteSelected={onDelete}
-              onExport={onExport}
+              onOrganizeSelected={handleOrganizeSelected}
             />
           ) : (
             <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
