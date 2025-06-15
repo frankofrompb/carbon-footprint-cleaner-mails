@@ -55,6 +55,15 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
               results={{
                 ...scanState.results,
                 totalSizeMB: scanState.results.totalSizeMB || 0,
+                summary: scanState.results.summary || {
+                  oldUnreadEmails: 0,
+                  promotionalEmails: 0,
+                  socialEmails: 0,
+                  notificationEmails: 0,
+                  spamEmails: 0,
+                  autoClassifiableEmails: 0,
+                  duplicateSenderEmails: 0
+                },
                 emails: scanState.results.emails.map(email => ({
                   ...email,
                   isUnread: email.isUnread ?? (email.isRead === false),
