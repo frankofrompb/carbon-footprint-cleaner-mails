@@ -1,4 +1,3 @@
-
 export interface EmailData {
   id: string;
   subject: string;
@@ -7,11 +6,11 @@ export interface EmailData {
   date: string;
   size?: number; // en Ko
   snippet?: string;
-  isUnread: boolean; // Rendu obligatoire pour compatibilité avec IntelligentScanResults
+  isUnread?: boolean;
   isRead?: boolean; // Ajouté pour compatibilité
   labels?: string[]; // Ajouté pour compatibilité
-  daysSinceReceived: number; // Rendu obligatoire pour compatibilité avec IntelligentScanResults
-  classification: { // Rendu obligatoire pour compatibilité avec IntelligentScanResults
+  daysSinceReceived?: number;
+  classification?: {
     category: string;
     confidence: number;
     suggestedAction: string;
@@ -21,10 +20,10 @@ export interface EmailData {
 
 export interface ScanResults {
   totalEmails: number;
-  totalSizeMB: number; // Rendu obligatoire pour compatibilité avec IntelligentScanResults
+  totalSizeMB?: number;
   carbonFootprint: number;
   emails: EmailData[];
-  summary: { // Rendu obligatoire pour compatibilité avec IntelligentScanResults
+  summary?: {
     oldUnreadEmails: number;
     promotionalEmails: number;
     socialEmails: number;

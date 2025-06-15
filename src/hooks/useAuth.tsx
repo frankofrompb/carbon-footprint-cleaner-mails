@@ -96,7 +96,7 @@ export const useAuth = () => {
       
       try {
         const client = window.google.accounts.oauth2.initTokenClient({
-          client_id: "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com",
+          client_id: "1082053717769-lfgcgj7e5vfnlfq7r6qv4rj0m8d3k5l0.apps.googleusercontent.com",
           scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
           callback: handleGoogleAuthSuccess,
         });

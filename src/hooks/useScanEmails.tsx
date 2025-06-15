@@ -3,7 +3,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { ScanResults } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useScanResultsHandler } from "./useScanResultsHandler";
-import { useNavigate } from "react-router-dom";
 
 interface ScanState {
   status: 'idle' | 'scanning' | 'completed' | 'error';
@@ -14,7 +13,6 @@ interface ScanState {
 
 export const useScanEmails = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { processRawScanData, validateScanResults } = useScanResultsHandler();
   const [scanState, setScanState] = useState<ScanState>({
     status: 'idle',
@@ -122,13 +120,6 @@ export const useScanEmails = () => {
         progress: 100,
       });
 
-      // 🔥 NOUVELLE LOGIQUE: Stocker les résultats et rediriger vers la page de résultats
-      localStorage.setItem('scanResults', JSON.stringify(processedResults));
-      console.log('🔥 RÉSULTATS STOCKÉS DANS LOCALSTORAGE ET REDIRECTION VERS /scan-results');
-      
-      // Rediriger vers la page de résultats
-      navigate('/scan-results');
-
       if (scanType === 'intelligent-scan') {
         toast({
           title: "Scan intelligent terminé",
@@ -156,7 +147,7 @@ export const useScanEmails = () => {
         variant: "destructive",
       });
     }
-  }, [toast, processRawScanData, validateScanResults, navigate]);
+  }, [toast, processRawScanData, validateScanResults]);
 
   const deleteEmails = useCallback(async (emailIds: string[]) => {
     if (!scanState.results) return;
