@@ -23,6 +23,18 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     emailsCount: scanState.results?.emails?.length
   });
 
+  // NOUVEAU DEBUG: Vérifier les données complètes
+  if (scanState.results) {
+    console.log('🔍 EmailScanner - DÉTAILS COMPLETS DES RÉSULTATS:', {
+      totalEmails: scanState.results.totalEmails,
+      emailsArray: scanState.results.emails,
+      firstEmailSubject: scanState.results.emails?.[0]?.subject,
+      firstEmailFrom: scanState.results.emails?.[0]?.from,
+      summary: scanState.results.summary,
+      carbonFootprint: scanState.results.carbonFootprint
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -45,6 +57,15 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
 
       {scanState.status === 'completed' && scanState.results && (
         <div className="space-y-6">
+          {/* DEBUG VISIBLE DANS L'UI */}
+          <div className="p-4 bg-yellow-100 border border-yellow-300 rounded-lg">
+            <h3 className="font-bold text-yellow-800">🔍 DEBUG EmailScanner</h3>
+            <p><strong>scanType:</strong> {scanType}</p>
+            <p><strong>Utilise IntelligentScanDisplay:</strong> {scanType === 'intelligent-scan' ? 'OUI' : 'NON'}</p>
+            <p><strong>Nombre d'emails:</strong> {scanState.results.emails?.length || 0}</p>
+            <p><strong>Premier email:</strong> {scanState.results.emails?.[0]?.subject || 'Aucun'}</p>
+          </div>
+
           {scanType === 'intelligent-scan' ? (
             <IntelligentScanDisplay
               results={scanState.results}
