@@ -1,4 +1,5 @@
 
+
 export interface EmailData {
   id: string;
   subject: string;
@@ -7,11 +8,11 @@ export interface EmailData {
   date: string;
   size?: number; // en Ko
   snippet?: string;
-  isUnread?: boolean;
+  isUnread: boolean; // Rendu obligatoire pour compatibilité avec IntelligentScanResults
   isRead?: boolean; // Ajouté pour compatibilité
   labels?: string[]; // Ajouté pour compatibilité
-  daysSinceReceived?: number;
-  classification?: {
+  daysSinceReceived: number; // Rendu obligatoire pour compatibilité avec IntelligentScanResults
+  classification: { // Rendu obligatoire pour compatibilité avec IntelligentScanResults
     category: string;
     confidence: number;
     suggestedAction: string;
