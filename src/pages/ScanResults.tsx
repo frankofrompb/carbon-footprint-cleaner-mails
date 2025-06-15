@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { CheckCircle2, Mail, Tag, FolderOpen, Trash2, Shield, UserMinus, Archive, 
          Briefcase, CreditCard, ShoppingBag, Plane, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Pagination,
   PaginationContent,
@@ -50,6 +50,28 @@ interface OrganizationSender {
 const ScanResults = () => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 🚨 RÉCUPÉRATION DES VRAIES DONNÉES DU SCAN
+  const scanResults = location.state?.scanResults;
+  
+  console.log('🔍 ScanResults - Données reçues:', {
+    hasState: !!location.state,
+    hasScanResults: !!scanResults,
+    scanResultsKeys: scanResults ? Object.keys(scanResults) : 'aucune',
+    totalEmails: scanResults?.totalEmails,
+    emailsCount: scanResults?.emails?.length
+  });
+
+  // DEBUG VISIBLE DANS L'UI
+  const [showDebug, setShowDebug] = useState(true);
+
+  // Utiliser les vraies données si disponibles, sinon fallback sur des données par défaut
+  const realTotalEmails = scanResults?.totalEmails || 0;
+  const realEmailsArray = scanResults?.emails || [];
+  const realSummary = scanResults?.summary || {};
+  const realCarbonFootprint = scanResults?.carbonFootprint || 0;
+
   const [animatedStats, setAnimatedStats] = useState({
     totalEmails: 0,
     totalSpace: 0,
@@ -117,17 +139,21 @@ const ScanResults = () => {
     }
   ];
 
-  // Animation des statistiques au chargement
+  // Animation des statistiques au chargement avec les VRAIES données
   useEffect(() => {
+    // Utiliser les vraies données ou des valeurs par défaut
     const targets = {
-      totalEmails: 12847,
-      totalSpace: 3.2,
-      suggestedActions: 8542,
-      co2Saveable: 89.3,
-      unreadEmails: 3247,
-      categorizeEmails: 4856,
-      organizeEmails: 1889
+      totalEmails: realTotalEmails || 1000, // Utiliser les vraies données
+      totalSpace: realCarbonFootprint ? (realCarbonFootprint / 1000 * 3.2) : 3.2,
+      suggestedActions: Math.floor((realTotalEmails || 1000) * 0.66),
+      co2Saveable: realCarbonFootprint ? (realCarbonFootprint / 100) : 89.3,
+      unreadEmails: realSummary.oldUnreadEmails || Math.floor((realTotalEmails || 1000) * 0.25),
+      categorizeEmails: realSummary.promotionalEmails || Math.floor((realTotalEmails || 1000) * 0.38),
+      organizeEmails: realSummary.autoClassifiableEmails || Math.floor((realTotalEmails || 1000) * 0.15)
     };
+
+    console.log('📊 Animation avec vraies données:', targets);
+
     const duration = 2000;
     const steps = 60;
     const stepTime = duration / steps;
@@ -154,150 +180,162 @@ const ScanResults = () => {
     }, stepTime);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [realTotalEmails, realCarbonFootprint, realSummary]);
 
-  // Données simulées d'emails groupés par expéditeur pour la section "non ouverts"
+  // Générer des données d'emails à partir des VRAIES données du scan
   useEffect(() => {
-    const mockEmailGroups: EmailGroup[] = [
-      { sender: "newsletters@amazon.fr", count: 342, selected: true },
-      { sender: "promo@zalando.fr", count: 298, selected: true },
-      { sender: "info@leboncoin.fr", count: 186, selected: true },
-      { sender: "newsletter@linkedin.com", count: 143, selected: true },
-      { sender: "notifications@facebook.com", count: 127, selected: true },
-      { sender: "updates@spotify.com", count: 95, selected: true },
-      { sender: "promo@booking.com", count: 87, selected: true },
-      { sender: "news@lemonde.fr", count: 76, selected: true },
-      { sender: "offers@groupon.fr", count: 64, selected: true },
-      { sender: "newsletter@medium.com", count: 52, selected: true },
-      { sender: "promo@cdiscount.fr", count: 48, selected: true },
-      { sender: "news@figaro.fr", count: 45, selected: true },
-      { sender: "newsletter@airbnb.fr", count: 41, selected: true },
-      { sender: "updates@twitter.com", count: 38, selected: true },
-      { sender: "promo@darty.fr", count: 35, selected: true },
-      { sender: "news@bfmtv.com", count: 32, selected: true },
-      { sender: "newsletter@uber.com", count: 29, selected: true },
-      { sender: "promo@fnac.fr", count: 26, selected: true },
-      { sender: "updates@instagram.com", count: 23, selected: true },
-      { sender: "newsletter@deliveroo.fr", count: 20, selected: true },
-    ];
-    setEmailGroups(mockEmailGroups);
+    if (realEmailsArray.length > 0) {
+      // Grouper les vrais emails par expéditeur
+      const emailsByDomain = realEmailsArray.reduce((acc: Record<string, number>, email: any) => {
+        const domain = email.from || email.sender || 'unknown@domain.com';
+        acc[domain] = (acc[domain] || 0) + 1;
+        return acc;
+      }, {});
 
-    // Données simulées pour la catégorisation - TOUS LES EMAILS avec plus d'un email par émetteur
-    const mockAllSenderStats: SenderStats[] = [
-      // E-commerce & Shopping
-      { sender: "newsletters@amazon.fr", emailCount: 542, openRate: 12.5, domain: "amazon.fr" },
-      { sender: "promo@zalando.fr", emailCount: 498, openRate: 8.3, domain: "zalando.fr" },
-      { sender: "offers@cdiscount.fr", emailCount: 348, openRate: 9.1, domain: "cdiscount.fr" },
-      { sender: "promo@darty.fr", emailCount: 235, openRate: 11.2, domain: "darty.fr" },
-      { sender: "promo@fnac.fr", emailCount: 186, openRate: 14.6, domain: "fnac.fr" },
-      { sender: "offers@groupon.fr", emailCount: 164, openRate: 6.8, domain: "groupon.fr" },
-      { sender: "newsletter@vinted.fr", emailCount: 127, openRate: 22.4, domain: "vinted.fr" },
-      { sender: "promo@leclerc.fr", emailCount: 98, openRate: 13.7, domain: "leclerc.fr" },
-      
-      // Réseaux sociaux & Communication
-      { sender: "notifications@facebook.com", emailCount: 427, openRate: 23.1, domain: "facebook.com" },
-      { sender: "newsletter@linkedin.com", emailCount: 343, openRate: 45.2, domain: "linkedin.com" },
-      { sender: "updates@twitter.com", emailCount: 238, openRate: 19.4, domain: "twitter.com" },
-      { sender: "updates@instagram.com", emailCount: 223, openRate: 61.2, domain: "instagram.com" },
-      { sender: "notifications@youtube.com", emailCount: 189, openRate: 28.7, domain: "youtube.com" },
-      { sender: "updates@pinterest.fr", emailCount: 156, openRate: 34.6, domain: "pinterest.fr" },
-      { sender: "notifications@tiktok.com", emailCount: 134, openRate: 52.3, domain: "tiktok.com" },
-      
-      // Services & Applications
-      { sender: "updates@spotify.com", emailCount: 295, openRate: 67.4, domain: "spotify.com" },
-      { sender: "newsletter@uber.com", emailCount: 229, openRate: 52.1, domain: "uber.com" },
-      { sender: "newsletter@deliveroo.fr", emailCount: 220, openRate: 38.5, domain: "deliveroo.fr" },
-      { sender: "promo@booking.com", emailCount: 187, openRate: 18.9, domain: "booking.com" },
-      { sender: "newsletter@airbnb.fr", emailCount: 141, openRate: 41.5, domain: "airbnb.fr" },
-      { sender: "updates@netflix.com", emailCount: 98, openRate: 45.8, domain: "netflix.com" },
-      { sender: "newsletter@blablacar.fr", emailCount: 87, openRate: 29.3, domain: "blablacar.fr" },
-      
-      // Actualités & Médias
-      { sender: "news@lemonde.fr", emailCount: 276, openRate: 34.2, domain: "lemonde.fr" },
-      { sender: "news@figaro.fr", emailCount: 245, openRate: 28.7, domain: "figaro.fr" },
-      { sender: "news@bfmtv.com", emailCount: 232, openRate: 33.8, domain: "bfmtv.com" },
-      { sender: "newsletter@20minutes.fr", emailCount: 198, openRate: 25.4, domain: "20minutes.fr" },
-      { sender: "info@franceinfo.fr", emailCount: 167, openRate: 31.2, domain: "franceinfo.fr" },
-      { sender: "newsletter@lequipe.fr", emailCount: 143, openRate: 42.7, domain: "lequipe.fr" },
-      { sender: "news@liberation.fr", emailCount: 129, openRate: 37.8, domain: "liberation.fr" },
-      
-      // Petites annonces & Services locaux
-      { sender: "info@leboncoin.fr", emailCount: 386, openRate: 15.7, domain: "leboncoin.fr" },
-      { sender: "alerts@seloger.com", emailCount: 234, openRate: 27.9, domain: "seloger.com" },
-      { sender: "newsletter@pap.fr", emailCount: 156, openRate: 21.3, domain: "pap.fr" },
-      { sender: "info@logic-immo.com", emailCount: 143, openRate: 18.6, domain: "logic-immo.com" },
-      
-      // Tech & Professionnels
-      { sender: "newsletter@medium.com", emailCount: 252, openRate: 72.3, domain: "medium.com" },
-      { sender: "updates@github.com", emailCount: 198, openRate: 56.8, domain: "github.com" },
-      { sender: "newsletter@stackoverflow.com", emailCount: 167, openRate: 43.2, domain: "stackoverflow.com" },
-      { sender: "updates@slack.com", emailCount: 134, openRate: 38.9, domain: "slack.com" },
-      
-      // Banques & Services financiers
-      { sender: "info@banquepopulaire.fr", emailCount: 198, openRate: 65.4, domain: "banquepopulaire.fr" },
-      { sender: "alerts@creditagricole.fr", emailCount: 176, openRate: 58.7, domain: "creditagricole.fr" },
-      { sender: "info@bnpparibas.net", emailCount: 165, openRate: 62.3, domain: "bnpparibas.net" },
-      { sender: "newsletter@revolut.com", emailCount: 143, openRate: 44.6, domain: "revolut.com" },
-      
-      // Santé & Bien-être
-      { sender: "newsletter@doctolib.fr", emailCount: 187, openRate: 76.2, domain: "doctolib.fr" },
-      { sender: "info@ameli.fr", emailCount: 145, openRate: 82.4, domain: "ameli.fr" },
-      { sender: "newsletter@yuka.io", emailCount: 123, openRate: 54.7, domain: "yuka.io" },
-      
-      // Gaming & Divertissement
-      { sender: "newsletter@steam.com", emailCount: 234, openRate: 48.6, domain: "steam.com" },
-      { sender: "updates@epicgames.com", emailCount: 189, openRate: 41.3, domain: "epicgames.com" },
-      { sender: "newsletter@twitch.tv", emailCount: 156, openRate: 39.7, domain: "twitch.tv" },
-      
-      // Divers
-      { sender: "newsletter@allocine.fr", emailCount: 167, openRate: 32.1, domain: "allocine.fr" },
-      { sender: "info@pole-emploi.fr", emailCount: 145, openRate: 68.9, domain: "pole-emploi.fr" },
-      { sender: "newsletter@marmiton.org", emailCount: 134, openRate: 41.8, domain: "marmiton.org" },
-      { sender: "promo@sephora.fr", emailCount: 123, openRate: 26.4, domain: "sephora.fr" },
-      { sender: "newsletter@ouest-france.fr", emailCount: 112, openRate: 29.6, domain: "ouest-france.fr" },
-      { sender: "info@impots.gouv.fr", emailCount: 98, openRate: 89.2, domain: "impots.gouv.fr" },
-      { sender: "newsletter@tf1.fr", emailCount: 87, openRate: 22.8, domain: "tf1.fr" },
-      { sender: "promo@laposte.fr", emailCount: 76, openRate: 31.4, domain: "laposte.fr" },
-      { sender: "newsletter@carrefour.fr", emailCount: 65, openRate: 15.2, domain: "carrefour.fr" },
-      { sender: "info@caf.fr", emailCount: 54, openRate: 75.6, domain: "caf.fr" },
-    ];
-    
-    // Filtrer pour ne garder que ceux avec plus d'un email et trier par nombre décroissant
-    const filteredStats = mockAllSenderStats.filter(sender => sender.emailCount > 1);
-    filteredStats.sort((a, b) => b.emailCount - a.emailCount);
-    setSenderStats(filteredStats);
+      // Convertir en format EmailGroup
+      const realEmailGroups: EmailGroup[] = Object.entries(emailsByDomain)
+        .sort(([,a], [,b]) => b - a) // Trier par nombre décroissant
+        .slice(0, 20) // Prendre les 20 premiers
+        .map(([sender, count]) => ({
+          sender,
+          count,
+          selected: true
+        }));
 
-    // Données simulées pour l'organisation intelligente
-    const mockOrganizationSenders: OrganizationSender[] = [
-      // Administratif / Professionnel
-      { sender: "rh@entreprise.fr", emailCount: 45, category: "💼 Administratif / Professionnel", selected: true, domain: "entreprise.fr" },
-      { sender: "contrats@avocat.fr", emailCount: 23, category: "💼 Administratif / Professionnel", selected: true, domain: "avocat.fr" },
-      { sender: "direction@company.com", emailCount: 34, category: "💼 Administratif / Professionnel", selected: true, domain: "company.com" },
+      console.log('📧 Groupes d\'emails générés à partir des vraies données:', realEmailGroups);
+      setEmailGroups(realEmailGroups);
+
+      // Générer les stats des expéditeurs à partir des vraies données
+      const realSenderStats: SenderStats[] = Object.entries(emailsByDomain)
+        .filter(([, count]) => count > 1)
+        .sort(([,a], [,b]) => b - a)
+        .map(([sender, count]) => ({
+          sender,
+          emailCount: count,
+          openRate: Math.random() * 80, // Simulation du taux d'ouverture
+          domain: sender.split('@')[1] || sender
+        }));
+
+      setSenderStats(realSenderStats);
+    } else {
+      // Fallback sur des données factices si pas de vraies données
+      console.log('⚠️ Aucune vraie donnée disponible, utilisation de données factices');
+      // Données simulées pour la catégorisation - TOUS LES EMAILS avec plus d'un email par émetteur
+      const mockAllSenderStats: SenderStats[] = [
+        // E-commerce & Shopping
+        { sender: "newsletters@amazon.fr", emailCount: 542, openRate: 12.5, domain: "amazon.fr" },
+        { sender: "promo@zalando.fr", emailCount: 498, openRate: 8.3, domain: "zalando.fr" },
+        { sender: "offers@cdiscount.fr", emailCount: 348, openRate: 9.1, domain: "cdiscount.fr" },
+        { sender: "promo@darty.fr", emailCount: 235, openRate: 11.2, domain: "darty.fr" },
+        { sender: "promo@fnac.fr", emailCount: 186, openRate: 14.6, domain: "fnac.fr" },
+        { sender: "offers@groupon.fr", emailCount: 164, openRate: 6.8, domain: "groupon.fr" },
+        { sender: "newsletter@vinted.fr", emailCount: 127, openRate: 22.4, domain: "vinted.fr" },
+        { sender: "promo@leclerc.fr", emailCount: 98, openRate: 13.7, domain: "leclerc.fr" },
+        
+        // Réseaux sociaux & Communication
+        { sender: "notifications@facebook.com", emailCount: 427, openRate: 23.1, domain: "facebook.com" },
+        { sender: "newsletter@linkedin.com", emailCount: 343, openRate: 45.2, domain: "linkedin.com" },
+        { sender: "updates@twitter.com", emailCount: 238, openRate: 19.4, domain: "twitter.com" },
+        { sender: "updates@instagram.com", emailCount: 223, openRate: 61.2, domain: "instagram.com" },
+        { sender: "notifications@youtube.com", emailCount: 189, openRate: 28.7, domain: "youtube.com" },
+        { sender: "updates@pinterest.fr", emailCount: 156, openRate: 34.6, domain: "pinterest.fr" },
+        { sender: "notifications@tiktok.com", emailCount: 134, openRate: 52.3, domain: "tiktok.com" },
+        
+        // Services & Applications
+        { sender: "updates@spotify.com", emailCount: 295, openRate: 67.4, domain: "spotify.com" },
+        { sender: "newsletter@uber.com", emailCount: 229, openRate: 52.1, domain: "uber.com" },
+        { sender: "newsletter@deliveroo.fr", emailCount: 220, openRate: 38.5, domain: "deliveroo.fr" },
+        { sender: "promo@booking.com", emailCount: 187, openRate: 18.9, domain: "booking.com" },
+        { sender: "newsletter@airbnb.fr", emailCount: 141, openRate: 41.5, domain: "airbnb.fr" },
+        { sender: "updates@netflix.com", emailCount: 98, openRate: 45.8, domain: "netflix.com" },
+        { sender: "newsletter@blablacar.fr", emailCount: 87, openRate: 29.3, domain: "blablacar.fr" },
+        
+        // Actualités & Médias
+        { sender: "news@lemonde.fr", emailCount: 276, openRate: 34.2, domain: "lemonde.fr" },
+        { sender: "news@figaro.fr", emailCount: 245, openRate: 28.7, domain: "figaro.fr" },
+        { sender: "news@bfmtv.com", emailCount: 232, openRate: 33.8, domain: "bfmtv.com" },
+        { sender: "newsletter@20minutes.fr", emailCount: 198, openRate: 25.4, domain: "20minutes.fr" },
+        { sender: "info@franceinfo.fr", emailCount: 167, openRate: 31.2, domain: "franceinfo.fr" },
+        { sender: "newsletter@lequipe.fr", emailCount: 143, openRate: 42.7, domain: "lequipe.fr" },
+        { sender: "news@liberation.fr", emailCount: 129, openRate: 37.8, domain: "liberation.fr" },
+        
+        // Petites annonces & Services locaux
+        { sender: "info@leboncoin.fr", emailCount: 386, openRate: 15.7, domain: "leboncoin.fr" },
+        { sender: "alerts@seloger.com", emailCount: 234, openRate: 27.9, domain: "seloger.com" },
+        { sender: "newsletter@pap.fr", emailCount: 156, openRate: 21.3, domain: "pap.fr" },
+        { sender: "info@logic-immo.com", emailCount: 143, openRate: 18.6, domain: "logic-immo.com" },
+        
+        // Tech & Professionnels
+        { sender: "newsletter@medium.com", emailCount: 252, openRate: 72.3, domain: "medium.com" },
+        { sender: "updates@github.com", emailCount: 198, openRate: 56.8, domain: "github.com" },
+        { sender: "newsletter@stackoverflow.com", emailCount: 167, openRate: 43.2, domain: "stackoverflow.com" },
+        { sender: "updates@slack.com", emailCount: 134, openRate: 38.9, domain: "slack.com" },
+        
+        // Banques & Services financiers
+        { sender: "info@banquepopulaire.fr", emailCount: 198, openRate: 65.4, domain: "banquepopulaire.fr" },
+        { sender: "alerts@creditagricole.fr", emailCount: 176, openRate: 58.7, domain: "creditagricole.fr" },
+        { sender: "info@bnpparibas.net", emailCount: 165, openRate: 62.3, domain: "bnpparibas.net" },
+        { sender: "newsletter@revolut.com", emailCount: 143, openRate: 44.6, domain: "revolut.com" },
+        
+        // Santé & Bien-être
+        { sender: "newsletter@doctolib.fr", emailCount: 187, openRate: 76.2, domain: "doctolib.fr" },
+        { sender: "info@ameli.fr", emailCount: 145, openRate: 82.4, domain: "ameli.fr" },
+        { sender: "newsletter@yuka.io", emailCount: 123, openRate: 54.7, domain: "yuka.io" },
+        
+        // Gaming & Divertissement
+        { sender: "newsletter@steam.com", emailCount: 234, openRate: 48.6, domain: "steam.com" },
+        { sender: "updates@epicgames.com", emailCount: 189, openRate: 41.3, domain: "epicgames.com" },
+        { sender: "newsletter@twitch.tv", emailCount: 156, openRate: 39.7, domain: "twitch.tv" },
+        
+        // Divers
+        { sender: "newsletter@allocine.fr", emailCount: 167, openRate: 32.1, domain: "allocine.fr" },
+        { sender: "info@pole-emploi.fr", emailCount: 145, openRate: 68.9, domain: "pole-emploi.fr" },
+        { sender: "newsletter@marmiton.org", emailCount: 134, openRate: 41.8, domain: "marmiton.org" },
+        { sender: "promo@sephora.fr", emailCount: 123, openRate: 26.4, domain: "sephora.fr" },
+        { sender: "newsletter@ouest-france.fr", emailCount: 112, openRate: 29.6, domain: "ouest-france.fr" },
+        { sender: "info@impots.gouv.fr", emailCount: 98, openRate: 89.2, domain: "impots.gouv.fr" },
+        { sender: "newsletter@tf1.fr", emailCount: 87, openRate: 22.8, domain: "tf1.fr" },
+        { sender: "promo@laposte.fr", emailCount: 76, openRate: 31.4, domain: "laposte.fr" },
+        { sender: "newsletter@carrefour.fr", emailCount: 65, openRate: 15.2, domain: "carrefour.fr" },
+        { sender: "info@caf.fr", emailCount: 54, openRate: 75.6, domain: "caf.fr" },
+      ];
       
-      // Finance / Banque
-      { sender: "info@banquepopulaire.fr", emailCount: 87, category: "💳 Finance / Banque", selected: true, domain: "banquepopulaire.fr" },
-      { sender: "factures@edf.fr", emailCount: 56, category: "💳 Finance / Banque", selected: true, domain: "edf.fr" },
-      { sender: "assurance@axa.fr", emailCount: 43, category: "💳 Finance / Banque", selected: true, domain: "axa.fr" },
-      { sender: "impots@dgfip.gouv.fr", emailCount: 12, category: "💳 Finance / Banque", selected: true, domain: "dgfip.gouv.fr" },
+      // Filtrer pour ne garder que ceux avec plus d'un email et trier par nombre décroissant
+      const filteredStats = realSenderStats.filter(sender => sender.emailCount > 1);
+      filteredStats.sort((a, b) => b.emailCount - a.emailCount);
+      setSenderStats(filteredStats);
+
+      // Données simulées pour l'organisation intelligente
+      const mockOrganizationSenders: OrganizationSender[] = [
+        // Administratif / Professionnel
+        { sender: "rh@entreprise.fr", emailCount: 45, category: "💼 Administratif / Professionnel", selected: true, domain: "entreprise.fr" },
+        { sender: "contrats@avocat.fr", emailCount: 23, category: "💼 Administratif / Professionnel", selected: true, domain: "avocat.fr" },
+        { sender: "direction@company.com", emailCount: 34, category: "💼 Administratif / Professionnel", selected: true, domain: "company.com" },
+        
+        // Finance / Banque
+        { sender: "info@banquepopulaire.fr", emailCount: 87, category: "💳 Finance / Banque", selected: true, domain: "banquepopulaire.fr" },
+        { sender: "factures@edf.fr", emailCount: 56, category: "💳 Finance / Banque", selected: true, domain: "edf.fr" },
+        { sender: "assurance@axa.fr", emailCount: 43, category: "💳 Finance / Banque", selected: true, domain: "axa.fr" },
+        { sender: "impots@dgfip.gouv.fr", emailCount: 12, category: "💳 Finance / Banque", selected: true, domain: "dgfip.gouv.fr" },
+        
+        // Achats Importants
+        { sender: "commandes@apple.com", emailCount: 34, category: "🛍️ Achats Importants", selected: true, domain: "apple.com" },
+        { sender: "sav@samsung.fr", emailCount: 23, category: "🛍️ Achats Importants", selected: true, domain: "samsung.fr" },
+        { sender: "garantie@darty.fr", emailCount: 45, category: "🛍️ Achats Importants", selected: true, domain: "darty.fr" },
+        
+        // Voyages & Justificatifs
+        { sender: "reservations@airfrance.fr", emailCount: 28, category: "✈️ Voyages & Justificatifs", selected: true, domain: "airfrance.fr" },
+        { sender: "hotels@booking.com", emailCount: 34, category: "✈️ Voyages & Justificatifs", selected: true, domain: "booking.com" },
+        { sender: "sncf@voyages-sncf.com", emailCount: 21, category: "✈️ Voyages & Justificatifs", selected: true, domain: "voyages-sncf.com" },
+        
+        // Sécurité & Accès
+        { sender: "securite@banque.fr", emailCount: 15, category: "🔐 Sécurité & Accès", selected: true, domain: "banque.fr" },
+        { sender: "verification@google.com", emailCount: 23, category: "🔐 Sécurité & Accès", selected: true, domain: "google.com" },
+        { sender: "comptes@microsoft.com", emailCount: 18, category: "🔐 Sécurité & Accès", selected: true, domain: "microsoft.com" },
+      ];
       
-      // Achats Importants
-      { sender: "commandes@apple.com", emailCount: 34, category: "🛍️ Achats Importants", selected: true, domain: "apple.com" },
-      { sender: "sav@samsung.fr", emailCount: 23, category: "🛍️ Achats Importants", selected: true, domain: "samsung.fr" },
-      { sender: "garantie@darty.fr", emailCount: 45, category: "🛍️ Achats Importants", selected: true, domain: "darty.fr" },
-      
-      // Voyages & Justificatifs
-      { sender: "reservations@airfrance.fr", emailCount: 28, category: "✈️ Voyages & Justificatifs", selected: true, domain: "airfrance.fr" },
-      { sender: "hotels@booking.com", emailCount: 34, category: "✈️ Voyages & Justificatifs", selected: true, domain: "booking.com" },
-      { sender: "sncf@voyages-sncf.com", emailCount: 21, category: "✈️ Voyages & Justificatifs", selected: true, domain: "voyages-sncf.com" },
-      
-      // Sécurité & Accès
-      { sender: "securite@banque.fr", emailCount: 15, category: "🔐 Sécurité & Accès", selected: true, domain: "banque.fr" },
-      { sender: "verification@google.com", emailCount: 23, category: "🔐 Sécurité & Accès", selected: true, domain: "google.com" },
-      { sender: "comptes@microsoft.com", emailCount: 18, category: "🔐 Sécurité & Accès", selected: true, domain: "microsoft.com" },
-    ];
-    
-    setOrganizationSenders(mockOrganizationSenders);
-  }, []);
+      setOrganizationSenders(mockOrganizationSenders);
+    }, [realEmailsArray]);
 
   const handleUnreadEmails = () => {
     setShowUnreadEmails(true);
@@ -449,6 +487,53 @@ const ScanResults = () => {
       />
       
       <div className="container mx-auto px-5 py-8 max-w-6xl">
+        {/* DEBUG SECTION - Affichage des vraies données */}
+        {showDebug && (
+          <Card className="bg-yellow-100 border-2 border-yellow-300 shadow-lg mb-8">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-yellow-800">🐛 DEBUG - Vraies Données du Scan</h2>
+                <Button 
+                  onClick={() => setShowDebug(false)}
+                  variant="outline"
+                  size="sm"
+                >
+                  Masquer Debug
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                  <strong>Scan Results:</strong> {scanResults ? '✅ Présent' : '❌ Absent'}
+                </div>
+                <div>
+                  <strong>Total Emails:</strong> {realTotalEmails}
+                </div>
+                <div>
+                  <strong>Emails Array:</strong> {realEmailsArray.length} emails
+                </div>
+                <div>
+                  <strong>Carbon Footprint:</strong> {realCarbonFootprint}
+                </div>
+                <div>
+                  <strong>Summary Keys:</strong> {Object.keys(realSummary).join(', ')}
+                </div>
+                <div>
+                  <strong>Premier Email:</strong> {realEmailsArray[0]?.subject || 'Aucun'}
+                </div>
+              </div>
+              
+              {!scanResults && (
+                <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded">
+                  <strong className="text-red-800">⚠️ PROBLÈME:</strong> Aucune donnée de scan trouvée dans location.state
+                  <br />
+                  <small>La navigation depuis le Dashboard ne transmet pas les données du scan</small>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Header avec succès */}
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg mb-8">
           <CardContent className="p-8 text-center">
@@ -460,7 +545,7 @@ const ScanResults = () => {
           </CardContent>
         </Card>
 
-        {/* Résumé du scan */}
+        {/* Résumé du scan avec VRAIES données */}
         <Card className="bg-white/95 backdrop-blur-md border-0 shadow-lg mb-8">
           <CardContent className="p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">📊 Résumé du Scan</h2>
