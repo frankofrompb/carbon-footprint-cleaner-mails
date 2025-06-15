@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,39 +18,7 @@ import {
   FileText
 } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
-
-interface EmailData {
-  id: string;
-  subject: string;
-  from: string;
-  date: string;
-  size?: number;
-  snippet?: string;
-  isUnread: boolean;
-  daysSinceReceived: number;
-  classification: {
-    category: string;
-    confidence: number;
-    suggestedAction: string;
-    reasoning: string;
-  };
-}
-
-interface ScanResults {
-  totalEmails: number;
-  totalSizeMB: number;
-  carbonFootprint: number;
-  emails: EmailData[];
-  summary: {
-    oldUnreadEmails: number;
-    promotionalEmails: number;
-    socialEmails: number;
-    notificationEmails: number;
-    spamEmails: number;
-    autoClassifiableEmails: number;
-    duplicateSenderEmails: number;
-  };
-}
+import { EmailData, ScanResults } from "@/types";
 
 interface IntelligentScanResultsProps {
   results: ScanResults;
@@ -136,7 +105,7 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
 
   const filteredEmails = filterCategory === 'all' 
     ? results.emails 
-    : results.emails.filter(email => email.classification.category === filterCategory);
+    : results.emails.filter(email => email.classification?.category === filterCategory);
 
   const handleEmailToggle = (emailId: string, checked: boolean) => {
     const newSelected = new Set(selectedEmails);
@@ -150,7 +119,7 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
 
   const handleSelectAllInCategory = (category: string) => {
     const categoryEmails = results.emails.filter(email => 
-      category === 'all' || email.classification.category === category
+      category === 'all' || email.classification?.category === category
     );
     const newSelected = new Set(selectedEmails);
     categoryEmails.forEach(email => newSelected.add(email.id));
@@ -161,7 +130,7 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
     const categories = Object.keys(categoryConfig);
     return categories.map(category => ({
       category,
-      count: results.emails.filter(email => email.classification.category === category).length,
+      count: results.emails.filter(email => email.classification?.category === category).length,
       ...categoryConfig[category as keyof typeof categoryConfig]
     })).filter(stat => stat.count > 0);
   };
@@ -179,19 +148,19 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-2xl font-bold text-red-600">{formatNumber(results.summary.oldUnreadEmails)}</div>
+              <div className="text-2xl font-bold text-red-600">{formatNumber(results.summary?.oldUnreadEmails || 0)}</div>
               <div className="text-sm text-red-700">Non lus +6 mois</div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-              <div className="text-2xl font-bold text-orange-600">{formatNumber(results.summary.promotionalEmails)}</div>
+              <div className="text-2xl font-bold text-orange-600">{formatNumber(results.summary?.promotionalEmails || 0)}</div>
               <div className="text-sm text-orange-700">Promotionnels</div>
             </div>
             <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="text-2xl font-bold text-blue-600">{formatNumber(results.summary.socialEmails)}</div>
+              <div className="text-2xl font-bold text-blue-600">{formatNumber(results.summary?.socialEmails || 0)}</div>
               <div className="text-sm text-blue-700">Réseaux sociaux</div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <div className="text-2xl font-bold text-purple-600">{formatNumber(results.summary.duplicateSenderEmails)}</div>
+              <div className="text-2xl font-bold text-purple-600">{formatNumber(results.summary?.duplicateSenderEmails || 0)}</div>
               <div className="text-sm text-purple-700">Expéditeurs multiples</div>
             </div>
           </div>
@@ -278,7 +247,7 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
         <CardContent>
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {filteredEmails.map((email) => {
-              const config = categoryConfig[email.classification.category as keyof typeof categoryConfig] || categoryConfig.other;
+              const config = categoryConfig[email.classification?.category as keyof typeof categoryConfig] || categoryConfig.other;
               return (
                 <div key={email.id} className={`p-4 rounded-lg border ${config.bgColor} ${config.borderColor}`}>
                   <div className="flex items-start gap-3">
@@ -296,7 +265,7 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
                           <Badge variant="outline">Non lu</Badge>
                         )}
                         <span className="text-sm text-muted-foreground">
-                          il y a {email.daysSinceReceived} jours
+                          il y a {email.daysSinceReceived || 0} jours
                         </span>
                       </div>
                       <h4 className="font-medium truncate">{email.subject}</h4>
@@ -307,9 +276,9 @@ const IntelligentScanResults = ({ results, onDeleteSelected, onOrganizeSelected 
                         </p>
                       )}
                       <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <span>Confiance: {Math.round(email.classification.confidence * 100)}%</span>
-                        <span>Action suggérée: {email.classification.suggestedAction}</span>
-                        <span>{email.size}Ko</span>
+                        <span>Confiance: {Math.round((email.classification?.confidence || 0) * 100)}%</span>
+                        <span>Action suggérée: {email.classification?.suggestedAction || 'review'}</span>
+                        <span>{email.size || 0}Ko</span>
                       </div>
                     </div>
                   </div>

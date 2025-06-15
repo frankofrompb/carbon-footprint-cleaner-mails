@@ -3,13 +3,13 @@ export interface EmailData {
   id: string;
   subject: string;
   from: string;
-  to?: string; // Ajouté pour compatibilité
+  to?: string;
   date: string;
-  size?: number; // en Ko
+  size?: number;
   snippet?: string;
   isUnread?: boolean;
-  isRead?: boolean; // Ajouté pour compatibilité
-  labels?: string[]; // Ajouté pour compatibilité
+  isRead?: boolean;
+  labels?: string[];
   daysSinceReceived?: number;
   classification?: {
     category: string;
@@ -21,7 +21,7 @@ export interface EmailData {
 
 export interface ScanResults {
   totalEmails: number;
-  totalSizeMB: number; // Rendu requis pour cohérence
+  totalSizeMB: number;
   carbonFootprint: number;
   emails: EmailData[];
   summary?: {
@@ -31,7 +31,7 @@ export interface ScanResults {
     notificationEmails: number;
     spamEmails: number;
     autoClassifiableEmails: number;
-    duplicateSenderEmails: number; // Nouvelle catégorie ajoutée
+    duplicateSenderEmails: number;
   };
 }
 
