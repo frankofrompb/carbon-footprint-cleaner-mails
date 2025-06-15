@@ -1,15 +1,14 @@
-
 export interface EmailData {
   id: string;
   subject: string;
   from: string;
-  to?: string;
+  to?: string; // Ajouté pour compatibilité
   date: string;
-  size?: number;
+  size?: number; // en Ko
   snippet?: string;
   isUnread?: boolean;
-  isRead?: boolean;
-  labels?: string[];
+  isRead?: boolean; // Ajouté pour compatibilité
+  labels?: string[]; // Ajouté pour compatibilité
   daysSinceReceived?: number;
   classification?: {
     category: string;
@@ -21,7 +20,7 @@ export interface EmailData {
 
 export interface ScanResults {
   totalEmails: number;
-  totalSizeMB: number;
+  totalSizeMB?: number;
   carbonFootprint: number;
   emails: EmailData[];
   summary?: {
@@ -31,7 +30,7 @@ export interface ScanResults {
     notificationEmails: number;
     spamEmails: number;
     autoClassifiableEmails: number;
-    duplicateSenderEmails: number;
+    duplicateSenderEmails: number; // Nouvelle catégorie ajoutée
   };
 }
 
