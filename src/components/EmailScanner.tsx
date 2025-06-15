@@ -15,6 +15,9 @@ interface EmailScannerProps {
 }
 
 const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanType }: EmailScannerProps) => {
+  // LOG CRITIQUE : Vérifier si ce composant est affiché
+  console.log('🚨 COMPOSANT EmailScanner RENDU ! scanType:', scanType, 'status:', scanState.status);
+
   console.log('📊 EmailScanner - État du scan:', {
     status: scanState.status,
     scanType: scanType,
@@ -39,6 +42,13 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Analyse de la boite mail</h2>
+      </div>
+
+      {/* LOG VISIBLE DANS L'UI POUR FORCER L'AFFICHAGE */}
+      <div className="p-4 bg-red-100 border border-red-300 rounded-lg">
+        <h3 className="font-bold text-red-800">🚨 COMPOSANT EmailScanner AFFICHÉ</h3>
+        <p><strong>Status:</strong> {scanState.status}</p>
+        <p><strong>ScanType:</strong> {scanType || 'undefined'}</p>
       </div>
 
       {scanState.status === 'idle' && (
