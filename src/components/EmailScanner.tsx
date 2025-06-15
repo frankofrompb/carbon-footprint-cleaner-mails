@@ -54,7 +54,18 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
             <IntelligentScanResults
               results={{
                 ...scanState.results,
-                totalSizeMB: scanState.results.totalSizeMB || 0
+                totalSizeMB: scanState.results.totalSizeMB || 0,
+                emails: scanState.results.emails.map(email => ({
+                  ...email,
+                  isUnread: email.isUnread ?? (email.isRead === false),
+                  daysSinceReceived: email.daysSinceReceived || 0,
+                  classification: email.classification || {
+                    category: 'other',
+                    confidence: 0,
+                    suggestedAction: 'review',
+                    reasoning: 'Non classifié'
+                  }
+                }))
               }}
               onDeleteSelected={onDelete}
               onOrganizeSelected={handleOrganizeSelected}
