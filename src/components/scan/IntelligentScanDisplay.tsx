@@ -1,4 +1,3 @@
-
 import { ScanResults } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +34,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 
 interface IntelligentScanDisplayProps {
@@ -52,13 +51,41 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  console.log('🎯 IntelligentScanDisplay - Données reçues:', {
-    totalEmails: results.totalEmails,
-    emailsCount: results.emails?.length || 0,
-    summary: results.summary,
-    carbonFootprint: results.carbonFootprint,
-    totalSizeMB: results.totalSizeMB,
-    premiersEmails: results.emails?.slice(0, 3).map(e => ({ id: e.id, subject: e.subject, from: e.from }))
+  // LOGS DE DÉBOGAGE POUR IDENTIFIER LE PROBLÈME
+  useEffect(() => {
+    console.log('🎯 IntelligentScanDisplay - PROPS REÇUES AU MONTAGE:', {
+      hasResults: !!results,
+      totalEmails: results?.totalEmails,
+      emailsCount: results?.emails?.length || 0,
+      userEmail: userEmail,
+      premiersEmails: results?.emails?.slice(0, 3)?.map(e => ({ 
+        id: e.id, 
+        subject: e.subject?.substring(0, 50), 
+        from: e.from?.substring(0, 30) 
+      }))
+    });
+
+    if (results?.emails && results.emails.length > 0) {
+      console.log('📧 DÉTAIL DU PREMIER EMAIL REÇU:');
+      console.log('ID:', results.emails[0].id);
+      console.log('Subject:', results.emails[0].subject);
+      console.log('From:', results.emails[0].from);
+      console.log('Date:', results.emails[0].date);
+      console.log('Classification:', results.emails[0].classification);
+    }
+  }, [results, userEmail]);
+
+  console.log('🔄 IntelligentScanDisplay - RENDER:', {
+    totalEmails: results?.totalEmails,
+    emailsCount: results?.emails?.length || 0,
+    summary: results?.summary,
+    carbonFootprint: results?.carbonFootprint,
+    totalSizeMB: results?.totalSizeMB,
+    premiersEmailsRender: results?.emails?.slice(0, 2)?.map(e => ({ 
+      id: e.id, 
+      subject: e.subject, 
+      from: e.from 
+    }))
   });
 
   const handleSelectEmail = (emailId: string) => {
@@ -91,9 +118,32 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
     );
   }) || [];
 
+  console.log('🔍 EMAILS FILTRÉS POUR AFFICHAGE:', {
+    nombreTotal: results?.emails?.length || 0,
+    nombreFiltre: filteredEmails.length,
+    recherche: searchQuery,
+    premiersFiltrés: filteredEmails.slice(0, 2).map(e => ({
+      id: e.id,
+      subject: e.subject?.substring(0, 40),
+      from: e.from?.substring(0, 20)
+    }))
+  });
+
   const totalEmails = filteredEmails.length;
   const totalPages = Math.ceil(totalEmails / itemsPerPage);
   const paginatedEmails = filteredEmails.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+
+  console.log('📄 EMAILS PAGINÉS POUR AFFICHAGE:', {
+    page: page,
+    itemsPerPage: itemsPerPage,
+    totalPages: totalPages,
+    emailsPagines: paginatedEmails.length,
+    premierEmailPagine: paginatedEmails[0] ? {
+      id: paginatedEmails[0].id,
+      subject: paginatedEmails[0].subject,
+      from: paginatedEmails[0].from
+    } : 'AUCUN EMAIL'
+  });
 
   return (
     <div className="space-y-6">
