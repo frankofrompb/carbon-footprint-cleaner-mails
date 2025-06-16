@@ -23,6 +23,30 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     emailsCount: scanState.results?.emails?.length
   });
 
+  // LOGS DE DEBUG DÉTAILLÉS POUR LE PROBLÈME D'AFFICHAGE
+  console.log('🔍 EmailScanner - DEBUG AFFICHAGE:', {
+    statusEst: scanState.status,
+    statusEstCompleted: scanState.status === 'completed',
+    aDesResultats: !!scanState.results,
+    scanTypeEst: scanType,
+    scanTypeEstIntelligent: scanType === 'intelligent-scan',
+    conditionComplete: scanState.status === 'completed' && scanState.results && scanType === 'intelligent-scan'
+  });
+
+  if (scanState.status === 'completed' && scanState.results) {
+    console.log('✅ EmailScanner - SCAN TERMINÉ - DÉTAILS:', {
+      totalEmails: scanState.results.totalEmails,
+      emailsLength: scanState.results.emails?.length,
+      scanType: scanType,
+      userEmail: userEmail,
+      premierEmail: scanState.results.emails?.[0] ? {
+        id: scanState.results.emails[0].id,
+        subject: scanState.results.emails[0].subject?.substring(0, 50),
+        from: scanState.results.emails[0].from?.substring(0, 30)
+      } : 'AUCUN EMAIL'
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -46,12 +70,21 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
       {scanState.status === 'completed' && scanState.results && (
         <div className="space-y-6">
           {scanType === 'intelligent-scan' ? (
-            <IntelligentScanDisplay
-              results={scanState.results}
-              userEmail={userEmail}
-              onDeleteSelected={onDelete}
-              onExport={onExport}
-            />
+            <>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-green-800 font-medium">🎯 AFFICHAGE IntelligentScanDisplay</p>
+                <p className="text-green-600 text-sm">
+                  Données à transmettre: {scanState.results.totalEmails} emails totaux, 
+                  {scanState.results.emails?.length} emails traités
+                </p>
+              </div>
+              <IntelligentScanDisplay
+                results={scanState.results}
+                userEmail={userEmail}
+                onDeleteSelected={onDelete}
+                onExport={onExport}
+              />
+            </>
           ) : (
             <div className="text-center p-8 border border-dashed border-gray-300 rounded-lg">
               <p className="text-lg font-semibold text-gray-600">
