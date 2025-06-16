@@ -124,12 +124,16 @@ export const useScanEmails = () => {
         premierEmailFinal: processedResults.emails[0]
       });
 
-      setScanState({
-        status: 'completed',
+      // MISE À JOUR CRITIQUE DE L'ÉTAT
+      console.log('🔥 DEBUG - MISE À JOUR DE L\'ÉTAT VERS COMPLETED');
+      const finalState = {
+        status: 'completed' as const,
         results: processedResults,
         error: null,
         progress: 100,
-      });
+      };
+      console.log('🔥 DEBUG - NOUVEL ÉTAT:', finalState);
+      setScanState(finalState);
 
       toast({
         title: "Scan intelligent terminé",

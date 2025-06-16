@@ -24,17 +24,18 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
   });
 
   // LOGS DE DEBUG DÉTAILLÉS POUR LE PROBLÈME D'AFFICHAGE
-  console.log('🔍 EmailScanner - DEBUG AFFICHAGE:', {
+  console.log('🔍 EmailScanner - DEBUG AFFICHAGE COMPLET:', {
     statusEst: scanState.status,
     statusEstCompleted: scanState.status === 'completed',
     aDesResultats: !!scanState.results,
     scanTypeEst: scanType,
     scanTypeEstIntelligent: scanType === 'intelligent-scan',
-    conditionComplete: scanState.status === 'completed' && scanState.results && scanType === 'intelligent-scan'
+    conditionComplete: scanState.status === 'completed' && scanState.results && scanType === 'intelligent-scan',
+    scanStateComplet: scanState
   });
 
   if (scanState.status === 'completed' && scanState.results) {
-    console.log('✅ EmailScanner - SCAN TERMINÉ - DÉTAILS:', {
+    console.log('✅ EmailScanner - SCAN TERMINÉ - DÉTAILS COMPLETS:', {
       totalEmails: scanState.results.totalEmails,
       emailsLength: scanState.results.emails?.length,
       scanType: scanType,
@@ -43,7 +44,8 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
         id: scanState.results.emails[0].id,
         subject: scanState.results.emails[0].subject?.substring(0, 50),
         from: scanState.results.emails[0].from?.substring(0, 30)
-      } : 'AUCUN EMAIL'
+      } : 'AUCUN EMAIL',
+      shouldShowIntelligentDisplay: scanType === 'intelligent-scan'
     });
   }
 
@@ -51,6 +53,16 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Analyse intelligente de la boite Gmail</h2>
+      </div>
+
+      {/* Statut actuel toujours visible */}
+      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-blue-800 font-medium">🔍 Statut actuel: {scanState.status}</p>
+        {scanState.results && (
+          <p className="text-blue-600 text-sm">
+            Résultats disponibles: {scanState.results.totalEmails} emails totaux
+          </p>
+        )}
       </div>
 
       {scanState.status === 'idle' && (
@@ -76,6 +88,9 @@ const EmailScanner = ({ scanState, onScan, onDelete, onExport, userEmail, scanTy
                 <p className="text-green-600 text-sm">
                   Données à transmettre: {scanState.results.totalEmails} emails totaux, 
                   {scanState.results.emails?.length} emails traités
+                </p>
+                <p className="text-green-600 text-xs mt-1">
+                  Premier email: {scanState.results.emails?.[0]?.subject}
                 </p>
               </div>
               <IntelligentScanDisplay
