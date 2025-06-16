@@ -57,7 +57,8 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
     emailsCount: results.emails?.length || 0,
     summary: results.summary,
     carbonFootprint: results.carbonFootprint,
-    totalSizeMB: results.totalSizeMB
+    totalSizeMB: results.totalSizeMB,
+    premiersEmails: results.emails?.slice(0, 3).map(e => ({ id: e.id, subject: e.subject, from: e.from }))
   });
 
   const handleSelectEmail = (emailId: string) => {
@@ -86,7 +87,6 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
     const searchTerm = debouncedSearchQuery.toLowerCase();
     return (
       email.from.toLowerCase().includes(searchTerm) ||
-      (email.to && email.to.toLowerCase().includes(searchTerm)) ||
       email.subject.toLowerCase().includes(searchTerm)
     );
   }) || [];
@@ -103,29 +103,6 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
           Connecté à <span className="font-semibold">{userEmail}</span>
         </div>
       </div>
-
-      {/* DEBUG: Afficher les données brutes */}
-      <Card className="bg-gray-50 border-gray-300">
-        <CardHeader>
-          <CardTitle className="text-sm">🔍 DEBUG - Données reçues</CardTitle>
-        </CardHeader>
-        <CardContent className="text-xs space-y-1">
-          <p><strong>Total emails trouvés:</strong> {results.totalEmails}</p>
-          <p><strong>Échantillon traité:</strong> {results.emails?.length || 0} emails</p>
-          <p><strong>Empreinte carbone:</strong> {results.carbonFootprint}g</p>
-          <p><strong>Taille totale:</strong> {results.totalSizeMB} MB</p>
-          <p><strong>Summary disponible:</strong> {results.summary ? 'OUI' : 'NON'}</p>
-          {results.summary && (
-            <div className="mt-2 p-2 bg-white rounded border">
-              <p><strong>Résumé:</strong></p>
-              <p>• Non lus +6 mois: {results.summary.oldUnreadEmails || 0}</p>
-              <p>• Promotionnels: {results.summary.promotionalEmails || 0}</p>
-              <p>• Réseaux sociaux: {results.summary.socialEmails || 0}</p>
-              <p>• Auto-classifiables: {results.summary.autoClassifiableEmails || 0}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Statistiques principales */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -192,7 +169,7 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>📧 Échantillon d'emails analysés</CardTitle>
+            <CardTitle>📧 Emails Gmail analysés</CardTitle>
             <Input
               type="search"
               placeholder="Rechercher un email..."
@@ -207,7 +184,7 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
             <div className="space-y-4">
               <Table>
                 <TableCaption>
-                  Échantillon de {results.emails?.length || 0} emails analysés sur {results.totalEmails} trouvés.
+                  Échantillon de {results.emails?.length || 0} emails analysés sur {results.totalEmails} trouvés dans Gmail.
                 </TableCaption>
                 <TableHeader>
                   <TableRow>
@@ -308,7 +285,7 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
                     <AlertDialogHeader>
                       <AlertDialogTitle>Êtes-vous sûr(e) ?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Cette action est irréversible. Les emails sélectionnés seront définitivement supprimés.
+                        Cette action est irréversible. Les emails sélectionnés seront définitivement supprimés de votre Gmail.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -324,8 +301,8 @@ const IntelligentScanDisplay = ({ results, userEmail, onDeleteSelected, onExport
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">Aucun email trouvé dans l'échantillon.</p>
-              <p className="text-sm text-gray-400">Pourtant {results.totalEmails} emails ont été détectés au total.</p>
+              <p className="text-gray-500">Aucun email trouvé correspondant à votre recherche.</p>
+              <p className="text-sm text-gray-400">Pourtant {results.totalEmails} emails ont été détectés au total dans Gmail.</p>
             </div>
           )}
         </CardContent>
