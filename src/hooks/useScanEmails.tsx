@@ -124,6 +124,10 @@ export const useScanEmails = () => {
         premierEmailFinal: processedResults.emails[0]
       });
 
+      // SAUVEGARDER LES RÉSULTATS DANS LE LOCALSTORAGE
+      console.log('💾 DEBUG - Sauvegarde des résultats dans localStorage');
+      localStorage.setItem("lastScanResults", JSON.stringify(processedResults));
+
       // MISE À JOUR CRITIQUE DE L'ÉTAT
       console.log('🔥 DEBUG - MISE À JOUR DE L\'ÉTAT VERS COMPLETED');
       const finalState = {
