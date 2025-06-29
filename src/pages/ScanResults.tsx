@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScanResults } from "@/types";
@@ -61,6 +60,10 @@ const ScanResultsPage = () => {
 
   const handleBackToDashboard = () => {
     navigate('/dashboard');
+  };
+
+  const navigateToSection = (section: string) => {
+    navigate(`/${section}`);
   };
 
   if (!scanResults) {
@@ -135,7 +138,61 @@ const ScanResultsPage = () => {
           </div>
         </div>
 
-        {/* Sections principales */}
+        {/* Navigation vers les sections */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigateToSection('smart-deletion')}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-red-600">🗑️</span>
+                Suppression Intelligente
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Emails non ouverts depuis plus de 6 mois
+              </p>
+              <Button variant="outline" className="w-full">
+                Voir les détails →
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigateToSection('advanced-classification')}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-blue-600">📊</span>
+                Classification Avancée
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Analyse complète par expéditeur et catégorie
+              </p>
+              <Button variant="outline" className="w-full">
+                Voir les détails →
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigateToSection('auto-organization')}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span className="text-green-600">📁</span>
+                Organisation Automatique
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600 mb-4">
+                Tri par catégories spécialisées
+              </p>
+              <Button variant="outline" className="w-full">
+                Voir les détails →
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Aperçu des sections */}
         <div className="space-y-8">
           <SmartDeletionSection 
             results={scanResults}
