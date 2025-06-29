@@ -1,341 +1,237 @@
 
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface EmailData {
+  id: string;
+  subject: string;
+  from: string;
+  date: string;
+  size?: number;
+  snippet?: string;
+  isUnread: boolean;
+  daysSinceReceived: number;
+  classification: {
+    category: string;
+    confidence: number;
+    suggestedAction: string;
+    reasoning: string;
+  };
+}
+
+interface ScanResults {
+  totalEmails: number;
+  totalSizeMB: number;
+  carbonFootprint: number;
+  emails: EmailData[];
+  summary: {
+    oldUnreadEmails: number;
+    promotionalEmails: number;
+    socialEmails: number;
+    notificationEmails: number;
+    spamEmails: number;
+    autoClassifiableEmails: number;
+    duplicateSenderEmails: number;
+  };
+}
+
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🚀 intelligent-email-scan - Début de la fonction');
-    console.log('📋 Method:', req.method);
-    console.log('📋 Content-Type:', req.headers.get('content-type'));
-    console.log('📋 URL:', req.url);
+    const { accessToken } = await req.json();
     
-    // Vérifier la méthode HTTP
-    if (req.method !== 'POST') {
-      console.error('❌ Méthode HTTP incorrecte:', req.method);
-      return new Response(
-        JSON.stringify({ error: 'Méthode non autorisée. Utilisez POST.' }),
-        {
-          status: 405,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    if (!accessToken) {
+      console.error('❌ AUCUN TOKEN D\'ACCÈS FOURNI');
+      throw new Error('Access token is required');
     }
 
-    // Récupérer et parser le body de façon plus robuste
-    let requestBody;
-    let bodyText = '';
+    console.log('🔍 DÉMARRAGE DU SCAN INTELLIGENT RÉEL');
+    console.log('📧 Token reçu (longueur):', accessToken.length, 'caractères');
+
+    // ÉTAPE 1: Vérifier l'authentification
+    console.log('🔐 TENTATIVE DE CONNEXION À L\'API GMAIL...');
     
-    try {
-      // Cloner la requête pour pouvoir la lire plusieurs fois si nécessaire
-      const clonedRequest = req.clone();
-      bodyText = await clonedRequest.text();
-      
-      console.log('📄 Body text longueur:', bodyText.length);
-      console.log('📄 Body text preview:', bodyText.substring(0, 200));
-      
-      if (!bodyText || bodyText.trim() === '') {
-        console.error('❌ Corps de requête vide ou null');
-        return new Response(
-          JSON.stringify({ 
-            error: 'Corps de requête vide',
-            details: 'Le token d\'accès est requis dans le corps de la requête'
-          }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      requestBody = JSON.parse(bodyText);
-      console.log('✅ Body parsé avec succès, clés:', Object.keys(requestBody));
-      
-    } catch (parseError) {
-      console.error('❌ Erreur parsing JSON:', parseError);
-      console.error('❌ Body text qui a causé l\'erreur:', bodyText);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Format JSON invalide',
-          details: parseError instanceof Error ? parseError.message : 'Erreur de parsing inconnue',
-          receivedBody: bodyText.substring(0, 500) // Limiter pour éviter les logs trop longs
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Vérifier la présence du token
-    const { accessToken } = requestBody;
-    
-    if (!accessToken || typeof accessToken !== 'string') {
-      console.error('❌ Token d\'accès manquant ou invalide:', typeof accessToken);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Token d\'accès requis',
-          details: 'Le token d\'accès Gmail doit être fourni en tant que string'
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    console.log('🔑 Token reçu, longueur:', accessToken.length);
-    console.log('🔑 Token début:', accessToken.substring(0, 20) + "...");
-
-    // Test de validité du token
-    console.log('🧪 Test de validité du token...');
-    const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+    const profileResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
     });
 
-    console.log('🧪 Status de la réponse test:', testResponse.status);
+    console.log('📊 STATUS DE LA RÉPONSE PROFIL:', profileResponse.status);
 
-    if (!testResponse.ok) {
-      const errorText = await testResponse.text();
-      console.error('❌ Token invalide:', {
-        status: testResponse.status,
-        statusText: testResponse.statusText,
-        body: errorText.substring(0, 500)
-      });
-      
-      return new Response(
-        JSON.stringify({ 
-          error: `Token d'accès Gmail invalide (${testResponse.status})`,
-          details: errorText,
-          hint: testResponse.status === 401 ? 'Token expiré, veuillez vous reconnecter' : 'Vérifiez les permissions du token'
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    if (!profileResponse.ok) {
+      const errorText = await profileResponse.text();
+      console.error('❌ ERREUR D\'AUTHENTIFICATION GMAIL:', errorText);
+      throw new Error(`Erreur d'authentification Gmail: ${profileResponse.status} - ${errorText}`);
     }
 
-    const profile = await testResponse.json();
-    console.log('✅ Profil Gmail récupéré:', profile.emailAddress);
+    const profileData = await profileResponse.json();
+    console.log('✅ PROFIL UTILISATEUR RÉCUPÉRÉ:');
+    console.log('📧 Email:', profileData.emailAddress);
+    console.log('📊 Total emails:', profileData.messagesTotal);
 
-    // Récupérer les emails avec pagination
-    console.log('📧 Début récupération des emails...');
-    const searchQuery = 'is:unread';
-    let allMessageIds: string[] = [];
-    let nextPageToken: string | undefined;
-    let totalFetched = 0;
-
-    // Récupérer les IDs des emails non lus
-    do {
-      const searchUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(searchQuery)}&maxResults=500${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
-      
-      const searchResponse = await fetch(searchUrl, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!searchResponse.ok) {
-        const errorText = await searchResponse.text();
-        console.error('❌ Erreur recherche Gmail:', errorText);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Erreur lors de la recherche des emails',
-            details: errorText
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-
-      const searchData = await searchResponse.json();
-      
-      if (searchData.messages) {
-        allMessageIds.push(...searchData.messages.map((msg: any) => msg.id));
-        totalFetched += searchData.messages.length;
-      }
-      
-      nextPageToken = searchData.nextPageToken;
-      console.log(`📊 Récupéré ${totalFetched} IDs d'emails jusqu'à présent...`);
-      
-      // Limiter pour éviter les timeouts
-      if (totalFetched >= 2000) {
-        console.log('⚠️ Limite de 2000 emails atteinte pour éviter les timeouts');
-        break;
-      }
-      
-    } while (nextPageToken);
-
-    console.log(`✅ Total ${allMessageIds.length} emails non lus trouvés`);
-
-    // Récupérer les détails des emails
-    const emails: any[] = [];
-    const batchSize = 50;
-    const maxEmails = Math.min(allMessageIds.length, 1000);
-
-    for (let i = 0; i < maxEmails; i += batchSize) {
-      const batch = allMessageIds.slice(i, i + batchSize);
-      console.log(`📄 Récupération détails emails ${i + 1} à ${Math.min(i + batchSize, maxEmails)}...`);
-      
-      const batchPromises = batch.map(async (messageId) => {
-        try {
-          const messageResponse = await fetch(
-            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
-            {
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json',
-              },
-            }
-          );
-
-          if (messageResponse.ok) {
-            const messageData = await messageResponse.json();
-            const headers = messageData.payload?.headers || [];
-            
-            const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
-            const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
-            const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
-            
-            const emailDate = dateHeader ? new Date(dateHeader) : new Date();
-            const daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            // Vérifier si l'email est vraiment non lu
-            const isUnread = messageData.labelIds?.includes('UNREAD') || false;
-            
-            // Classification simple basée sur l'expéditeur et le sujet
-            let classification = {
-              category: 'other',
-              confidence: 0.5,
-              suggestedAction: 'review',
-              reasoning: 'Classification automatique'
-            };
-
-            const subjectLower = subject.toLowerCase();
-            const fromLower = from.toLowerCase();
-
-            if (fromLower.includes('noreply') || fromLower.includes('no-reply') || 
-                subjectLower.includes('newsletter') || subjectLower.includes('unsubscribe')) {
-              classification = {
-                category: 'promotional',
-                confidence: 0.8,
-                suggestedAction: 'delete',
-                reasoning: 'Email promotionnel détecté'
-              };
-            } else if (fromLower.includes('facebook') || fromLower.includes('twitter') || 
-                      fromLower.includes('linkedin') || fromLower.includes('instagram')) {
-              classification = {
-                category: 'social',
-                confidence: 0.9,
-                suggestedAction: 'archive',
-                reasoning: 'Notification de réseau social'
-              };
-            } else if (subjectLower.includes('notification') || subjectLower.includes('alert') ||
-                      subjectLower.includes('reminder')) {
-              classification = {
-                category: 'notification',
-                confidence: 0.7,
-                suggestedAction: 'review',
-                reasoning: 'Email de notification'
-              };
-            }
-
-            return {
-              id: messageId,
-              subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
-              from: from.includes('<') ? from.split('<')[0].trim() : from,
-              date: emailDate.toISOString(),
-              size: Math.round((messageData.sizeEstimate || 10000) / 1024),
-              snippet: messageData.snippet || '',
-              isUnread,
-              daysSinceReceived,
-              classification
-            };
-          }
-        } catch (error) {
-          console.error(`❌ Erreur récupération email ${messageId}:`, error);
-        }
-        return null;
-      });
-
-      const batchResults = await Promise.all(batchPromises);
-      const validResults = batchResults.filter(email => email !== null);
-      emails.push(...validResults);
-      
-      // Pause entre les batches
-      if (i + batchSize < maxEmails) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-
-    console.log(`✅ Détails récupérés pour ${emails.length} emails`);
-
-    // Calculer les statistiques
-    const oldUnreadEmails = emails.filter(e => e.isUnread && e.daysSinceReceived > 180).length;
-    const promotionalEmails = emails.filter(e => e.classification.category === 'promotional').length;
-    const socialEmails = emails.filter(e => e.classification.category === 'social').length;
-    const notificationEmails = emails.filter(e => e.classification.category === 'notification').length;
-    const spamEmails = emails.filter(e => e.classification.category === 'spam').length;
-    const autoClassifiableEmails = emails.filter(e => e.classification.category !== 'other').length;
-
-    const totalSize = emails.reduce((sum, email) => sum + (email.size || 0), 0);
-    const totalSizeMB = totalSize / 1024;
-    const carbonFootprint = allMessageIds.length * 10;
-
-    const results = {
-      totalEmails: allMessageIds.length,
-      totalSizeMB,
-      carbonFootprint,
-      emails: emails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-      summary: {
-        oldUnreadEmails,
-        promotionalEmails,
-        socialEmails,
-        notificationEmails,
-        spamEmails,
-        autoClassifiableEmails,
-        duplicateSenderEmails: 0
-      }
-    };
-
-    console.log('✅ Scan terminé avec succès:', {
-      totalEmails: results.totalEmails,
-      emailsProcessed: results.emails.length,
-      oldUnreadEmails: results.summary.oldUnreadEmails,
-      promotionalEmails: results.summary.promotionalEmails
+    // ÉTAPE 2: Récupérer les IDs des emails
+    console.log('📡 RÉCUPÉRATION DES IDS D\'EMAILS...');
+    
+    const searchResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
     });
 
+    if (!searchResponse.ok) {
+      const errorText = await searchResponse.text();
+      console.error('❌ Erreur Gmail API search:', errorText);
+      throw new Error(`Erreur lors de la recherche des emails: ${searchResponse.status}`);
+    }
+
+    const searchData = await searchResponse.json();
+    console.log('📊 Emails trouvés:', searchData.messages?.length || 0);
+    
+    if (!searchData.messages || searchData.messages.length === 0) {
+      console.log('⚠️ Aucun email trouvé');
+      return new Response(JSON.stringify({
+        totalEmails: 0,
+        totalSizeMB: 0,
+        carbonFootprint: 0,
+        emails: [],
+        summary: {
+          oldUnreadEmails: 0,
+          promotionalEmails: 0,
+          socialEmails: 0,
+          notificationEmails: 0,
+          spamEmails: 0,
+          autoClassifiableEmails: 0,
+          duplicateSenderEmails: 0,
+        }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const messageIds = searchData.messages.map((msg: any) => msg.id);
+    console.log('📧 IDs récupérés:', messageIds.length);
+
+    // ÉTAPE 3: Traiter les emails réels
+    const allEmails: EmailData[] = [];
+    const maxEmailsToProcess = Math.min(50, messageIds.length);
+
+    console.log(`🧪 TRAITEMENT DE ${maxEmailsToProcess} emails réels`);
+
+    for (let i = 0; i < maxEmailsToProcess; i++) {
+      const messageId = messageIds[i];
+      
+      try {
+        console.log(`📧 Traitement email ${i + 1}/${maxEmailsToProcess} - ID: ${messageId}`);
+        
+        const messageResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (messageResponse.ok) {
+          const messageData = await messageResponse.json();
+          const headers = messageData.payload?.headers || [];
+          
+          const subject = headers.find((h: any) => h.name === 'Subject')?.value || 'Sans sujet';
+          const from = headers.find((h: any) => h.name === 'From')?.value || 'Expéditeur inconnu';
+          const dateHeader = headers.find((h: any) => h.name === 'Date')?.value;
+          
+          console.log(`   De: ${from}`);
+          console.log(`   Sujet: ${subject.substring(0, 50)}...`);
+          
+          const snippet = messageData.snippet || '';
+          const isUnread = messageData.labelIds?.includes('UNREAD') || false;
+          
+          let emailDate: Date;
+          let daysSinceReceived: number;
+          
+          try {
+            emailDate = dateHeader ? new Date(dateHeader) : new Date();
+            if (isNaN(emailDate.getTime())) {
+              emailDate = new Date();
+            }
+            daysSinceReceived = Math.floor((Date.now() - emailDate.getTime()) / (1000 * 60 * 60 * 24));
+          } catch (error) {
+            emailDate = new Date();
+            daysSinceReceived = 0;
+          }
+          
+          const classification = classifyEmail(subject, from, snippet, isUnread, daysSinceReceived);
+          const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
+
+          allEmails.push({
+            id: messageId,
+            subject: subject.length > 100 ? subject.substring(0, 100) + '...' : subject,
+            from: from.includes('<') ? from.split('<')[0].trim() : from,
+            date: emailDate.toISOString(),
+            size: sizeInKb,
+            snippet: snippet.substring(0, 200),
+            isUnread,
+            daysSinceReceived,
+            classification,
+          });
+        }
+      } catch (error) {
+        console.error(`❌ Erreur email ${messageId}:`, error);
+      }
+    }
+
+    console.log(`✅ ${allEmails.length} EMAILS RÉELS TRAITÉS`);
+
+    // Trier par date (plus récents en premier)
+    allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Calculer les statistiques réelles
+    const summary = {
+      oldUnreadEmails: allEmails.filter(e => e.classification.category === 'old_unread').length,
+      promotionalEmails: allEmails.filter(e => e.classification.category === 'promotional').length,
+      socialEmails: allEmails.filter(e => e.classification.category === 'social').length,
+      notificationEmails: allEmails.filter(e => e.classification.category === 'notification').length,
+      spamEmails: allEmails.filter(e => e.classification.category === 'spam').length,
+      autoClassifiableEmails: allEmails.filter(e => e.classification.category !== 'other').length,
+      duplicateSenderEmails: 0, // Calcul plus complexe à implémenter si nécessaire
+    };
+
+    const totalSize = allEmails.reduce((sum, email) => sum + (email.size || 0), 0);
+    const totalSizeMB = totalSize / 1024;
+
+    const results: ScanResults = {
+      totalEmails: searchData.resultSizeEstimate || messageIds.length,
+      totalSizeMB,
+      carbonFootprint: (searchData.resultSizeEstimate || messageIds.length) * 10,
+      emails: allEmails,
+      summary,
+    };
+
+    console.log(`✅ SCAN INTELLIGENT TERMINÉ:`);
+    console.log(`   📧 ${results.totalEmails} emails au total`);
+    console.log(`   🧪 ${allEmails.length} emails traités`);
+    console.log(`   📊 Résumé:`, summary);
+
     return new Response(JSON.stringify(results), {
-      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('❌ ERREUR GLOBALE dans intelligent-email-scan:', error);
-    console.error('❌ Type:', typeof error);
-    console.error('❌ Message:', error instanceof Error ? error.message : 'Erreur inconnue');
-    console.error('❌ Stack:', error instanceof Error ? error.stack : 'Pas de stack trace');
-    
+    console.error('💥 ERREUR:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Erreur inconnue lors du scan',
-        details: 'Consultez les logs de la fonction pour plus d\'informations',
-        timestamp: new Date().toISOString()
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }),
       {
         status: 500,
@@ -344,5 +240,73 @@ const handler = async (req: Request): Promise<Response> => {
     );
   }
 };
+
+function classifyEmail(subject: string, from: string, snippet: string, isUnread: boolean, daysSinceReceived: number) {
+  const subjectLower = subject.toLowerCase();
+  const fromLower = from.toLowerCase();
+  const snippetLower = snippet.toLowerCase();
+  
+  // 1. Emails non lus anciens (>6 mois = 180 jours)
+  if (isUnread && daysSinceReceived > 180) {
+    return {
+      category: 'old_unread',
+      confidence: 0.95,
+      suggestedAction: 'delete',
+      reasoning: `Email non lu depuis ${daysSinceReceived} jours`
+    };
+  }
+  
+  // 2. Emails promotionnels
+  const promoKeywords = ['unsubscribe', 'promotion', 'sale', 'discount', 'offer', 'deal', 'marketing', 'promo', 'newsletter'];
+  if (promoKeywords.some(keyword => subjectLower.includes(keyword) || fromLower.includes(keyword) || snippetLower.includes(keyword))) {
+    return {
+      category: 'promotional',
+      confidence: 0.8,
+      suggestedAction: 'archive',
+      reasoning: 'Contenu promotionnel détecté'
+    };
+  }
+  
+  // 3. Réseaux sociaux
+  const socialSenders = ['facebook', 'twitter', 'linkedin', 'instagram', 'tiktok', 'youtube'];
+  if (socialSenders.some(social => fromLower.includes(social))) {
+    return {
+      category: 'social',
+      confidence: 0.9,
+      suggestedAction: 'archive',
+      reasoning: 'Notification de réseau social'
+    };
+  }
+  
+  // 4. Notifications
+  const notificationKeywords = ['notification', 'alert', 'reminder', 'update'];
+  if (notificationKeywords.some(keyword => subjectLower.includes(keyword))) {
+    return {
+      category: 'notification',
+      confidence: 0.7,
+      suggestedAction: 'archive',
+      reasoning: 'Email de notification'
+    };
+  }
+  
+  // 5. Spam potentiel
+  const spamKeywords = ['urgent', 'winner', 'lottery', 'click here', 'free money'];
+  if (spamKeywords.some(keyword => subjectLower.includes(keyword) || snippetLower.includes(keyword))) {
+    return {
+      category: 'spam',
+      confidence: 0.8,
+      suggestedAction: 'delete',
+      reasoning: 'Contenu suspect détecté'
+    };
+  }
+  
+  // 6. Autres
+  return {
+    category: 'other',
+    confidence: 0.5,
+    suggestedAction: 'review',
+    reasoning: 'Classification manuelle requise'
+  };
+}
 
 serve(handler);

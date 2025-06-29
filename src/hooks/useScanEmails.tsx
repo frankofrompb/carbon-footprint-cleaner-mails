@@ -44,7 +44,6 @@ export const useScanEmails = () => {
       }
 
       console.log('🔑 DEBUG - Token récupéré, longueur:', parsedAuth.accessToken.length);
-      console.log('🔑 DEBUG - Token type:', typeof parsedAuth.accessToken);
 
       // Choisir la fonction appropriée selon le type de scan
       const functionName = scanType === 'intelligent-scan' 
@@ -62,85 +61,44 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 25 }));
 
-      // Préparer le body de la requête
-      const requestBody = {
-        accessToken: parsedAuth.accessToken
-      };
-
-      console.log('📤 DEBUG - Body de la requête préparé:', {
-        hasAccessToken: !!requestBody.accessToken,
-        tokenLength: requestBody.accessToken?.length,
-        tokenType: typeof requestBody.accessToken
-      });
-
-      // Appeler la fonction Edge avec un timeout et meilleure gestion d'erreur
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 180000); // 3 minutes timeout
-
-      let result;
-      try {
-        console.log('📡 DEBUG - Invocation de la fonction avec le body:', JSON.stringify(requestBody).substring(0, 100));
-        
-        result = await supabase.functions.invoke(functionName, {
-          body: requestBody,
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        clearTimeout(timeoutId);
-        console.log('📡 DEBUG - Résultat de l\'invocation:', {
-          hasData: !!result.data,
-          hasError: !!result.error,
-          dataType: typeof result.data,
-          errorType: typeof result.error
-        });
-        
-      } catch (invokeError) {
-        clearTimeout(timeoutId);
-        console.error('❌ DEBUG - Erreur lors de l\'invocation:', {
-          error: invokeError,
-          message: invokeError instanceof Error ? invokeError.message : 'Erreur inconnue',
-          name: invokeError instanceof Error ? invokeError.name : 'N/A',
-          stack: invokeError instanceof Error ? invokeError.stack : 'N/A'
-        });
-        
-        // Diagnostiquer le type d'erreur
-        if (invokeError instanceof Error && invokeError.name === 'AbortError') {
-          throw new Error('Le scan a pris trop de temps (timeout). Veuillez réessayer avec moins d\'emails.');
-        } else if (invokeError instanceof Error && invokeError.message.includes('FunctionsHttpError')) {
-          throw new Error(`Erreur de la fonction Edge: ${invokeError.message}. Vérifiez les logs de la fonction.`);
-        } else {
-          throw new Error(`Erreur de communication: ${invokeError instanceof Error ? invokeError.message : 'Erreur inconnue'}`);
+      // Appeler la fonction Edge appropriée
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: {
+          accessToken: parsedAuth.accessToken
         }
-      }
+      });
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
-      const { data, error } = result;
-      
-      console.log('📊 DEBUG - RÉPONSE DÉTAILLÉE DE LA FONCTION EDGE:');
-      console.log('Data:', data);
+      console.log('📊 DEBUG - RÉPONSE BRUTE DE LA FONCTION EDGE:');
+      console.log('Data reçue:', data);
+      console.log('Type de data:', typeof data);
+      console.log('Data est null/undefined:', data === null || data === undefined);
+      console.log('Clés de data:', data ? Object.keys(data) : 'AUCUNE CLÉ');
       console.log('Error:', error);
       
+      if (data) {
+        console.log('📧 DEBUG - DÉTAILS DES EMAILS DANS LA RÉPONSE:');
+        console.log('totalEmails dans data:', data.totalEmails);
+        console.log('emails array dans data:', data.emails);
+        console.log('Type du tableau emails:', Array.isArray(data.emails) ? 'Array' : typeof data.emails);
+        console.log('Longueur du tableau emails:', data.emails?.length);
+        
+        if (data.emails && Array.isArray(data.emails) && data.emails.length > 0) {
+          console.log('Premier email de la réponse:', data.emails[0]);
+          console.log('Sujet du premier email:', data.emails[0]?.subject);
+          console.log('Expéditeur du premier email:', data.emails[0]?.from);
+        }
+      }
+
       if (error) {
-        console.error("❌ DEBUG - Erreur de la fonction:", {
-          error,
-          message: error.message || 'Message indisponible',
-          details: error.details || 'Détails indisponibles'
-        });
-        throw new Error(`Erreur lors du scan: ${error.message || error}`);
+        console.error("❌ DEBUG - Erreur de la fonction:", error);
+        throw new Error(`Erreur lors du scan: ${error.message}`);
       }
 
       if (data?.error) {
-        console.error("❌ DEBUG - Erreur dans les données:", data.error);
+        console.error("❌ DEBUG - Erreur Gmail API:", data.error);
         throw new Error(`Erreur Gmail: ${data.error}`);
-      }
-
-      if (!data) {
-        throw new Error("Aucune donnée reçue du serveur");
       }
 
       console.log('🔄 DEBUG - AVANT TRAITEMENT DES DONNÉES');
@@ -150,6 +108,8 @@ export const useScanEmails = () => {
       
       console.log('🔄 DEBUG - APRÈS TRAITEMENT DES DONNÉES:');
       console.log('Résultats traités:', processedResults);
+      console.log('Emails dans les résultats traités:', processedResults.emails);
+      console.log('Nombre d\'emails traités:', processedResults.emails?.length);
       
       // Valider les résultats
       if (!validateScanResults(processedResults)) {
@@ -185,26 +145,16 @@ export const useScanEmails = () => {
       });
     } catch (error) {
       console.error("❌ DEBUG - ERREUR FINALE:", error);
-      
-      let errorMessage = "Erreur lors du scan des emails";
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          errorMessage = "Le scan a pris trop de temps et a été interrompu. Veuillez réessayer.";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
       setScanState({
         status: 'error',
         results: null,
-        error: errorMessage,
+        error: error instanceof Error ? error.message : "Erreur lors du scan des emails",
         progress: 0,
       });
 
       toast({
         title: "Échec du scan",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : "Une erreur est survenue lors de la recherche des emails",
         variant: "destructive",
       });
     }
