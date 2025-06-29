@@ -118,6 +118,7 @@ export const useAuth = () => {
         setGoogleClient(client);
         console.log("✅ DEBUG - Client Google OAuth2 initialisé avec succès");
         console.log("🔑 DEBUG - Type du client:", typeof client);
+        console.log("🔑 DEBUG - Propriétés du client:", Object.getOwnPropertyNames(client));
         console.log("🔑 DEBUG - Méthodes disponibles:", Object.keys(client || {}));
       } catch (error) {
         console.error("❌ DEBUG - Erreur lors de l'initialisation du client OAuth2:", error);
@@ -269,7 +270,8 @@ export const useAuth = () => {
     console.log("🔍 DEBUG - État du client Google:", {
       hasClient: !!googleClient,
       clientType: typeof googleClient,
-      isFunction: typeof googleClient?.requestAccessToken === 'function'
+      clientKeys: googleClient ? Object.keys(googleClient) : [],
+      clientProps: googleClient ? Object.getOwnPropertyNames(googleClient) : []
     });
     
     if (!googleClient) {
@@ -291,10 +293,35 @@ export const useAuth = () => {
     setAuthState(prev => ({ ...prev, loading: true }));
     
     try {
-      console.log("🔑 DEBUG - Déclenchement du popup d'authentification Google");
-      console.log("🔧 DEBUG - Méthode requestAccessToken disponible:", typeof googleClient.requestAccessToken);
+      console.log("🔑 DEBUG - Tentative d'appel de requestAccessToken...");
       
-      googleClient.requestAccessToken();
+      // Essayer différentes méthodes possibles
+      if (typeof googleClient.requestAccessToken === 'function') {
+        console.log("✅ DEBUG - Utilisation de requestAccessToken()");
+        googleClient.requestAccessToken();
+      } else if (typeof googleClient.l === 'function') {
+        console.log("✅ DEBUG - Utilisation de l() - version minifiée");
+        googleClient.l();
+      } else {
+        console.log("🔍 DEBUG - Recherche d'autres méthodes disponibles...");
+        const methods = Object.getOwnPropertyNames(googleClient).filter(prop => 
+          typeof googleClient[prop] === 'function'
+        );
+        console.log("🔍 DEBUG - Méthodes disponibles:", methods);
+        
+        // Essayer la première méthode qui ressemble à une fonction de requête
+        const requestMethod = methods.find(method => 
+          method.includes('request') || method.includes('Request') || method === 'l'
+        );
+        
+        if (requestMethod) {
+          console.log(`✅ DEBUG - Utilisation de ${requestMethod}()`);
+          googleClient[requestMethod]();
+        } else {
+          throw new Error("Aucune méthode de requête trouvée sur le client Google");
+        }
+      }
+      
       console.log("📱 DEBUG - Popup d'authentification demandé avec succès");
     } catch (error) {
       console.error("❌ DEBUG - Erreur lors du déclenchement de l'auth:", error);
