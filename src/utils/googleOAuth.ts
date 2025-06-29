@@ -4,6 +4,7 @@ import { GoogleAuthResponse } from "@/types/auth";
 export class GoogleOAuthClient {
   private client: any = null;
   private callback: (response: GoogleAuthResponse) => void;
+  private isClientReady = false;
 
   constructor(callback: (response: GoogleAuthResponse) => void) {
     this.callback = callback;
@@ -46,8 +47,6 @@ export class GoogleOAuthClient {
 
   private initializeGoogleAuth() {
     console.log("🔐 DEBUG - Initialisation de Google OAuth2...");
-    console.log("🌐 DEBUG - URL actuelle:", window.location.href);
-    console.log("🌐 DEBUG - Origin actuel:", window.location.origin);
     
     if (typeof window !== 'undefined' && window.google?.accounts?.oauth2) {
       console.log("✅ DEBUG - Google OAuth2 disponible, création du client...");
@@ -66,20 +65,22 @@ export class GoogleOAuthClient {
         });
         
         this.client = window.google.accounts.oauth2.initTokenClient(clientConfig);
+        this.isClientReady = true;
         
         console.log("✅ DEBUG - Client Google OAuth2 initialisé avec succès");
         console.log("🔑 DEBUG - Type du client:", typeof this.client);
         console.log("🔑 DEBUG - Propriétés du client:", Object.getOwnPropertyNames(this.client));
-        console.log("🔑 DEBUG - Méthodes disponibles:", Object.keys(this.client || {}));
+        
+        // Déclencher un événement pour notifier que le client est prêt
+        window.dispatchEvent(new CustomEvent('googleClientReady'));
+        
       } catch (error) {
         console.error("❌ DEBUG - Erreur lors de l'initialisation du client OAuth2:", error);
-        console.error("❌ DEBUG - Stack trace:", error.stack);
+        this.isClientReady = false;
       }
     } else {
       console.error("❌ DEBUG - Google Identity Services non disponible après chargement");
-      console.log("🔍 DEBUG - window.google:", window.google);
-      console.log("🔍 DEBUG - window.google?.accounts:", window.google?.accounts);
-      console.log("🔍 DEBUG - window.google?.accounts?.oauth2:", window.google?.accounts?.oauth2);
+      this.isClientReady = false;
     }
   }
 
@@ -87,26 +88,25 @@ export class GoogleOAuthClient {
     console.log("🚀 DEBUG - Début du processus d'authentification Gmail...");
     console.log("🔍 DEBUG - État du client Google:", {
       hasClient: !!this.client,
-      clientType: typeof this.client,
-      clientKeys: this.client ? Object.keys(this.client) : [],
-      clientProps: this.client ? Object.getOwnPropertyNames(this.client) : []
+      isReady: this.isClientReady,
+      clientType: typeof this.client
     });
     
-    if (!this.client) {
-      console.error("❌ DEBUG - Client Google non initialisé");
-      throw new Error("Client Google non initialisé");
+    if (!this.client || !this.isClientReady) {
+      console.error("❌ DEBUG - Client Google non prêt");
+      throw new Error("Client Google non initialisé ou non prêt");
     }
     
     try {
-      console.log("🔑 DEBUG - Tentative d'appel de requestAccessToken...");
+      console.log("🔑 DEBUG - Tentative d'appel de la méthode d'authentification...");
       
-      // Essayer différentes méthodes possibles
-      if (typeof this.client.requestAccessToken === 'function') {
-        console.log("✅ DEBUG - Utilisation de requestAccessToken()");
-        this.client.requestAccessToken();
-      } else if (typeof this.client.l === 'function') {
+      // D'après les logs, la méthode s'appelle 'l' dans la version minifiée
+      if (typeof this.client.l === 'function') {
         console.log("✅ DEBUG - Utilisation de l() - version minifiée");
         this.client.l();
+      } else if (typeof this.client.requestAccessToken === 'function') {
+        console.log("✅ DEBUG - Utilisation de requestAccessToken()");
+        this.client.requestAccessToken();
       } else {
         console.log("🔍 DEBUG - Recherche d'autres méthodes disponibles...");
         const methods = Object.getOwnPropertyNames(this.client).filter(prop => 
@@ -114,28 +114,24 @@ export class GoogleOAuthClient {
         );
         console.log("🔍 DEBUG - Méthodes disponibles:", methods);
         
-        // Essayer la première méthode qui ressemble à une fonction de requête
-        const requestMethod = methods.find(method => 
-          method.includes('request') || method.includes('Request') || method === 'l'
-        );
-        
-        if (requestMethod) {
-          console.log(`✅ DEBUG - Utilisation de ${requestMethod}()`);
-          this.client[requestMethod]();
+        // Essayer une autre méthode disponible
+        if (methods.length > 0) {
+          const method = methods[0]; // Prendre la première méthode disponible
+          console.log(`✅ DEBUG - Utilisation de ${method}()`);
+          this.client[method]();
         } else {
-          throw new Error("Aucune méthode de requête trouvée sur le client Google");
+          throw new Error("Aucune méthode d'authentification trouvée sur le client Google");
         }
       }
       
       console.log("📱 DEBUG - Popup d'authentification demandé avec succès");
     } catch (error) {
       console.error("❌ DEBUG - Erreur lors du déclenchement de l'auth:", error);
-      console.error("❌ DEBUG - Stack trace:", error.stack);
       throw error;
     }
   }
 
   public isReady(): boolean {
-    return !!this.client;
+    return this.isClientReady && !!this.client;
   }
 }
