@@ -14,28 +14,59 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     console.log('🚀 intelligent-email-scan - Début de la fonction');
+    console.log('📋 Method:', req.method);
+    console.log('📋 Content-Type:', req.headers.get('content-type'));
+    console.log('📋 URL:', req.url);
     
-    // Vérifier que le body n'est pas vide
-    const contentType = req.headers.get('content-type');
-    console.log('📋 Content-Type:', contentType);
-    
+    // Vérifier la méthode HTTP
+    if (req.method !== 'POST') {
+      console.error('❌ Méthode HTTP incorrecte:', req.method);
+      return new Response(
+        JSON.stringify({ error: 'Méthode non autorisée. Utilisez POST.' }),
+        {
+          status: 405,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    // Récupérer et parser le body de façon plus robuste
     let requestBody;
+    let bodyText = '';
+    
     try {
-      const bodyText = await req.text();
-      console.log('📄 Body text reçu:', bodyText);
+      // Cloner la requête pour pouvoir la lire plusieurs fois si nécessaire
+      const clonedRequest = req.clone();
+      bodyText = await clonedRequest.text();
+      
+      console.log('📄 Body text longueur:', bodyText.length);
+      console.log('📄 Body text preview:', bodyText.substring(0, 200));
       
       if (!bodyText || bodyText.trim() === '') {
-        throw new Error('Corps de requête vide');
+        console.error('❌ Corps de requête vide ou null');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Corps de requête vide',
+            details: 'Le token d\'accès est requis dans le corps de la requête'
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
       
       requestBody = JSON.parse(bodyText);
-      console.log('✅ Body parsé avec succès');
+      console.log('✅ Body parsé avec succès, clés:', Object.keys(requestBody));
+      
     } catch (parseError) {
       console.error('❌ Erreur parsing JSON:', parseError);
+      console.error('❌ Body text qui a causé l\'erreur:', bodyText);
       return new Response(
         JSON.stringify({ 
-          error: 'Corps de requête invalide ou vide',
-          details: parseError instanceof Error ? parseError.message : 'Erreur de parsing inconnue'
+          error: 'Format JSON invalide',
+          details: parseError instanceof Error ? parseError.message : 'Erreur de parsing inconnue',
+          receivedBody: bodyText.substring(0, 500) // Limiter pour éviter les logs trop longs
         }),
         {
           status: 400,
@@ -44,12 +75,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Vérifier la présence du token
     const { accessToken } = requestBody;
     
-    if (!accessToken) {
-      console.error('❌ Aucun token d\'accès fourni');
+    if (!accessToken || typeof accessToken !== 'string') {
+      console.error('❌ Token d\'accès manquant ou invalide:', typeof accessToken);
       return new Response(
-        JSON.stringify({ error: 'Token d\'accès requis' }),
+        JSON.stringify({ 
+          error: 'Token d\'accès requis',
+          details: 'Le token d\'accès Gmail doit être fourni en tant que string'
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -58,6 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log('🔑 Token reçu, longueur:', accessToken.length);
+    console.log('🔑 Token début:', accessToken.substring(0, 20) + "...");
 
     // Test de validité du token
     console.log('🧪 Test de validité du token...');
@@ -68,18 +104,21 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
 
+    console.log('🧪 Status de la réponse test:', testResponse.status);
+
     if (!testResponse.ok) {
       const errorText = await testResponse.text();
       console.error('❌ Token invalide:', {
         status: testResponse.status,
         statusText: testResponse.statusText,
-        body: errorText
+        body: errorText.substring(0, 500)
       });
       
       return new Response(
         JSON.stringify({ 
           error: `Token d'accès Gmail invalide (${testResponse.status})`,
-          details: errorText
+          details: errorText,
+          hint: testResponse.status === 401 ? 'Token expiré, veuillez vous reconnecter' : 'Vérifiez les permissions du token'
         }),
         {
           status: 401,
@@ -147,7 +186,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Récupérer les détails des emails
     const emails: any[] = [];
     const batchSize = 50;
-    const maxEmails = Math.min(allMessageIds.length, 1000); // Limiter à 1000 pour éviter les timeouts
+    const maxEmails = Math.min(allMessageIds.length, 1000);
 
     for (let i = 0; i < maxEmails; i += batchSize) {
       const batch = allMessageIds.slice(i, i + batchSize);
@@ -256,7 +295,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const totalSize = emails.reduce((sum, email) => sum + (email.size || 0), 0);
     const totalSizeMB = totalSize / 1024;
-    const carbonFootprint = allMessageIds.length * 10; // 10g par email
+    const carbonFootprint = allMessageIds.length * 10;
 
     const results = {
       totalEmails: allMessageIds.length,
@@ -274,7 +313,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     };
 
-    console.log('✅ Scan terminé:', {
+    console.log('✅ Scan terminé avec succès:', {
       totalEmails: results.totalEmails,
       emailsProcessed: results.emails.length,
       oldUnreadEmails: results.summary.oldUnreadEmails,
@@ -282,6 +321,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     return new Response(JSON.stringify(results), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

@@ -44,6 +44,7 @@ export const useScanEmails = () => {
       }
 
       console.log('🔑 DEBUG - Token récupéré, longueur:', parsedAuth.accessToken.length);
+      console.log('🔑 DEBUG - Token type:', typeof parsedAuth.accessToken);
 
       // Choisir la fonction appropriée selon le type de scan
       const functionName = scanType === 'intelligent-scan' 
@@ -61,45 +62,80 @@ export const useScanEmails = () => {
 
       setScanState(prev => ({ ...prev, progress: 25 }));
 
-      // Appeler la fonction Edge avec un timeout plus long et meilleure gestion d'erreur
+      // Préparer le body de la requête
+      const requestBody = {
+        accessToken: parsedAuth.accessToken
+      };
+
+      console.log('📤 DEBUG - Body de la requête préparé:', {
+        hasAccessToken: !!requestBody.accessToken,
+        tokenLength: requestBody.accessToken?.length,
+        tokenType: typeof requestBody.accessToken
+      });
+
+      // Appeler la fonction Edge avec un timeout et meilleure gestion d'erreur
       const controller = new AbortController();
       const timeoutId = setTimeout(() => {
         controller.abort();
-      }, 120000); // 2 minutes timeout
+      }, 180000); // 3 minutes timeout
 
-      let data, error;
+      let result;
       try {
-        const result = await supabase.functions.invoke(functionName, {
-          body: {
-            accessToken: parsedAuth.accessToken
-          },
+        console.log('📡 DEBUG - Invocation de la fonction avec le body:', JSON.stringify(requestBody).substring(0, 100));
+        
+        result = await supabase.functions.invoke(functionName, {
+          body: requestBody,
           headers: {
             'Content-Type': 'application/json',
           }
         });
         
         clearTimeout(timeoutId);
-        data = result.data;
-        error = result.error;
+        console.log('📡 DEBUG - Résultat de l\'invocation:', {
+          hasData: !!result.data,
+          hasError: !!result.error,
+          dataType: typeof result.data,
+          errorType: typeof result.error
+        });
+        
       } catch (invokeError) {
         clearTimeout(timeoutId);
-        console.error('❌ DEBUG - Erreur lors de l\'invocation:', invokeError);
-        throw new Error(`Erreur de communication avec le serveur: ${invokeError instanceof Error ? invokeError.message : 'Erreur inconnue'}`);
+        console.error('❌ DEBUG - Erreur lors de l\'invocation:', {
+          error: invokeError,
+          message: invokeError instanceof Error ? invokeError.message : 'Erreur inconnue',
+          name: invokeError instanceof Error ? invokeError.name : 'N/A',
+          stack: invokeError instanceof Error ? invokeError.stack : 'N/A'
+        });
+        
+        // Diagnostiquer le type d'erreur
+        if (invokeError instanceof Error && invokeError.name === 'AbortError') {
+          throw new Error('Le scan a pris trop de temps (timeout). Veuillez réessayer avec moins d\'emails.');
+        } else if (invokeError instanceof Error && invokeError.message.includes('FunctionsHttpError')) {
+          throw new Error(`Erreur de la fonction Edge: ${invokeError.message}. Vérifiez les logs de la fonction.`);
+        } else {
+          throw new Error(`Erreur de communication: ${invokeError instanceof Error ? invokeError.message : 'Erreur inconnue'}`);
+        }
       }
 
       setScanState(prev => ({ ...prev, progress: 75 }));
 
-      console.log('📊 DEBUG - RÉPONSE BRUTE DE LA FONCTION EDGE:');
-      console.log('Data reçue:', data);
+      const { data, error } = result;
+      
+      console.log('📊 DEBUG - RÉPONSE DÉTAILLÉE DE LA FONCTION EDGE:');
+      console.log('Data:', data);
       console.log('Error:', error);
       
       if (error) {
-        console.error("❌ DEBUG - Erreur de la fonction:", error);
+        console.error("❌ DEBUG - Erreur de la fonction:", {
+          error,
+          message: error.message || 'Message indisponible',
+          details: error.details || 'Détails indisponibles'
+        });
         throw new Error(`Erreur lors du scan: ${error.message || error}`);
       }
 
       if (data?.error) {
-        console.error("❌ DEBUG - Erreur Gmail API:", data.error);
+        console.error("❌ DEBUG - Erreur dans les données:", data.error);
         throw new Error(`Erreur Gmail: ${data.error}`);
       }
 
