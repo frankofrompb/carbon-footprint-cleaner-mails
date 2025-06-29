@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Play } from "lucide-react";
-import LogoWithBubbles from "./LogoWithBubbles";
 
 interface HeaderProps {
   isAuthenticated: boolean;
@@ -43,8 +42,14 @@ const Header = ({ isAuthenticated, userEmail, onLogout, onToggleMusic }: HeaderP
   return (
     <header className="w-full bg-white border-b">
       <div className="container mx-auto px-4 h-24 flex items-center justify-between">
-        <div className="flex items-center">
-          <LogoWithBubbles className="h-32 w-32" />
+        <div className="flex items-center text-2xl font-bold">
+          <img 
+            src="/lovable-uploads/27bd2091-5617-46a0-9308-d9e74b0086c4.png" 
+            alt="EcoInBox Logo" 
+            className="mr-3 h-10 w-10 object-contain"
+          />
+          <span className="text-[#38c39d]">Eco</span>
+          <span className="text-black">InBox</span>
         </div>
         
         <div className="flex items-center gap-2">
