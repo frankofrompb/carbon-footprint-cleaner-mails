@@ -10,6 +10,7 @@ declare global {
             callback: (response: any) => void;
           }) => {
             requestAccessToken: () => void;
+            callback: (response: any) => void;
           };
         };
       };

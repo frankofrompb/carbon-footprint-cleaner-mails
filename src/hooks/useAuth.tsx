@@ -95,15 +95,12 @@ export const useAuth = () => {
       console.log("✅ Google OAuth2 disponible, création du client...");
       
       try {
-        // Utiliser une URL de redirection spécifique pour éviter les conflits
-        const redirectUri = `${window.location.origin}/auth/callback`;
-        console.log("🔗 URI de redirection configurée:", redirectUri);
+        console.log("🔗 URI de redirection sera l'origine courante:", window.location.origin);
         
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com",
           scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
-          callback: handleGoogleAuthSuccess,
-          redirect_uri: redirectUri
+          callback: handleGoogleAuthSuccess
         });
         
         setGoogleClient(client);
