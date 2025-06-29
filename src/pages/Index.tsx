@@ -1,41 +1,29 @@
 
-import { useState } from "react";
-import ScanTypeSelector from "@/components/ScanTypeSelector";
-import EmailScanner from "@/components/EmailScanner";
 import ModernLandingPage from "@/components/ModernLandingPage";
-import Dashboard from "@/pages/Dashboard";
 import { useAuth } from "@/hooks/useAuth";
-import { useScanEmails } from "@/hooks/useScanEmails";
-
-type ScanType = 'smart-deletion' | 'sender-analysis' | 'smart-sorting';
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Index = () => {
-  const { scanState, scanEmails, deleteEmails, exportToCsv } = useScanEmails();
-  const [selectedScanType, setSelectedScanType] = useState<ScanType | null>(null);
-  const { authState, loginWithGmail, logout } = useAuth();
+  const { authState, loginWithGmail } = useAuth();
+  const navigate = useNavigate();
 
-  const handleScanEmails = (scanType?: ScanType) => {
-    scanEmails(scanType);
-  };
-
-  const handleSelectScanType = (scanType: ScanType) => {
-    setSelectedScanType(scanType);
-  };
+  // Si l'utilisateur est connecté, rediriger vers le dashboard
+  useEffect(() => {
+    if (authState.userEmail) {
+      navigate('/dashboard');
+    }
+  }, [authState.userEmail, navigate]);
 
   const handleLoginWithGmail = () => {
     loginWithGmail();
   };
 
-  const handleLogout = () => {
-    logout();
-  };
-
-  // Si l'utilisateur est connecté, afficher le dashboard
+  // Si l'utilisateur est connecté, ne pas afficher la landing page
   if (authState.userEmail) {
-    return <Dashboard />;
+    return null; // Le useEffect redirigera
   }
 
-  // Sinon afficher la landing page
   return (
     <div className="min-h-screen flex flex-col">
       <ModernLandingPage 
