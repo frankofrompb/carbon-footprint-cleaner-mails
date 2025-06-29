@@ -8,8 +8,11 @@ export const fetchGoogleUserInfo = async (accessToken: string): Promise<GoogleUs
   
   try {
     const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      method: 'GET',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
       },
     });
 
@@ -26,11 +29,16 @@ export const fetchGoogleUserInfo = async (accessToken: string): Promise<GoogleUs
       console.error("❌ DEBUG - Erreur HTTP lors de la récupération du profil:");
       console.error("❌ DEBUG - Status:", response.status, response.statusText);
       console.error("❌ DEBUG - Response body:", errorText);
-      console.error("❌ DEBUG - Headers:", Object.fromEntries(response.headers.entries()));
+      console.error("❌ DEBUG - Headers envoyés:", {
+        'Authorization': `Bearer ${accessToken.substring(0, 20)}...`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      });
       
       if (response.status === 401) {
         console.error("🚨 DEBUG - ERREUR 401: Token d'accès invalide ou expiré");
         console.error("🚨 DEBUG - Vérifiez les scopes OAuth et la validité du token");
+        console.error("🚨 DEBUG - Token reçu:", accessToken.substring(0, 50) + "...");
       }
       
       throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
