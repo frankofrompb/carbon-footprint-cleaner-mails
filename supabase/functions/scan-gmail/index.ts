@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 const corsHeaders = {
@@ -30,11 +29,53 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { accessToken } = await req.json();
     
+    console.log('🚀 DEBUG - Début fonction scan-gmail');
+    console.log('🔑 DEBUG - Token reçu - longueur:', accessToken?.length);
+    console.log('🔑 DEBUG - Token reçu - début:', accessToken?.substring(0, 20) + "...");
+    
     if (!accessToken) {
+      console.error('❌ DEBUG - Aucun token d\'accès fourni');
       throw new Error('Access token is required');
     }
 
-    console.log('Starting Gmail scan for all unread emails...');
+    console.log('📧 DEBUG - Début scan Gmail pour emails non lus...');
+
+    // Test de la validité du token avec un appel simple
+    console.log('🧪 DEBUG - Test de validité du token...');
+    const testResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    console.log('🧪 DEBUG - Réponse test token:', {
+      status: testResponse.status,
+      statusText: testResponse.statusText,
+      ok: testResponse.ok
+    });
+
+    if (!testResponse.ok) {
+      const errorText = await testResponse.text();
+      console.error('❌ DEBUG - Token invalide:', {
+        status: testResponse.status,
+        statusText: testResponse.statusText,
+        body: errorText
+      });
+      
+      if (testResponse.status === 401) {
+        throw new Error('Token d\'accès Gmail expiré ou invalide. Veuillez vous reconnecter.');
+      }
+      
+      throw new Error(`Erreur d'authentification Gmail: ${testResponse.status} ${testResponse.statusText}`);
+    }
+
+    const profile = await testResponse.json();
+    console.log('✅ DEBUG - Profil Gmail récupéré:', {
+      emailAddress: profile.emailAddress,
+      messagesTotal: profile.messagesTotal,
+      historyId: profile.historyId
+    });
 
     // Récupérer tous les emails non lus avec pagination
     const searchQuery = 'is:unread';
@@ -163,11 +204,16 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
   } catch (error) {
-    console.error('Error in scan-gmail function:', error);
+    console.error('❌ DEBUG - Erreur dans scan-gmail function:', error);
+    console.error('❌ DEBUG - Type erreur:', typeof error);
+    console.error('❌ DEBUG - Message erreur:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('❌ DEBUG - Stack trace:', error instanceof Error ? error.stack : 'No stack');
+    
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred',
-        details: 'Check the function logs for more information'
+        details: 'Check the function logs for more information',
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,

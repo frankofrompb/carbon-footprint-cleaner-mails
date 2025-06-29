@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthState, GoogleAuthResponse } from "@/types/auth";
@@ -61,7 +60,13 @@ export const useAuth = () => {
   }, []);
 
   const handleGoogleAuthSuccess = (response: GoogleAuthResponse) => {
-    console.log("🎉 DEBUG - Réponse d'authentification Google:", response);
+    console.log("🎉 DEBUG - Réponse d'authentification Google complète:", {
+      hasAccessToken: !!response.access_token,
+      tokenLength: response.access_token?.length,
+      hasError: !!response.error,
+      error: response.error,
+      responseKeys: Object.keys(response)
+    });
 
     if (response.error) {
       console.error("❌ DEBUG - Erreur dans la réponse Google:", response.error);
@@ -89,10 +94,14 @@ export const useAuth = () => {
     }
 
     if (response.access_token) {
-      console.log("🔑 DEBUG - Token d'accès reçu, récupération du profil...");
+      console.log("🔑 DEBUG - Token d'accès reçu avec succès!");
+      console.log("🔑 DEBUG - Token commence par:", response.access_token.substring(0, 20) + "...");
+      console.log("🔑 DEBUG - Token se termine par:", "..." + response.access_token.substring(response.access_token.length - 10));
       
       fetchGoogleUserInfo(response.access_token)
         .then((userInfo) => {
+          console.log("✅ DEBUG - Profil utilisateur récupéré avec succès:", userInfo);
+          
           validateAuthorizedEmail(userInfo.email);
           
           const authData = {
@@ -102,6 +111,7 @@ export const useAuth = () => {
             timestamp: Date.now()
           };
           
+          console.log("💾 DEBUG - Sauvegarde des données d'authentification...");
           authStorage.save(authData);
           
           setAuthState({
@@ -118,6 +128,10 @@ export const useAuth = () => {
         })
         .catch((error) => {
           console.error("❌ DEBUG - Erreur lors de la récupération du profil:", error);
+          console.error("❌ DEBUG - Type d'erreur:", typeof error);
+          console.error("❌ DEBUG - Message d'erreur:", error.message);
+          console.error("❌ DEBUG - Stack trace:", error.stack);
+          
           setAuthState({ userEmail: null, loading: false });
           
           toast({
@@ -127,7 +141,8 @@ export const useAuth = () => {
           });
         });
     } else {
-      console.error("❌ DEBUG - Aucun token d'accès reçu");
+      console.error("❌ DEBUG - Aucun token d'accès reçu dans la réponse");
+      console.error("❌ DEBUG - Réponse complète:", response);
       setAuthState({ userEmail: null, loading: false });
       
       toast({
