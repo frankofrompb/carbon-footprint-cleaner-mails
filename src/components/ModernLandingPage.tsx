@@ -49,7 +49,26 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
   };
 
   const handleStartCleaning = () => {
+    console.log("🚀 Démarrage de l'authentification Gmail depuis ModernLandingPage");
     onLoginWithGmail();
+  };
+
+  const handleModalLogin = () => {
+    console.log("🔐 Connexion depuis la modale");
+    closeModal('login');
+    // Petite pause pour fermer la modale avant de déclencher l'auth
+    setTimeout(() => {
+      onLoginWithGmail();
+    }, 200);
+  };
+
+  const handleModalRegister = () => {
+    console.log("📝 Création de compte depuis la modale");
+    closeModal('register');
+    // Petite pause pour fermer la modale avant de déclencher l'auth
+    setTimeout(() => {
+      onLoginWithGmail();
+    }, 200);
   };
 
   return (
@@ -76,17 +95,19 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
               <Button
                 variant="outline"
                 onClick={() => openModal('login')}
-                className="border-2 border-[#38c39d] text-[#38c39d] hover:bg-[#38c39d] hover:text-white rounded-full"
+                disabled={isLoading}
+                className="border-2 border-[#38c39d] text-[#38c39d] hover:bg-[#38c39d] hover:text-white rounded-full disabled:opacity-50"
               >
                 <LogIn className="mr-2 h-4 w-4" />
-                Connexion
+                {isLoading ? "Connexion..." : "Connexion"}
               </Button>
               <Button
                 onClick={() => openModal('register')}
-                className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] hover:shadow-lg hover:-translate-y-0.5 transition-all rounded-full"
+                disabled={isLoading}
+                className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] hover:shadow-lg hover:-translate-y-0.5 transition-all rounded-full disabled:opacity-50"
               >
                 <UserPlus className="mr-2 h-4 w-4" />
-                Créer un compte
+                {isLoading ? "Création..." : "Créer un compte"}
               </Button>
             </div>
           </nav>
@@ -121,7 +142,7 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
           <Button
             onClick={handleStartCleaning}
             disabled={isLoading}
-            className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] hover:shadow-xl hover:-translate-y-1 transition-all text-lg px-8 py-3 rounded-full"
+            className="bg-gradient-to-r from-[#38c39d] to-[#2d8b61] hover:shadow-xl hover:-translate-y-1 transition-all text-lg px-8 py-3 rounded-full disabled:opacity-50"
           >
             <Rocket className="mr-2 h-5 w-5" />
             {isLoading ? "Connexion..." : "Commencer gratuitement"}
@@ -450,12 +471,12 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                   <Input type="password" placeholder="••••••••" />
                 </div>
                 <Button 
-                  onClick={handleStartCleaning}
+                  onClick={handleModalLogin}
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full"
+                  className="w-full bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full disabled:opacity-50"
                 >
                   <LogIn className="mr-2 h-4 w-4" />
-                  {isLoading ? "Connexion..." : "Se connecter"}
+                  {isLoading ? "Connexion..." : "Se connecter avec Gmail"}
                 </Button>
               </div>
               <p className="text-center mt-4 text-sm text-gray-600">
@@ -503,9 +524,9 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
                   <Input type="password" placeholder="••••••••" />
                 </div>
                 <Button 
-                  onClick={handleStartCleaning}
+                  onClick={handleModalRegister}
                   disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full"
+                  className="w-full bg-gradient-to-r from-[#38c39d] to-[#2d8b61] rounded-full disabled:opacity-50"
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
                   {isLoading ? "Création..." : "Créer mon compte"}
