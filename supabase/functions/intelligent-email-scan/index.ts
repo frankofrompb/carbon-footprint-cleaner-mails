@@ -78,10 +78,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('📧 Email:', profileData.emailAddress);
     console.log('📊 Total emails:', profileData.messagesTotal);
 
-    // ÉTAPE 2: Récupérer les IDs des emails
-    console.log('📡 RÉCUPÉRATION DES IDS D\'EMAILS...');
+    // ÉTAPE 2: Récupérer TOUS les emails (pas seulement les non lus)
+    console.log('📡 RÉCUPÉRATION DE TOUS LES EMAILS...');
     
-    const searchResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100', {
+    const searchResponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=200', {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
@@ -121,9 +121,9 @@ const handler = async (req: Request): Promise<Response> => {
     const messageIds = searchData.messages.map((msg: any) => msg.id);
     console.log('📧 IDs récupérés:', messageIds.length);
 
-    // ÉTAPE 3: Traiter les emails réels
+    // ÉTAPE 3: Traiter les emails réels avec TOUS les détails
     const allEmails: EmailData[] = [];
-    const maxEmailsToProcess = Math.min(50, messageIds.length);
+    const maxEmailsToProcess = Math.min(100, messageIds.length);
 
     console.log(`🧪 TRAITEMENT DE ${maxEmailsToProcess} emails réels`);
 
@@ -133,8 +133,9 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log(`📧 Traitement email ${i + 1}/${maxEmailsToProcess} - ID: ${messageId}`);
         
+        // Récupérer les détails COMPLETS de l'email (pas seulement metadata)
         const messageResponse = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}`,
           {
             headers: {
               'Authorization': `Bearer ${accessToken}`,
@@ -155,7 +156,11 @@ const handler = async (req: Request): Promise<Response> => {
           console.log(`   Sujet: ${subject.substring(0, 50)}...`);
           
           const snippet = messageData.snippet || '';
-          const isUnread = messageData.labelIds?.includes('UNREAD') || false;
+          
+          // CORRECTION CRITIQUE: Vérifier correctement si l'email est non lu
+          const labelIds = messageData.labelIds || [];
+          const isUnread = labelIds.includes('UNREAD');
+          console.log(`   Non lu: ${isUnread}, Labels: ${labelIds.join(', ')}`);
           
           let emailDate: Date;
           let daysSinceReceived: number;
@@ -171,8 +176,12 @@ const handler = async (req: Request): Promise<Response> => {
             daysSinceReceived = 0;
           }
           
+          console.log(`   Jours depuis réception: ${daysSinceReceived}`);
+          
           const classification = classifyEmail(subject, from, snippet, isUnread, daysSinceReceived);
           const sizeInKb = Math.round((messageData.sizeEstimate || 10000) / 1024);
+
+          console.log(`   Classification: ${classification.category}, Confiance: ${classification.confidence}`);
 
           allEmails.push({
             id: messageId,
@@ -196,15 +205,25 @@ const handler = async (req: Request): Promise<Response> => {
     // Trier par date (plus récents en premier)
     allEmails.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Calculer les statistiques réelles
+    // CORRECTION CRITIQUE: Calculer correctement les statistiques
+    const oldUnreadEmails = allEmails.filter(e => 
+      e.isUnread && e.daysSinceReceived > 180
+    );
+    
+    console.log(`📊 CALCUL EMAILS NON LUS ANCIENS:`);
+    console.log(`   Total emails traités: ${allEmails.length}`);
+    console.log(`   Emails non lus: ${allEmails.filter(e => e.isUnread).length}`);
+    console.log(`   Emails > 180 jours: ${allEmails.filter(e => e.daysSinceReceived > 180).length}`);
+    console.log(`   Emails non lus ET > 180 jours: ${oldUnreadEmails.length}`);
+
     const summary = {
-      oldUnreadEmails: allEmails.filter(e => e.classification.category === 'old_unread').length,
+      oldUnreadEmails: oldUnreadEmails.length,
       promotionalEmails: allEmails.filter(e => e.classification.category === 'promotional').length,
       socialEmails: allEmails.filter(e => e.classification.category === 'social').length,
       notificationEmails: allEmails.filter(e => e.classification.category === 'notification').length,
       spamEmails: allEmails.filter(e => e.classification.category === 'spam').length,
       autoClassifiableEmails: allEmails.filter(e => e.classification.category !== 'other').length,
-      duplicateSenderEmails: 0, // Calcul plus complexe à implémenter si nécessaire
+      duplicateSenderEmails: 0,
     };
 
     const totalSize = allEmails.reduce((sum, email) => sum + (email.size || 0), 0);
@@ -222,6 +241,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`   📧 ${results.totalEmails} emails au total`);
     console.log(`   🧪 ${allEmails.length} emails traités`);
     console.log(`   📊 Résumé:`, summary);
+    console.log(`   📧 Emails non lus anciens FINAUX: ${summary.oldUnreadEmails}`);
 
     return new Response(JSON.stringify(results), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -246,13 +266,13 @@ function classifyEmail(subject: string, from: string, snippet: string, isUnread:
   const fromLower = from.toLowerCase();
   const snippetLower = snippet.toLowerCase();
   
-  // 1. Emails non lus anciens (>6 mois = 180 jours)
+  // 1. CORRECTION: Emails non lus anciens (>6 mois = 180 jours) - priorité absolue
   if (isUnread && daysSinceReceived > 180) {
     return {
       category: 'old_unread',
       confidence: 0.95,
       suggestedAction: 'delete',
-      reasoning: `Email non lu depuis ${daysSinceReceived} jours`
+      reasoning: `Email non lu depuis ${daysSinceReceived} jours (${Math.round(daysSinceReceived/30)} mois)`
     };
   }
   
