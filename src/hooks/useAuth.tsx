@@ -95,10 +95,15 @@ export const useAuth = () => {
       console.log("✅ Google OAuth2 disponible, création du client...");
       
       try {
+        // Utiliser une URL de redirection spécifique pour éviter les conflits
+        const redirectUri = `${window.location.origin}/auth/callback`;
+        console.log("🔗 URI de redirection configurée:", redirectUri);
+        
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com",
           scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
-          callback: handleGoogleAuthSuccess
+          callback: handleGoogleAuthSuccess,
+          redirect_uri: redirectUri
         });
         
         setGoogleClient(client);
@@ -214,6 +219,9 @@ export const useAuth = () => {
       });
 
       console.log("✅ Authentification terminée avec succès");
+      
+      // Rediriger vers la page de callback pour gérer la navigation
+      window.location.href = '/auth/callback';
     } catch (error) {
       console.error("❌ Erreur lors de la récupération du profil:", error);
       setAuthState({ userEmail: null, loading: false });
