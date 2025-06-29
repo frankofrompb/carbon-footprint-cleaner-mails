@@ -59,7 +59,11 @@ const ModernLandingPage = ({ onLoginWithGmail, isLoading }: ModernLandingPagePro
         <div className="container mx-auto px-4">
           <nav className="flex justify-between items-center py-4">
             <div className="flex items-center text-2xl font-bold">
-              <Leaf className="mr-2 h-8 w-8 text-[#38c39d]" />
+              <img 
+                src="/lovable-uploads/27bd2091-5617-46a0-9308-d9e74b0086c4.png" 
+                alt="EcoInBox Logo" 
+                className="mr-3 h-10 w-10 object-contain"
+              />
               <span className="text-[#38c39d]">Eco</span>
               <span className="text-black">InBox</span>
             </div>
