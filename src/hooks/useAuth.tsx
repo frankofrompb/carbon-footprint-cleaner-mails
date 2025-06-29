@@ -98,16 +98,7 @@ export const useAuth = () => {
         const client = window.google.accounts.oauth2.initTokenClient({
           client_id: "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com",
           scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
-          callback: handleGoogleAuthSuccess,
-          error_callback: (error: any) => {
-            console.error("❌ Erreur dans error_callback:", error);
-            setAuthState(prev => ({ ...prev, loading: false }));
-            toast({
-              title: "Erreur d'authentification",
-              description: `Erreur lors de l'authentification: ${error.type || error.message || 'Erreur inconnue'}`,
-              variant: "destructive",
-            });
-          }
+          callback: handleGoogleAuthSuccess
         });
         
         setGoogleClient(client);
