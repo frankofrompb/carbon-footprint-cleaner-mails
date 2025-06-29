@@ -99,12 +99,22 @@ export const useAuth = () => {
           client_id: "380256615541-t5q64hmeiamv9ae6detja5oofnn315t6.apps.googleusercontent.com",
           scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.modify",
           callback: handleGoogleAuthSuccess,
+          error_callback: (error: any) => {
+            console.error("❌ Erreur dans error_callback:", error);
+            setAuthState(prev => ({ ...prev, loading: false }));
+            toast({
+              title: "Erreur d'authentification",
+              description: `Erreur lors de l'authentification: ${error.type || error.message || 'Erreur inconnue'}`,
+              variant: "destructive",
+            });
+          }
         });
         
         setGoogleClient(client);
         console.log("✅ Client Google OAuth2 initialisé avec succès");
       } catch (error) {
         console.error("❌ Erreur lors de l'initialisation du client OAuth2:", error);
+        setAuthState(prev => ({ ...prev, loading: false }));
         toast({
           title: "Erreur d'initialisation",
           description: "Impossible d'initialiser l'authentification Google",
@@ -122,20 +132,28 @@ export const useAuth = () => {
   };
 
   const handleGoogleAuthSuccess = (response: any) => {
-    console.log("🎉 Réponse d'authentification Google:", {
+    console.log("🎉 Callback d'authentification Google appelé:", {
       hasAccessToken: !!response.access_token,
       tokenLength: response.access_token?.length,
-      error: response.error
+      error: response.error,
+      responseKeys: Object.keys(response || {})
     });
+
+    // Arrêter le loading immédiatement pour éviter les états bloqués
+    setAuthState(prev => ({ ...prev, loading: false }));
 
     if (response.error) {
       console.error("❌ Erreur dans la réponse Google:", response.error);
-      setAuthState(prev => ({ ...prev, loading: false }));
       
       if (response.error === 'popup_closed_by_user') {
         toast({
           title: "Connexion annulée",
           description: "La fenêtre de connexion a été fermée",
+        });
+      } else if (response.error === 'access_denied') {
+        toast({
+          title: "Accès refusé",
+          description: "L'accès à votre compte Google a été refusé",
         });
       } else {
         toast({
@@ -150,64 +168,68 @@ export const useAuth = () => {
     if (response.access_token) {
       console.log("🔑 Token d'accès reçu, récupération du profil...");
       
-      // Récupérer les informations du profil utilisateur
-      fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-        headers: {
-          Authorization: `Bearer ${response.access_token}`,
-        },
-      })
-        .then((res) => {
-          console.log("📊 Réponse profil utilisateur:", res.status);
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-          }
-          return res.json();
-        })
-        .then((userInfo) => {
-          console.log("👤 Informations utilisateur récupérées:", {
-            email: userInfo.email,
-            name: userInfo.name
-          });
-          
-          // Sauvegarder les données d'authentification
-          const authData = {
-            userEmail: userInfo.email,
-            accessToken: response.access_token,
-            userInfo: userInfo,
-            timestamp: Date.now()
-          };
-          
-          localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
-          
-          setAuthState({
-            userEmail: userInfo.email,
-            loading: false,
-          });
-
-          toast({
-            title: "Connexion réussie !",
-            description: `Connecté en tant que ${userInfo.email}`,
-          });
-
-          console.log("✅ Authentification terminée avec succès");
-        })
-        .catch((error) => {
-          console.error("❌ Erreur lors de la récupération du profil:", error);
-          setAuthState({ userEmail: null, loading: false });
-          
-          toast({
-            title: "Erreur de connexion",
-            description: "Impossible de récupérer les informations du profil",
-            variant: "destructive",
-          });
-        });
+      // Utiliser un timeout pour éviter les problèmes de canal fermé
+      setTimeout(() => {
+        fetchUserProfile(response.access_token);
+      }, 100);
     } else {
       console.error("❌ Aucun token d'accès reçu");
-      setAuthState({ userEmail: null, loading: false });
-      
       toast({
         title: "Erreur d'authentification",
         description: "Aucun token d'accès reçu de Google",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchUserProfile = async (accessToken: string) => {
+    try {
+      console.log("📊 Récupération du profil utilisateur...");
+      
+      const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const userInfo = await response.json();
+      console.log("👤 Informations utilisateur récupérées:", {
+        email: userInfo.email,
+        name: userInfo.name
+      });
+      
+      // Sauvegarder les données d'authentification
+      const authData = {
+        userEmail: userInfo.email,
+        accessToken: accessToken,
+        userInfo: userInfo,
+        timestamp: Date.now()
+      };
+      
+      localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
+      
+      setAuthState({
+        userEmail: userInfo.email,
+        loading: false,
+      });
+
+      toast({
+        title: "Connexion réussie !",
+        description: `Connecté en tant que ${userInfo.email}`,
+      });
+
+      console.log("✅ Authentification terminée avec succès");
+    } catch (error) {
+      console.error("❌ Erreur lors de la récupération du profil:", error);
+      setAuthState({ userEmail: null, loading: false });
+      
+      toast({
+        title: "Erreur de connexion",
+        description: "Impossible de récupérer les informations du profil",
         variant: "destructive",
       });
     }
@@ -235,6 +257,25 @@ export const useAuth = () => {
     
     try {
       console.log("🔑 Déclenchement du popup d'authentification Google");
+      
+      // Ajouter un timeout de sécurité pour éviter les états bloqués
+      const timeoutId = setTimeout(() => {
+        console.warn("⏰ Timeout de l'authentification après 30 secondes");
+        setAuthState(prev => ({ ...prev, loading: false }));
+        toast({
+          title: "Timeout de connexion",
+          description: "La connexion a pris trop de temps. Veuillez réessayer.",
+          variant: "destructive",
+        });
+      }, 30000);
+
+      // Nettoyer le timeout si l'auth réussit
+      const originalCallback = googleClient.callback;
+      googleClient.callback = (response: any) => {
+        clearTimeout(timeoutId);
+        originalCallback(response);
+      };
+
       googleClient.requestAccessToken();
       console.log("📱 Popup d'authentification demandé");
     } catch (error) {
