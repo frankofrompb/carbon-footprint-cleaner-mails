@@ -3,13 +3,18 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AuthState {
+  isAuthenticated: boolean;
+  provider?: 'gmail' | 'outlook' | null;
   userEmail: string | null;
+  accessToken?: string | null;
   loading: boolean;
+  error?: string | null;
 }
 
 export const useAuth = () => {
   const { toast } = useToast();
   const [authState, setAuthState] = useState<AuthState>({
+    isAuthenticated: false,
     userEmail: null,
     loading: false,
   });
@@ -27,7 +32,9 @@ export const useAuth = () => {
         
         if (parsedAuth.userEmail && parsedAuth.accessToken) {
           setAuthState({
+            isAuthenticated: true,
             userEmail: parsedAuth.userEmail,
+            accessToken: parsedAuth.accessToken,
             loading: false,
           });
           console.log("✅ Utilisateur déjà connecté:", parsedAuth.userEmail);
@@ -128,45 +135,88 @@ export const useAuth = () => {
     console.log("🎉 Callback d'authentification Google appelé:", {
       hasAccessToken: !!response.access_token,
       tokenLength: response.access_token?.length,
-      error: response.error,
-      responseKeys: Object.keys(response || {})
+      scopes: response.scope,
+      error: response.error
     });
 
-    // Arrêter le loading immédiatement pour éviter les états bloqués
-    setAuthState(prev => ({ ...prev, loading: false }));
-
     if (response.error) {
-      console.error("❌ Erreur dans la réponse Google:", response.error);
-      
-      if (response.error === 'popup_closed_by_user') {
-        toast({
-          title: "Connexion annulée",
-          description: "La fenêtre de connexion a été fermée",
-        });
-      } else if (response.error === 'access_denied') {
-        toast({
-          title: "Accès refusé",
-          description: "L'accès à votre compte Google a été refusé",
-        });
-      } else {
-        toast({
-          title: "Erreur d'authentification",
-          description: `Erreur Google: ${response.error}`,
-          variant: "destructive",
-        });
-      }
+      console.error("❌ ERREUR GOOGLE AUTH:", response.error);
+      toast({
+        title: "Erreur d'authentification",
+        description: `Erreur Google: ${response.error}`,
+        variant: "destructive",
+      });
       return;
     }
 
     if (response.access_token) {
-      console.log("🔑 Token d'accès reçu, récupération du profil...");
+      console.log("✅ TOKEN D'ACCÈS REÇU - LONGUEUR:", response.access_token.length);
       
-      // Utiliser un timeout pour éviter les problèmes de canal fermé
-      setTimeout(() => {
-        fetchUserProfile(response.access_token);
-      }, 100);
+      // Stocker le token et les données d'auth
+      const authData = {
+        accessToken: response.access_token,
+        tokenType: response.token_type || 'Bearer',
+        expiresIn: response.expires_in,
+        scope: response.scope,
+        timestamp: Date.now()
+      };
+      
+      console.log("💾 SAUVEGARDE AUTH DATA:", {
+        hasAccessToken: !!authData.accessToken,
+        tokenLength: authData.accessToken.length,
+        expiresIn: authData.expiresIn,
+        timestamp: authData.timestamp
+      });
+
+      const authDataWithEmail = { ...authData, userEmail: '' }; // Sera mis à jour avec l'email réel
+      localStorage.setItem("emailCleanerAuth", JSON.stringify(authDataWithEmail));
+
+      // TEST IMMÉDIAT DU TOKEN
+      console.log("🧪 TEST IMMÉDIAT DU TOKEN AVEC L'API GMAIL...");
+      fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+        headers: {
+          'Authorization': `Bearer ${response.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(response => {
+        console.log("📊 STATUS TEST TOKEN:", response.status);
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error(`Status: ${response.status}`);
+        }
+      })
+      .then(profileData => {
+        console.log("✅ TOKEN VALIDE - PROFIL:", profileData.emailAddress);
+        // Mettre à jour avec l'email réel
+        const finalAuthData = { ...authData, userEmail: profileData.emailAddress };
+        localStorage.setItem("emailCleanerAuth", JSON.stringify(finalAuthData));
+        
+        setAuthState({
+          isAuthenticated: true,
+          provider: 'gmail',
+          userEmail: profileData.emailAddress,
+          accessToken: response.access_token,
+          loading: false,
+          error: null,
+        });
+        
+        toast({
+          title: "Connexion réussie",
+          description: `Connecté à Gmail : ${profileData.emailAddress}`,
+        });
+      })
+      .catch(error => {
+        console.error("❌ ÉCHEC TEST TOKEN:", error);
+        toast({
+          title: "Token invalide",
+          description: "Le token d'accès Gmail n'est pas valide",
+          variant: "destructive",
+        });
+      });
     } else {
-      console.error("❌ Aucun token d'accès reçu");
+      console.error("❌ Aucun access_token dans la réponse");
       toast({
         title: "Erreur d'authentification",
         description: "Aucun token d'accès reçu de Google",
@@ -175,129 +225,33 @@ export const useAuth = () => {
     }
   };
 
-  const fetchUserProfile = async (accessToken: string) => {
-    try {
-      console.log("📊 Récupération du profil utilisateur...");
-      
-      const response = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const userInfo = await response.json();
-      console.log("👤 Informations utilisateur récupérées:", {
-        email: userInfo.email,
-        name: userInfo.name
-      });
-      
-      // Sauvegarder les données d'authentification
-      const authData = {
-        userEmail: userInfo.email,
-        accessToken: accessToken,
-        userInfo: userInfo,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem("emailCleanerAuth", JSON.stringify(authData));
-      
-      setAuthState({
-        userEmail: userInfo.email,
-        loading: false,
-      });
-
-      toast({
-        title: "Connexion réussie !",
-        description: `Connecté en tant que ${userInfo.email}`,
-      });
-
-      console.log("✅ Authentification terminée avec succès");
-      
-      // Rediriger vers la page de callback pour gérer la navigation
-      window.location.href = '/auth/callback';
-    } catch (error) {
-      console.error("❌ Erreur lors de la récupération du profil:", error);
-      setAuthState({ userEmail: null, loading: false });
-      
-      toast({
-        title: "Erreur de connexion",
-        description: "Impossible de récupérer les informations du profil",
-        variant: "destructive",
-      });
-    }
-  };
-
   const loginWithGmail = () => {
-    console.log("🚀 Début du processus d'authentification Gmail...");
-    
-    if (!googleClient) {
+    console.log("🚀 Tentative de connexion Gmail...");
+    if (googleClient) {
+      console.log("✅ Client disponible, demande du token...");
+      setAuthState(prev => ({ ...prev, loading: true }));
+      googleClient.requestAccessToken();
+    } else {
       console.error("❌ Client Google non initialisé");
       toast({
-        title: "Service non prêt",
-        description: "Les services d'authentification ne sont pas encore prêts. Veuillez réessayer dans quelques secondes.",
-        variant: "destructive",
-      });
-      
-      // Réessayer d'initialiser
-      setTimeout(() => {
-        initializeGoogleAuth();
-      }, 1000);
-      return;
-    }
-    
-    setAuthState(prev => ({ ...prev, loading: true }));
-    
-    try {
-      console.log("🔑 Déclenchement du popup d'authentification Google");
-      
-      // Ajouter un timeout de sécurité pour éviter les états bloqués
-      const timeoutId = setTimeout(() => {
-        console.warn("⏰ Timeout de l'authentification après 30 secondes");
-        setAuthState(prev => ({ ...prev, loading: false }));
-        toast({
-          title: "Timeout de connexion",
-          description: "La connexion a pris trop de temps. Veuillez réessayer.",
-          variant: "destructive",
-        });
-      }, 30000);
-
-      // Nettoyer le timeout si l'auth réussit
-      const originalCallback = googleClient.callback;
-      googleClient.callback = (response: any) => {
-        clearTimeout(timeoutId);
-        originalCallback(response);
-      };
-
-      googleClient.requestAccessToken();
-      console.log("📱 Popup d'authentification demandé");
-    } catch (error) {
-      console.error("❌ Erreur lors du déclenchement de l'auth:", error);
-      setAuthState(prev => ({ ...prev, loading: false }));
-      
-      toast({
-        title: "Erreur de connexion",
-        description: "Impossible de démarrer l'authentification Google",
+        title: "Client non disponible",
+        description: "Le client d'authentification Google n'est pas prêt",
         variant: "destructive",
       });
     }
   };
 
   const logout = () => {
-    console.log("👋 Déconnexion de l'utilisateur");
-    
+    console.log("👋 Déconnexion...");
     localStorage.removeItem("emailCleanerAuth");
     setAuthState({
+      isAuthenticated: false,
       userEmail: null,
       loading: false,
     });
-
     toast({
-      title: "Déconnexion réussie",
-      description: "Vous avez été déconnecté avec succès",
+      title: "Déconnexion",
+      description: "Vous êtes maintenant déconnecté",
     });
   };
 
