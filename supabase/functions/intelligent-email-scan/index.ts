@@ -210,10 +210,14 @@ const handler = async (req: Request): Promise<Response> => {
     const totalSize = allEmails.reduce((sum, email) => sum + (email.size || 0), 0);
     const totalSizeMB = totalSize / 1024;
 
+    const totalCount = typeof profileData?.messagesTotal === 'number'
+      ? profileData.messagesTotal
+      : (searchData.resultSizeEstimate || messageIds.length);
+
     const results: ScanResults = {
-      totalEmails: searchData.resultSizeEstimate || messageIds.length,
+      totalEmails: totalCount,
       totalSizeMB,
-      carbonFootprint: (searchData.resultSizeEstimate || messageIds.length) * 10,
+      carbonFootprint: totalCount * 10,
       emails: allEmails,
       summary,
     };
